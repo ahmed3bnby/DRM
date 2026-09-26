@@ -11,15 +11,62 @@ import { getSourceRecord } from '@/lib/search';
 import { extractRecordCountry, extractRecordDob, extractRecordIdentifier } from '@/lib/record-details';
 import { customerSchema, teamUserSchema, canManageCustomers, uuidSchema } from '@/lib/validation';
 
+import { isPlatformOwner } from '@/lib/platform-access';
+import { setSystemLockdown } from '@/lib/platform';
+
 export type LoginState = {error?: string};
 export async function loginAction(_previous: LoginState, data: FormData): Promise<LoginState> {
-  const email = String(data.get('email') ?? '');
+  const email = String(data.get('email') ?? '').trim();
   const password = String(data.get('password') ?? '');
   const remember = data.get('remember') === 'on';
-  if (!email || !password || !(await createSession(email,password,remember))) return {error: 'تعذر تسجيل الدخول. راجع البيانات أو انتظر قليلًا إذا تكررت المحاولات.'};
+  if (!email || !password) {
+    return { error: 'يرجى إدخال البريد الإلكتروني وكلمة المرور.' };
+  }
+  const sessionRes = await createSession(email, password, remember);
+  if (!sessionRes.success) {
+    if (sessionRes.reason === 'maintenance') {
+      return {
+        error: '⚠️ النظام في وضع الصيانة والتحديث حالياً بقرار من إدارة المنصة. الدخول متاح فقط لحساب السوبر أدمن.',
+      };
+    }
+    if (sessionRes.reason === 'rate_limited') {
+      return {
+        error: 'تجاوزت الحد المسموح من المحاولات. يرجى الانتظار 15 دقيقة ثم المحاولة مجددًا.',
+      };
+    }
+    return {
+      error: 'تعذر تسجيل الدخول. راجع البيانات أو انتظر قليلًا إذا تكررت المحاولات.',
+    };
+  }
   redirect('/');
 }
 export async function logoutAction() { await destroySession(); redirect('/login'); }
+
+export async function toggleSystemLockdownAction(data: FormData) {
+  const actor = await requireActor();
+  if (!isPlatformOwner(actor)) {
+    throw new Error('FORBIDDEN');
+  }
+  const enabled = data.get('enabled') === 'true';
+  const messageAr = String(data.get('messageAr') ?? '');
+  const messageEn = String(data.get('messageEn') ?? '');
+  await setSystemLockdown(actor, enabled, messageAr, messageEn);
+  revalidatePath('/platform');
+  revalidatePath('/');
+  revalidatePath('/login');
+  redirect('/platform?lockdown_saved=1');
+}
+
+export async function quickReenableSystemAction() {
+  const actor = await requireActor();
+  if (!isPlatformOwner(actor)) {
+    throw new Error('FORBIDDEN');
+  }
+  await setSystemLockdown(actor, false);
+  revalidatePath('/platform');
+  revalidatePath('/');
+  revalidatePath('/login');
+}
 
 export type FormState = {error?: string; fields?: Record<string, string[] | undefined>; values?: Record<string,string>};
 export async function createCustomerAction(_previous: FormState, data: FormData): Promise<FormState> {

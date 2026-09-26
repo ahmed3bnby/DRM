@@ -6531,3 +6531,147 @@ html[dir="rtl"] .sources-search-input {
   font-weight: 600;
 }
 
+/* Super-Admin System Lockdown & Maintenance Panel */
+.system-lockdown-panel {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+.system-lockdown-panel.is-locked-down {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, rgba(239, 68, 68, 0.01) 100%);
+}
+.system-lockdown-panel.is-operational {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.04) 0%, rgba(16, 185, 129, 0.01) 100%);
+}
+.system-lockdown-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+.system-lockdown-title-wrap {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.system-lockdown-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.system-lockdown-icon.icon-operational {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+.system-lockdown-icon.icon-locked {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+.system-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.system-status-indicator.badge-operational {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.system-status-indicator.badge-locked {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.status-ping-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background: currentColor;
+}
+.badge-operational .status-ping-dot {
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+}
+.badge-locked .status-ping-dot {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+}
+.system-lockdown-body {
+  padding-top: 16px;
+}
+.system-lockdown-alert {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.system-lockdown-alert.alert-warning {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--text, #1e293b);
+}
+.system-lockdown-alert.alert-warning svg {
+  color: #ef4444;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.system-lockdown-alert.alert-info {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: var(--text, #1e293b);
+}
+.system-lockdown-alert.alert-info svg {
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Super-Admin Persistent Workspace Top Banner */
+.superadmin-lockdown-banner {
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+[data-theme="dark"] .superadmin-lockdown-banner {
+  background: #450a0a;
+  border-bottom: 1px solid #7f1d1d;
+  color: #fca5a5;
+}
+.lockdown-banner-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lockdown-banner-text svg {
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+

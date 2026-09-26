@@ -32,3 +32,54 @@ export async function updateOrgPlan(orgId: string, patch: { features: Record<str
   await pool.query('UPDATE organizations SET features=$2, member_limit=$3, plan=$4 WHERE id=$1',
     [orgId, JSON.stringify(features), limit, plan]);
 }
+
+export type SystemLockdown = {
+  enabled: boolean;
+  message_ar?: string;
+  message_en?: string;
+  updated_at?: string;
+  updated_by?: string;
+};
+
+export async function getSystemLockdown(): Promise<SystemLockdown> {
+  try {
+    const res = await pool.query(
+      `SELECT value, updated_at, updated_by FROM system_settings WHERE key = 'system_lockdown'`
+    );
+    if (!res.rowCount || !res.rows[0]) {
+      return { enabled: false };
+    }
+    const row = res.rows[0];
+    const val = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+    return {
+      enabled: !!val?.enabled,
+      message_ar: val?.message_ar || '',
+      message_en: val?.message_en || '',
+      updated_at: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
+      updated_by: row.updated_by || undefined,
+    };
+  } catch (err) {
+    console.error('Failed to query system lockdown status:', err);
+    return { enabled: false };
+  }
+}
+
+export async function setSystemLockdown(
+  actor: { id: string; email?: string; role: string },
+  enabled: boolean,
+  messageAr?: string,
+  messageEn?: string
+) {
+  const payload = {
+    enabled,
+    message_ar: messageAr?.trim() || '',
+    message_en: messageEn?.trim() || '',
+  };
+  await pool.query(
+    `INSERT INTO system_settings (key, value, updated_at, updated_by)
+     VALUES ('system_lockdown', $1::jsonb, now(), $2)
+     ON CONFLICT (key) DO UPDATE
+     SET value = EXCLUDED.value, updated_at = now(), updated_by = EXCLUDED.updated_by`,
+    [JSON.stringify(payload), actor.id]
+  );
+}

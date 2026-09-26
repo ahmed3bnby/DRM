@@ -1,16 +1,22 @@
 import Link from 'next/link';
 import {isPlatformOwner} from '@/lib/platform-access';
 import {hasFeature} from '@/lib/features';
-import { LogOut } from 'lucide-react';
+import { LogOut, AlertTriangle, Power } from 'lucide-react';
 import Navigation from './navigation';
 import SidebarShell from './sidebar-shell';
 import LanguageToggle from './language-toggle';
 import type { Actor } from '@/lib/auth';
-import { logoutAction } from '@/app/actions';
+import { logoutAction, quickReenableSystemAction } from '@/app/actions';
 import { getMessages, getLocale } from '@/lib/i18n';
+import { getSystemLockdown } from '@/lib/platform';
 
 export default async function Shell({ actor, children }: { actor: Actor; children: React.ReactNode }) {
-  const [m, locale] = await Promise.all([getMessages(), getLocale()]);
+  const isOwner = isPlatformOwner(actor);
+  const [m, locale, lockdown] = await Promise.all([
+    getMessages(),
+    getLocale(),
+    isOwner ? getSystemLockdown() : Promise.resolve({ enabled: false })
+  ]);
   return <div className="app-shell">
     <a href="#main" className="skip-link">{m.skip}</a>
     <SidebarShell closeLabel={m.sidebarClose} openLabel={m.sidebarOpen}>
@@ -39,6 +45,36 @@ export default async function Shell({ actor, children }: { actor: Actor; childre
       </div>
     </SidebarShell>
     <div className="app-body">
+      {isOwner && lockdown.enabled && (
+        <aside className="superadmin-lockdown-banner" role="alert">
+          <div className="lockdown-banner-text">
+            <AlertTriangle size={17} />
+            <span>
+              {locale === 'en'
+                ? 'System Lockdown Active: The platform is currently disabled for regular users. Only Super Admin has access.'
+                : 'وضع الصيانة نشط: النظام معطّل حالياً أمام كافة المستخدمين والمؤسسات، ولا يمكن لأحد الدخول سواك.'}
+            </span>
+          </div>
+          <form action={quickReenableSystemAction}>
+            <button
+              type="submit"
+              className="button primary"
+              style={{
+                background: 'var(--success, #10b981)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.8rem',
+                padding: '0.35rem 0.75rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Power size={13} />
+              <span>{locale === 'en' ? 'Re-enable System Now' : 'تشغيل النظام الآن'}</span>
+            </button>
+          </form>
+        </aside>
+      )}
       <main id="main" className="main">{children}</main>
       <footer className="footer">
         <span><a href="https://drmuae.com/" target="_blank" rel="noopener noreferrer" dir="ltr" translate="no" className="footer-brand-link">DRM</a> · {m.footerName}</span>

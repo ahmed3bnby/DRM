@@ -8,25 +8,24 @@ import {
 } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
 import { isPlatformOwner } from '@/lib/platform-access';
-import { listAllOrgs } from '@/lib/platform';
+import { listAllOrgs, getSystemLockdown } from '@/lib/platform';
 import { getLocale, getMessages } from '@/lib/i18n';
 import { number } from '@/components/ui';
 import PlatformOrgForm from '@/components/platform-org-form';
+import SystemLockdownControl from '@/components/system-lockdown-control';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
-
 export default async function PlatformPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; lockdown_saved?: string }>;
 }) {
   const actor = await requireActor();
   if (!isPlatformOwner(actor)) notFound();
 
-  const [sp, locale, orgs] = await Promise.all([searchParams, getLocale(), listAllOrgs()]);
+  const [sp, locale, orgs, lockdown] = await Promise.all([searchParams, getLocale(), listAllOrgs(), getSystemLockdown()]);
   await getMessages();
   const en = locale === 'en';
 
@@ -75,6 +74,23 @@ export default async function PlatformPage({
           </div>
         </div>
       )}
+
+      {sp.lockdown_saved && (
+        <div className="success-message platform-success-banner" role="status">
+          <CheckCircle2 size={18} />
+          <div>
+            <strong>{en ? 'Operational status updated' : 'تم تحديث حالة تشغيل المنظومة بنجاح'}</strong>
+            <p>
+              {lockdown.enabled
+                ? (en ? 'System lockdown is now active. Regular users cannot sign in.' : 'تم تفعيل وضع الصيانة وتعطيل وصول المستخدمين بنجاح.')
+                : (en ? 'System has been re-enabled. Regular user access is restored.' : 'تم تشغيل النظام واستئناف العمل لكافة المستخدمين بنجاح.')}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Super-Admin System Operational Control */}
+      <SystemLockdownControl lockdown={lockdown} locale={locale} />
 
       {/* Metric Cards Overview */}
       <div className="platform-stats-grid">

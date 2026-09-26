@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation';
 import { pool } from './db';
 import { verifyPassword } from './password';
 
+import { isSuperAdminEmail, isSuperAdminId } from './platform-access';
+import { getSystemLockdown } from './platform';
+
 export type Actor = { id: string; organizationId: string; organizationName: string; displayName: string; email: string; role: string; plan?: string; features?: Record<string, boolean>; memberLimit?: number };
 const digest = (value: string) => createHash('sha256').update(value).digest('hex');
 const cookieName = 'mizan_session';
@@ -26,24 +29,52 @@ export async function currentActor(): Promise<Actor | null> {
     u.display_name AS "displayName", u.email, u.role FROM sessions s
     JOIN users u ON u.id=s.user_id JOIN organizations o ON o.id=u.organization_id
     WHERE s.token_hash=$1 AND s.expires_at>now() AND u.disabled_at IS NULL`, [digest(token)]);
-  return result.rows[0] ?? null;
+  const actor = result.rows[0] ?? null;
+  if (!actor) return null;
+
+  // If system lockdown is active, only Super Admin can access the system!
+  if (!isSuperAdminEmail(actor.email) && !isSuperAdminId(actor.id)) {
+    const lockdown = await getSystemLockdown();
+    if (lockdown.enabled) {
+      return null;
+    }
+  }
+
+  return actor;
 }
 export async function requireActor(): Promise<Actor> {
   const actor = await currentActor();
   if (!actor) redirect('/login');
   return actor;
 }
-export async function createSession(email: string, password: string, remember = false): Promise<boolean> {
+
+export type SessionResult =
+  | { success: true }
+  | { success: false; reason: 'maintenance' | 'rate_limited' | 'invalid' };
+
+export async function createSession(email: string, password: string, remember = false): Promise<SessionResult> {
   await assertLocalRuntime();
-  if (email.length > 254 || password.length > 200) return false;
-  const key = digest(email.toLowerCase().trim());
+  if (email.length > 254 || password.length > 200) return { success: false, reason: 'invalid' };
+
+  const cleanEmail = email.toLowerCase().trim();
+  const isSuperAdmin = isSuperAdminEmail(cleanEmail);
+
+  // If system is disabled/in maintenance, only Super Admin can log in!
+  if (!isSuperAdmin) {
+    const lockdown = await getSystemLockdown();
+    if (lockdown.enabled) {
+      return { success: false, reason: 'maintenance' };
+    }
+  }
+
+  const key = digest(cleanEmail);
   const result = await pool.query("SELECT count(*)::int AS count FROM login_attempts WHERE email_key=$1 AND created_at>now()-interval '15 minutes'", [key]);
-  if (result.rows[0].count >= 10) return false;
+  if (result.rows[0].count >= 10) return { success: false, reason: 'rate_limited' };
   await pool.query('INSERT INTO login_attempts(email_key) VALUES ($1)', [key]);
-  const users = await pool.query('SELECT id,password_hash FROM users WHERE email=$1 AND disabled_at IS NULL', [email.toLowerCase().trim()]);
+  const users = await pool.query('SELECT id,password_hash FROM users WHERE email=$1 AND disabled_at IS NULL', [cleanEmail]);
   const user = users.rows[0];
   const dummy = '0'.repeat(32) + ':' + '0'.repeat(128);
-  if (!verifyPassword(password, user?.password_hash ?? dummy) || !user) return false;
+  if (!verifyPassword(password, user?.password_hash ?? dummy) || !user) return { success: false, reason: 'invalid' };
   const jar = await cookies();
   const old = jar.get(cookieName)?.value;
   if (old) await pool.query('DELETE FROM sessions WHERE token_hash=$1', [digest(old)]);
@@ -51,7 +82,7 @@ export async function createSession(email: string, password: string, remember = 
   const lifetime = remember ? 30 * 24 * 60 * 60 : 8 * 60 * 60;
   await pool.query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES ($1,$2,now()+($3 * interval '1 second'))", [digest(token), user.id, lifetime]);
   jar.set(cookieName, token, { httpOnly: true, sameSite: 'strict', secure: process.env.APP_ORIGIN?.startsWith('https:') ?? false, path: '/', maxAge: lifetime });
-  return true;
+  return { success: true };
 }
 export async function destroySession() {
   await assertLocalRuntime();

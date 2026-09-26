@@ -1,7 +1,8 @@
-import { Files, ScanSearch, ClipboardCheck, LockKeyhole, ShieldCheck, Award } from 'lucide-react';
+import { Files, ScanSearch, ClipboardCheck, LockKeyhole, ShieldCheck, Award, AlertTriangle } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { currentActor } from '@/lib/auth';
 import { getMessages, getLocale } from '@/lib/i18n';
+import { getSystemLockdown } from '@/lib/platform';
 import LoginForm from '@/components/login-form';
 import LanguageToggle from '@/components/language-toggle';
 
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function Login() {
   if (await currentActor()) redirect('/');
-  const [m, locale] = await Promise.all([getMessages(), getLocale()]);
+  const [m, locale, lockdown] = await Promise.all([getMessages(), getLocale(), getSystemLockdown()]);
   const isAr = locale === 'ar';
 
   return (
@@ -102,6 +103,33 @@ export default async function Login() {
             </div>
             <h2>{m.loginWelcome}</h2>
             <p>{m.loginSub}</p>
+            {lockdown.enabled && (
+              <div className="maintenance-login-banner" role="alert" style={{
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                borderRadius: '8px',
+                padding: '0.75rem 0.9rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                gap: '0.6rem',
+                alignItems: 'flex-start',
+                fontSize: '0.82rem',
+                lineHeight: '1.45',
+                color: 'var(--text, #1e293b)'
+              }}>
+                <AlertTriangle size={18} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <strong style={{ color: '#ef4444', display: 'block', marginBottom: '0.2rem' }}>
+                    {isAr ? 'النظام في وضع الصيانة والتوقف المؤقت' : 'System Currently Under Maintenance'}
+                  </strong>
+                  <span>
+                    {isAr
+                      ? (lockdown.message_ar || 'تم إيقاف دخول واستخدام المنظومة مؤقتاً لأعمال التحديث. تسجيل الدخول متاح فقط لحساب الإدارة العليا (Super Admin).')
+                      : (lockdown.message_en || 'The platform is temporarily suspended for maintenance. Sign-in is restricted exclusively to Super-Admin.')}
+                  </span>
+                </div>
+              </div>
+            )}
             <LoginForm />
             <div className="login-card-foot">
               <LockKeyhole size={14} aria-hidden="true" />
