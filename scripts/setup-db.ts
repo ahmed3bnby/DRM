@@ -32,7 +32,9 @@ try {
   await db.query(await readFile('db/012_username.sql', 'utf8'));
   await db.query(await readFile('db/013_review_cases.sql', 'utf8'));
   await db.query(await readFile('db/014_review_case_dedupe.sql', 'utf8'));
+  await db.query(await readFile('db/015_admin_deletion.sql', 'utf8'));
   await db.query(await readFile('db/015_phonetic.sql', 'utf8'));
+  await db.query(await readFile('db/016_search_history.sql', 'utf8'));
   const organizations = [
     ['10000000-0000-4000-8000-000000000001', 'مكتب الأفق للمحاسبة', 'ORG-001'],
     ['10000000-0000-4000-8000-000000000002', 'مكتب البيان للتدقيق', 'ORG-002']
