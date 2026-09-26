@@ -11,9 +11,11 @@ export type CatalogSource = {code:string;title:string;type:string;country?:strin
 type Catalog = {retrievedAt?:string;total:number;sources:CatalogSource[]};
 
 
+import defaultCatalog from '@/data/source-catalog.json';
+
 // The public-source registry array, written by the OpenSanctions catalog step.
 export async function sourceCatalog(): Promise<Catalog|null> {
-  try { return JSON.parse(await readFile(path.join(process.cwd(),'.local/sources/_catalog.json'),'utf8')); } catch { return null; }
+  try { return JSON.parse(await readFile(path.join(process.cwd(),'.local/sources/_catalog.json'),'utf8')); } catch { return defaultCatalog as unknown as Catalog; }
 }
 // The lists we actively track and import.
 export async function watchlistCodes(): Promise<string[]> {

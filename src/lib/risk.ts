@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import defaultCatalog from '@/data/source-catalog.json';
 
 // NOTE: `band` here is SCREENING-MATCH SEVERITY (شدّة المطابقة) — how strong/serious a
 // source hit is — NOT the customer's final risk rating. Per the plan's principle #3,
@@ -10,7 +11,16 @@ export type RiskBand = 'high'|'medium'|'low';
 
 // Category comes from the OpenSanctions collection a list belongs to (data-driven, in the
 // catalog). Legacy direct-connector codes are mapped explicitly.
-const LEGACY:Record<string,Category> = {UN:'sanctions',UK:'sanctions',OFAC:'sanctions',CSL:'sanctions',EU:'sanctions',UAE:'sanctions'};
+const LEGACY:Record<string,Category> = {
+  UN:'sanctions',UK:'sanctions',OFAC:'sanctions',CSL:'sanctions',EU:'sanctions',UAE:'sanctions',
+  ae_local_terrorists:'sanctions', sa_pcct_terrorism_list:'sanctions', us_ofac_sdn:'sanctions',
+  us_ofac_cons:'sanctions', un_sc_sanctions:'sanctions', eu_fsf:'sanctions',
+  gb_fcdo_sanctions:'sanctions', ch_seco_sanctions:'sanctions', us_trade_csl:'sanctions',
+  eg_terrorists:'sanctions', pk_proscribed_persons:'sanctions',
+  interpol_red_notices:'crime', ae_dfsa_prohibited:'crime',
+  worldbank_debarred:'debarment', us_cia_world_leaders:'pep',
+  eg_house_representatives:'pep', qa_shura_council:'pep', bh_nuwab:'pep', om_parliament:'pep'
+};
 export const CATEGORY_LABEL:Record<Category,string> = {
   sanctions:'عقوبات', debarment:'حظر تعاقد', crime:'جريمة / إنفاذ',
   regulatory:'إجراء رقابي', pep:'شخصية سياسية (PEP)', other:'قائمة مراقبة',
@@ -18,11 +28,22 @@ export const CATEGORY_LABEL:Record<Category,string> = {
 export const BAND_LABEL:Record<RiskBand,string> = {high:'مرتفع', medium:'متوسط', low:'منخفض'};
 
 export type CatalogMeta = {category:Category;title:string;country?:string};
+
+const BUNDLED_MAP: Record<string, CatalogMeta> = Object.fromEntries(
+  (defaultCatalog.sources as Array<{code:string;category:Category;title:string;country?:string}>).map(s => [
+    s.code,
+    { category: s.category as Category, title: s.title, country: s.country }
+  ])
+);
+
 export async function loadCategories():Promise<Record<string,CatalogMeta>> {
   try {
     const cat=JSON.parse(await readFile(path.join(process.cwd(),'.local/sources/_catalog.json'),'utf8'));
-    return Object.fromEntries(cat.sources.map((s:{code:string;category:Category;title:string;country?:string})=>[s.code,{category:s.category,title:s.title,country:s.country}]));
-  } catch { return {}; }
+    const diskMap = Object.fromEntries(cat.sources.map((s:{code:string;category:Category;title:string;country?:string})=>[s.code,{category:s.category,title:s.title,country:s.country}]));
+    return { ...BUNDLED_MAP, ...diskMap };
+  } catch {
+    return BUNDLED_MAP;
+  }
 }
 export function categoryOf(code:string, map:Record<string,CatalogMeta>):Category {
   return map[code]?.category ?? LEGACY[code] ?? 'other';
