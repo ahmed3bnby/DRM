@@ -302,9 +302,9 @@ export async function createCustomerFromSourceRecordAction(data: FormData) {
     name: r.name,
     entityType: isCompany ? 'company' : 'individual',
     country,
-    dateOfBirth,
-    identifier,
-    nationality: isCompany ? null : country,
+    dateOfBirth: dateOfBirth || '',
+    identifier: identifier || '',
+    nationality: isCompany ? '' : (country || ''),
     deliveryChannel: 'online',
     notes,
   });

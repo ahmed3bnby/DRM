@@ -32,13 +32,13 @@ export const customerSchema = z.object({
   name: z.string().trim().min(2, 'اكتب اسمًا من حرفين على الأقل').max(160, 'الاسم أطول من الحد المسموح'),
   entityType: z.enum(['individual', 'company'], { error: 'اختر نوع العميل' }),
   country: z.enum(countryOptions, { error: 'اختر الدولة' }),
-  nationality: z.string().trim().refine(c => c === '' || (countryCodes as readonly string[]).includes(c), 'اختر جنسية صحيحة').default(''),
-  deliveryChannel: z.enum(['', 'face_to_face', 'non_face_to_face', 'online'], { error: 'اختر قناة صحيحة' }).default(''),
-  email: z.union([z.literal(''), z.email('البريد الإلكتروني غير صحيح')]).default(''),
-  industry: z.string().trim().max(120, 'النشاط أطول من الحد المسموح').default(''),
-  dateOfBirth: z.string().trim().max(40, 'التاريخ أطول من الحد المسموح').default(''),
-  identifier: z.string().trim().max(80, 'المعرّف أطول من الحد المسموح').default(''),
-  notes: z.string().trim().max(2000, 'الملاحظات يجب ألا تتجاوز ٢٠٠٠ حرف').default('')
+  nationality: z.union([z.string(), z.null()]).optional().transform(v => (v ?? '').trim()).refine(c => c === '' || (countryCodes as readonly string[]).includes(c), 'اختر جنسية صحيحة').default(''),
+  deliveryChannel: z.union([z.enum(['', 'face_to_face', 'non_face_to_face', 'online']), z.null()]).optional().transform(v => v ?? '').default(''),
+  email: z.union([z.literal(''), z.null(), z.email('البريد الإلكتروني غير صحيح')]).optional().transform(v => v ?? '').default(''),
+  industry: z.union([z.string(), z.null()]).optional().transform(v => (v ?? '').trim().slice(0, 120)).default(''),
+  dateOfBirth: z.union([z.string(), z.null()]).optional().transform(v => (v ?? '').trim().slice(0, 40)).default(''),
+  identifier: z.union([z.string(), z.null()]).optional().transform(v => (v ?? '').trim().slice(0, 80)).default(''),
+  notes: z.union([z.string(), z.null()]).optional().transform(v => (v ?? '').trim().slice(0, 2000)).default('')
 });
 export type CustomerInput = z.infer<typeof customerSchema>;
 export const uuidSchema = z.uuid();

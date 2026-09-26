@@ -119,7 +119,7 @@ export default async function SourceDetail({
       </div>
 
       {/* Structured Details Sections */}
-      <SourceRecordDetails details={r.details} aliases={r.aliases} isAdmin={isAdmin} m={m} locale={locale} />
+      <SourceRecordDetails details={r.details || {}} aliases={r.aliases || []} isAdmin={isAdmin} m={m} locale={locale} />
 
       {/* Technical Reference (Admin Only) */}
       {isAdmin && (
@@ -135,7 +135,7 @@ export default async function SourceDetail({
               <div className="tech-meta-grid">
                 <div className="tech-meta-item">
                   <span className="tech-meta-label">{m.recImportTime}</span>
-                  <span className="tech-meta-value mono">{new Date(r.retrieved_at).toISOString()}</span>
+                  <span className="tech-meta-value mono">{r.retrieved_at ? new Date(r.retrieved_at).toISOString() : '—'}</span>
                 </div>
                 <div className="tech-meta-item">
                   <span className="tech-meta-label">{m.recReaderVer}</span>

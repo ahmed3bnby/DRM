@@ -358,7 +358,10 @@ export function SourceRecordDetails({
     groups.set(g, []);
   }
 
-  for (const [key, v] of Object.entries(details)) {
+  const detailsObj = details && typeof details === 'object' ? details : {};
+  const aliasesArr = Array.isArray(aliases) ? aliases : [];
+
+  for (const [key, v] of Object.entries(detailsObj)) {
     if (key.startsWith('_') || v == null || (Array.isArray(v) && !v.length)) continue;
     const g = detailGroup(key);
     groups.set(g, [...(groups.get(g) || []), [key, v]]);
@@ -370,7 +373,7 @@ export function SourceRecordDetails({
   return (
     <>
       {/* Aliases Card (if any) */}
-      {aliases.length > 0 && (
+      {aliasesArr.length > 0 && (
         <section className="panel source-section-panel aliases-panel">
           <div className="panel-heading">
             <h2>
