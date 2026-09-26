@@ -81,7 +81,8 @@ export default async function Profile({
   let wasAutoEnriched = false;
   if ((missingCountry || missingNat || missingDob || missingId) && (last?.top_matches ?? []).length > 0) {
     const confirmedMatch = (last?.top_matches ?? []).find(mt => decisions[mt.recordId]?.decision === 'confirmed');
-    const candidateMatch = confirmedMatch || (last?.top_matches ?? [])[0];
+    const firstMatch = (last?.top_matches ?? [])[0];
+    const candidateMatch = confirmedMatch || ((firstMatch?.percent ?? 0) >= 80 ? firstMatch : null);
     if (candidateMatch) {
       const srcRecord = sourceRecordsMap.get(candidateMatch.recordId);
       const details = srcRecord?.details;

@@ -78,9 +78,17 @@ export default async function Report({ params }: { params: Promise<{ id: string 
   const reviewPending = riskAssessment.isPending;
   const goAml = riskAssessment.goAml;
 
-  // Filter to relevant hits (medium/high) or any match with an explicit decision
+  // Filter to essential / material hits only:
+  // 1. High confidence hits (percent >= 80)
+  // 2. Or hits with an explicit confirmed decision
+  // Secondary / coincidental matches (< 80% without confirmed decision) are auto-excluded noise and kept out of the official report
   const allMatches = last?.top_matches ?? [];
-  const relevantHits = allMatches.filter(mt => mt.band !== 'low' || decisions[mt.recordId]);
+  const relevantHits = allMatches.filter(mt => {
+    const d = decisions[mt.recordId]?.decision;
+    if (d === 'confirmed') return true;
+    if (d === 'dismissed' && (mt.percent ?? 100) >= 80) return true;
+    return (mt.percent ?? 100) >= 80;
+  });
 
   // Clean deduplication for display so the same person/list isn't repeated multiple times
   const seenEntities = new Set<string>();
@@ -98,9 +106,9 @@ export default async function Report({ params }: { params: Promise<{ id: string 
 
   const resSanctioned = isSanctionedCountry(customer.country);
   const natSanctioned = isSanctionedCountry(customer.nationality);
-  const hasSanctionHit = !!last?.flags.sanctions;
-  const hasPepHit = !!last?.flags.pep;
-  const hasCrimeHit = !!last?.flags.crime;
+  const hasSanctionHit = !!riskAssessment.review.flags.sanctions || displayHits.some(m => m.category === 'sanctions' && decisions[m.recordId]?.decision !== 'dismissed');
+  const hasPepHit = !!riskAssessment.review.flags.pep || displayHits.some(m => m.category === 'pep' && decisions[m.recordId]?.decision !== 'dismissed');
+  const hasCrimeHit = !!riskAssessment.review.flags.crime || displayHits.some(m => m.category === 'crime' && decisions[m.recordId]?.decision !== 'dismissed');
 
   // Clean source list name formatter (short and readable)
   const cleanSourceName = (src: string) => {
@@ -397,10 +405,15 @@ export default async function Report({ params }: { params: Promise<{ id: string 
             <tbody>
               {displayHits.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="idenfo-empty-cell">
-                    {isEn
-                      ? 'No screening hits found. The customer is clear of all active sanctions and PEP watchlists.'
-                      : 'لا توجد مطابقات ذات صلة. ملف العميل سليم من قوائم العقوبات والملاحقة والسياسيين.'}
+                  <td colSpan={6} className="idenfo-empty-cell" style={{ textAlign: 'center', padding: '1.75rem 1rem' }}>
+                    <div style={{ color: 'var(--success, #10b981)', fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.35rem' }}>
+                      {isEn ? '✓ No Material Matches / Clear' : '✓ لا توجد مطابقات جوهرية / الملف سليم'}
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--muted, #64748b)' }}>
+                      {isEn
+                        ? 'No high-confidence hits (>= 80%) found. All minor secondary matches (< 80%) are auto-excluded. The customer is clear of active sanctions and PEP watchlists.'
+                        : 'لا توجد مطابقات جوهرية بنسبة 80% فما فوق. جميع النتائج الثانوية مستبعدة تلقائياً لضعف نسبة التشابه. ملف العميل سليم من قوائم العقوبات والملاحقة والسياسيين.'}
+                    </p>
                   </td>
                 </tr>
               ) : (
