@@ -9,7 +9,10 @@ import { saveScheduleConfig, type ScheduleFrequency } from '@/lib/schedule-confi
 
 export async function startSync() {
   const actor = await requireActor();
-  if (!isPlatformOwner(actor) || process.env.APP_ENV !== 'local') throw Error('FORBIDDEN');
+  if (actor.role !== 'admin') throw Error('FORBIDDEN');
+  if (process.env.APP_ENV !== 'local') {
+    return { ok: false, error: 'serverless' };
+  }
 
   const runs = await syncRuns();
   if (runs.some(r => r.status === 'running')) {
@@ -35,6 +38,7 @@ export async function startSync() {
   });
 
   revalidatePath('/admin');
+  revalidatePath('/sources');
   return { ok: true, status: 'requested' };
 }
 

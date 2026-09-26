@@ -28,15 +28,7 @@ export default async function Shell({ actor, children }: { actor: Actor; childre
         </div>
       </div>
       <Navigation isAdmin={actor.role === 'admin'} isOwner={isPlatformOwner(actor)} reviews={hasFeature(actor,'reviews')}/>
-      <div className="sidebar-help">
-        <span className="sidebar-help-badge">{locale === 'en' ? 'DRM Advisory' : 'استشارات DRM'}</span>
-        <strong>{m.helpTitle}</strong>
-        <p>{m.helpBody}</p>
-        <div className="sidebar-help-meta">
-          <span>{locale === 'en' ? 'Deira, Dubai' : 'دبي · ديرة'}</span>
-          <a href="tel:+971557610818" dir="ltr">+971 55 761 0818</a>
-        </div>
-      </div>
+
       <div className="sidebar-bottom">
         <span className="avatar" title={actor.displayName}>{actor.displayName[0]}</span>
         <span className="user-meta"><strong>{actor.displayName}</strong><small>{actor.role === 'admin' ? m.roleAdminOpt : actor.role === 'analyst' ? m.roleAnalystOpt : m.roleViewerOpt}</small></span>

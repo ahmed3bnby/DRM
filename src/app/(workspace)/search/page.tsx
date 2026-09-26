@@ -15,6 +15,7 @@ import {Lock} from 'lucide-react';
 import SearchForm from '@/components/search-form';
 import RecentSearchChips from '@/components/recent-search-chips';
 import {hasFeature} from '@/lib/features';
+import {isSourceAllowed} from '@/lib/source-categories';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 const RANK:Record<string,number>={high:3,medium:2,low:1};
@@ -29,21 +30,25 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<{q
  const withFallback = <T,>(p: Promise<T>, fallback: T, ms = 2000): Promise<T> =>
    Promise.race([p, new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms))]);
 
- const [coverage, results, catMap] = await Promise.all([
+ const [rawCoverage, rawResults, catMap] = await Promise.all([
    searchCoverage(),
-   searchPublicSources(q),
+   q.length >= 3 ? searchPublicSources(q) : Promise.resolve([]),
    loadCategories()
  ]);
 
+ const coverage = rawCoverage.filter(c => isSourceAllowed(c.code, actor));
+ const results = rawResults.filter(r => isSourceAllowed(r.code, actor));
+
  const canCompany = hasFeature(actor, 'company_search');
  const canAdverse = hasFeature(actor, 'adverse_media');
- const [companies, adverse] = q.length >= 3
+  const emptyCompany: Awaited<ReturnType<typeof gleifSearch>> = { status: 'not_searched', records: [] };
+  const [companies, adverse] = q.length >= 3
    ? await Promise.all([
-       withFallback(gleifSearch(q), { status: 'failed' as const, records: [] }),
-       withFallback(adverseMediaSearch(q), { status: 'failed' as const, articles: [] })
+       canCompany ? withFallback(gleifSearch(q), { status: 'failed' as const, records: [] }) : Promise.resolve(emptyCompany),
+       canAdverse ? withFallback(adverseMediaSearch(q), { status: 'failed' as const, articles: [] }) : Promise.resolve({ status: 'not_searched' as const, articles: [] })
      ])
    : [
-       { status: 'not_searched' as const, records: [] },
+       emptyCompany,
        { status: 'not_searched' as const, articles: [] }
      ];
  const advCatLabel=(c:string)=>({sanctions:m.catSanctions,laundering:locale==='en'?'Money laundering':'غسل أموال',fraud:locale==='en'?'Fraud':'احتيال',corruption:locale==='en'?'Bribery / corruption':'رشوة / فساد',terrorism:locale==='en'?'Terrorism':'إرهاب',crime:m.catCrime,other:locale==='en'?'Adverse':'خبر سلبي'} as Record<string,string>)[c]??c;

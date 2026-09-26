@@ -91,6 +91,10 @@ export default async function TeamPage({
       page: next.page || undefined,
     });
 
+  const memberLimit = actor.memberLimit || 5;
+  const remainingSeats = Math.max(0, memberLimit - activeCount);
+  const usagePercent = Math.min(100, Math.round((activeCount / memberLimit) * 100));
+
   return (
     <>
       <div className="page-heading">
@@ -105,6 +109,65 @@ export default async function TeamPage({
       </div>
 
       {search.removed === '1' && <div role="status" className="success-message">{m.teamRemovedNote}</div>}
+
+      {/* Plan Seat Allocation Banner */}
+      <section className="team-plan-banner panel stack-gap">
+        <div className="team-plan-info">
+          <div className="team-plan-icon">
+            <UsersRound size={22} />
+          </div>
+          <div className="team-plan-titles">
+            <div className="team-plan-pill-row">
+              <span className="team-plan-badge">
+                {locale === 'en' ? `Plan: ${(actor.plan || 'enterprise').toUpperCase()}` : `خطة الاشتراك: ${(actor.plan || 'enterprise').toUpperCase()}`}
+              </span>
+              <span className={`team-plan-status-pill ${remainingSeats === 0 ? 'limit-reached' : ''}`}>
+                {remainingSeats > 0
+                  ? (locale === 'en' ? `${number(remainingSeats)} seats available` : `${number(remainingSeats)} مقعد شاغر متاح`)
+                  : (locale === 'en' ? 'Seat limit reached' : 'تم بلوغ سقف المقاعد بالخطة')}
+              </span>
+            </div>
+            <h2>
+              {locale === 'en' ? 'Team Member Seats Allocation' : 'المقاعد المتاحة بالخطة'}
+            </h2>
+            <p>
+              {locale === 'en'
+                ? `Active team accounts: ${number(activeCount)} of ${number(memberLimit)} allowed seats.`
+                : `الحسابات المفعلة: ${number(activeCount)} من أصل ${number(memberLimit)} مقعد متاح في الخطة الحالية.`}
+            </p>
+          </div>
+        </div>
+
+        <div className="team-plan-stats-side">
+          <div className="team-plan-stat-box">
+            <span className="team-plan-stat-label">{locale === 'en' ? 'Plan Limit' : 'الحد المتاح بالخطة'}</span>
+            <strong className="team-plan-stat-num">{number(memberLimit)}</strong>
+            <small>{locale === 'en' ? 'total seats' : 'إجمالي المقاعد'}</small>
+          </div>
+
+          <div className="team-plan-stat-box">
+            <span className="team-plan-stat-label">{locale === 'en' ? 'Active Members' : 'المستخدمون النشطون'}</span>
+            <strong className="team-plan-stat-num text-emerald">{number(activeCount)}</strong>
+            <small>{locale === 'en' ? 'active accounts' : 'حساب مستخدم'}</small>
+          </div>
+
+          <div className="team-plan-stat-box">
+            <span className="team-plan-stat-label">{locale === 'en' ? 'Remaining Seats' : 'المقاعد المتبقية'}</span>
+            <strong className="team-plan-stat-num text-blue">{number(remainingSeats)}</strong>
+            <small>{locale === 'en' ? 'available to add' : 'متاح إضافتها'}</small>
+          </div>
+
+          <div className="team-plan-meter">
+            <div className="team-plan-meter-label">
+              <span>{locale === 'en' ? 'Seats Used' : 'نسبة الاستهلاك'}</span>
+              <strong>{usagePercent}%</strong>
+            </div>
+            <div className="progress-track" role="progressbar" aria-valuenow={usagePercent} aria-valuemin={0} aria-valuemax={100}>
+              <span style={{ width: `${usagePercent}%` }} />
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="team-overview panel">
         <div>

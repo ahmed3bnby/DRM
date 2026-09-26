@@ -4,6 +4,6 @@ import type {Actor} from './auth';
 export function platformOwnerIds(): string[] {
  return (process.env.PLATFORM_ADMIN_USER_IDS||'').split(',').map(v=>v.trim()).filter(Boolean);
 }
-export function isPlatformOwner(actor:Pick<Actor,'id'|'role'>){
- return actor.role==='admin'&&platformOwnerIds().includes(actor.id);
+export function isPlatformOwner(actor: Partial<Pick<Actor, 'id' | 'role'>>) {
+ return actor.role === 'admin' && !!actor.id && platformOwnerIds().includes(actor.id);
 }

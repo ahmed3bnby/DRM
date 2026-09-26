@@ -5,6 +5,7 @@ import { loadCategories, classifyMatch, assess, type ClassifiedMatch, type RiskB
 import { adverseMediaSearch, type AdverseArticle } from './adverse-media';
 import { canManageCustomers } from './validation';
 import type { Actor } from './auth';
+import { isSourceAllowed } from './source-categories';
 import { extractRecordCountry, extractRecordDob, extractRecordIdentifier, extractRecordAliases } from './record-details';
 
 const RANK: Record<RiskBand, number> = { high: 3, medium: 2, low: 1 };
@@ -74,13 +75,14 @@ export type ScreeningResult = {
 };
 
 // Screen by name, with entity-appropriate identity evidence when it is available.
-export async function screenCustomer(actor: Pick<Actor, 'organizationId'> & Partial<Pick<Actor, 'id' | 'role'>>, customerId: string): Promise<ScreeningResult> {
+export async function screenCustomer(actor: Pick<Actor, 'organizationId'> & Partial<Pick<Actor, 'id' | 'role' | 'features'>>, customerId: string): Promise<ScreeningResult> {
   if (actor.role && !canManageCustomers(actor.role)) throw new Error('FORBIDDEN');
   const actorId = actor.role === 'admin' ? undefined : actor.id;
   const customer = await getCustomer(actor.organizationId, customerId, actorId);
   if (!customer) throw new Error('NOT_FOUND');
   // Evaluate a wide candidate set (not the UI's 51-row display cap) so a real hit is never cut off.
-  const [results, catMap] = await Promise.all([searchPublicSources(customer.name, 300), loadCategories()]);
+  const [rawResults, catMap] = await Promise.all([searchPublicSources(customer.name, 300), loadCategories()]);
+  const results = rawResults.filter(r => isSourceAllowed(r.code, actor));
   const custYear = yearOf(customer.date_of_birth || '');
   const custId = digitsOnly(customer.identifier || '');
   const usedIdentifier = custId.length >= 5;
@@ -110,11 +112,14 @@ export async function screenCustomer(actor: Pick<Actor, 'organizationId'> & Part
 const STATUS_BY_BAND: Record<string, string> = { none: 'no_match', low: 'screened', medium: 'potential_match', high: 'potential_match' };
 
 // Run the screening and persist the outcome onto the customer profile (risk_level stays unassessed).
-export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizationId' | 'role'>, customerId: string) {
+export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizationId' | 'role'> & Partial<Pick<Actor, 'features'>>, customerId: string) {
   if (!canManageCustomers(actor.role)) throw new Error('FORBIDDEN');
   const { customer, matches, overall, usedDob, usedIdentifier } = await screenCustomer(actor, customerId);
   // Capture an adverse-media scan at screening time (stored with the run). Never fails the screening.
-  const adverse = await adverseMediaSearch(customer.name).catch(() => ({ status: 'failed' as const, articles: [] as never[], retrievedAt: undefined }));
+  const allowAdverse = !actor.features || actor.features.adverse_media !== false;
+  const adverse = allowAdverse
+    ? await adverseMediaSearch(customer.name).catch(() => ({ status: 'failed' as const, articles: [] as never[], retrievedAt: undefined }))
+    : { status: 'disabled' as const, articles: [] as never[], retrievedAt: undefined };
   const adverseStore = { status: adverse.status, count: adverse.articles.length, articles: adverse.articles.slice(0, 10), retrievedAt: adverse.retrievedAt };
   const status = STATUS_BY_BAND[overall.band] ?? 'screened';
   const top = matches.slice(0, 100).map(({ r, c, dobMatch, idMatch, dobConflict, sources }) => ({
@@ -128,7 +133,8 @@ export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizatio
     recordAliases: extractRecordAliases(r),
   }));
   // Fingerprint the source lists in effect now, so the report can be reproduced later.
-  const versions = (await searchCoverage()).map(v => ({ code: v.code, sha256: v.sha256, retrieved_at: v.retrieved_at, record_count: v.record_count }));
+  const allVersions = await searchCoverage();
+  const versions = allVersions.filter(v => isSourceAllowed(v.code, actor)).map(v => ({ code: v.code, sha256: v.sha256, retrieved_at: v.retrieved_at, record_count: v.record_count }));
   await withTenant(actor.organizationId, async db => {
     const screening = await db.query(`INSERT INTO customer_screenings
       (organization_id,customer_id,run_by,overall_band,flags,match_count,relevant_count,used_dob,used_identifier,top_matches,source_versions,adverse_media)

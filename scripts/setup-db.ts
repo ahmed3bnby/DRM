@@ -37,15 +37,18 @@ try {
   await db.query(await readFile('db/016_search_history.sql', 'utf8'));
   await db.query(await readFile('db/017_org_plans.sql', 'utf8'));
   const organizations = [
-    ['10000000-0000-4000-8000-000000000001', 'مكتب الأفق للمحاسبة', 'ORG-001'],
-    ['10000000-0000-4000-8000-000000000002', 'مكتب البيان للتدقيق', 'ORG-002']
+    ['10000000-0000-4000-8000-000000000001', 'DRM — Diligence Risk Management', 'DRM']
   ];
   const actors = [
     ['20000000-0000-4000-8000-000000000001', organizations[0][0], 'demo@mizan.test', 'سارة أحمد', 'admin'],
-    ['20000000-0000-4000-8000-000000000002', organizations[1][0], 'second@mizan.test', 'عمر خالد', 'admin'],
     ['20000000-0000-4000-8000-000000000003', organizations[0][0], 'auditor@mizan.test', 'مراجع مستقل', 'viewer']
   ];
-  for (const row of organizations) await db.query('INSERT INTO organizations(id,name,reference) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', row);
+  for (const row of organizations) {
+    await db.query(`INSERT INTO organizations(id,name,reference,plan,features,member_limit)
+      VALUES ($1,$2,$3,'enterprise','{"reviews":true,"adverse_media":true,"company_search":true}'::jsonb,100)
+      ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, reference=EXCLUDED.reference, plan='enterprise',
+        features='{"reviews":true,"adverse_media":true,"company_search":true}'::jsonb, member_limit=100`, row);
+  }
   for (const [id,org,email,name,role] of actors) {
     await db.query(`INSERT INTO users(id,organization_id,email,display_name,role,password_hash) VALUES ($1,$2,$3,$4,$5,$6)
       ON CONFLICT (id) DO UPDATE SET password_hash=EXCLUDED.password_hash`, [id,org,email,name,role,hashPassword(process.env.DEMO_PASSWORD)]);
@@ -69,7 +72,5 @@ try {
       VALUES ($1,$2,$3,'customer.created',$4,now()-($5::int * interval '5 hours'))`,
       [organizations[0][0],actors[0][0],inserted.rows[0].id,`أُضيف ملف تجريبي: ${name}`,i]);
   }
-  await db.query(`INSERT INTO customers(organization_id,reference,name,entity_type,country,industry,created_by)
-    VALUES ($1,'KYC-B0001','شركة البيان التجريبية الخاصة','company','AE','التدقيق',$2) ON CONFLICT DO NOTHING`,[organizations[1][0],actors[1][0]]);
-  console.log('Schema and synthetic fixtures ready. 2 organizations; no real customer identities.');
+  console.log('Schema and synthetic fixtures ready for DRM. No real customer identities.');
 } finally { await db.end(); }
