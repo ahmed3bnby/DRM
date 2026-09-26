@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import {
   ArrowRight, CheckCircle2, XCircle, MinusCircle, ShieldQuestion,
   ShieldAlert, ScanSearch, Clock3, FileText, LockKeyhole, ArrowUpLeft,
-  Pencil, Newspaper, ExternalLink, Info, Activity as ActivityIcon, AlertCircle, Sparkles,
+  Pencil, Newspaper, ExternalLink, Info, Activity as ActivityIcon, AlertCircle, ShieldCheck, Building2,
   AlertOctagon, CheckCheck
 } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
@@ -294,9 +294,13 @@ export default async function Profile({
         </div>
       )}
       {wasAutoEnriched && (
-        <div role="status" className="success-message enriched-notice">
-          <Sparkles size={18} />
-          <span>{locale === 'en' ? '✨ Customer profile attributes were automatically enriched from the matching source record.' : '✨ تم استكمال وتوثيق بيانات العميل تلقائيًا استنادًا إلى سجل المطابقة.'}</span>
+        <div role="status" className="enriched-notice">
+          <ShieldCheck size={17} aria-hidden="true" />
+          <span>
+            {locale === 'en'
+              ? 'Profile identification attributes have been verified and updated based on the matching compliance record.'
+              : 'تم توثيق وتحديث بيانات التعريف الخاصة بالملف استناداً إلى سجل المطابقة المعتمد.'}
+          </span>
         </div>
       )}
 
@@ -333,7 +337,7 @@ export default async function Profile({
           )}
           {isCashThresholdSector(customer.industry) && (
             <span className="id-chip dnfbp-chip">
-              <Sparkles size={13} />
+              <Building2 size={13} />
               {m.dnfbpBadge}
             </span>
           )}
