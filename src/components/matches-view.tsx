@@ -142,10 +142,14 @@ export default function MatchesView({
     let confirmed = 0;
     let dismissed = 0;
     let needsInfo = 0;
+    let belowThreshold = 0;
     for (const match of matches) {
       const d = decisions[match.recordId]?.decision;
-      if (!d) unreviewed++;
-      else if (d === 'confirmed') confirmed++;
+      const requiresDecision = (match.percent ?? 100) >= 80;
+      if (!d) {
+        if (requiresDecision) unreviewed++;
+        else belowThreshold++;
+      } else if (d === 'confirmed') confirmed++;
       else if (d === 'dismissed') dismissed++;
       else if (d === 'needs_info') needsInfo++;
     }
@@ -156,6 +160,7 @@ export default function MatchesView({
       dismissed,
       needs_info: needsInfo,
       pending: unreviewed + needsInfo,
+      belowThreshold,
     };
   }, [matches, decisions]);
 
@@ -164,12 +169,21 @@ export default function MatchesView({
     const q = searchQuery.trim().toLowerCase();
     return matches.filter(match => {
       const dec = decisions[match.recordId]?.decision;
+      const requiresDecision = (match.percent ?? 100) >= 80;
       // Filter tab
-      if (activeFilter === 'pending' && dec && dec !== 'needs_info') return false;
-      if (activeFilter === 'unreviewed' && dec) return false;
+      if (activeFilter === 'pending') {
+        if (dec === 'confirmed' || dec === 'dismissed') return false;
+        if (!dec && !requiresDecision) return false;
+      }
+      if (activeFilter === 'unreviewed') {
+        if (dec || !requiresDecision) return false;
+      }
       if (activeFilter === 'needs_info' && dec !== 'needs_info') return false;
       if (activeFilter === 'confirmed' && dec !== 'confirmed') return false;
       if (activeFilter === 'dismissed' && dec !== 'dismissed') return false;
+      if (activeFilter === 'below_threshold') {
+        if (requiresDecision) return false;
+      }
 
       // Text query
       if (q) {
@@ -285,6 +299,15 @@ export default function MatchesView({
               {m.filterNeedsInfo} <span className="pill-count">{number(counts.needs_info)}</span>
             </button>
           )}
+          {counts.belowThreshold > 0 && (
+            <button
+              type="button"
+              className={`pill-btn below-threshold ${activeFilter === 'below_threshold' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('below_threshold')}
+            >
+              {locale === 'en' ? 'Below 80% (Auto-excluded)' : 'أقل من ٨٠٪ (مستبعد تلقائياً)'} <span className="pill-count">{number(counts.belowThreshold)}</span>
+            </button>
+          )}
         </div>
 
         <div className="matches-search">
@@ -383,6 +406,10 @@ export default function MatchesView({
                           <small className="muted">{m.decidedByPrefix || 'بواسطة'} {dec.decided_by_name}</small>
                         )}
                       </div>
+                    ) : match.percent < 80 ? (
+                      <span className="not-run auto-excluded-badge" style={{ opacity: 0.8, fontSize: '0.8rem', color: 'var(--muted, #64748b)' }}>
+                        {locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< ٨٠٪)'}
+                      </span>
                     ) : (
                       <span className="not-run">{m.notReviewed}</span>
                     )}
@@ -392,10 +419,10 @@ export default function MatchesView({
                   <td style={{ textAlign: 'center' }}>
                     <button
                       type="button"
-                      className={`button ${isResolved ? 'secondary' : 'primary'} compact-action-btn`}
+                      className={`button ${isResolved ? 'secondary' : match.percent < 80 ? 'secondary' : 'primary'} compact-action-btn`}
                       onClick={e => openDrawer(match, e)}
                     >
-                      {isResolved ? (m.btnEditDecision || 'تعديل القرار') : (m.btnReview || 'مراجعة')}
+                      {isResolved ? (m.btnEditDecision || 'تعديل القرار') : match.percent < 80 ? (locale === 'en' ? 'Review (Opt)' : 'مراجعة (اختياري)') : (m.btnReview || 'مراجعة')}
                     </button>
                   </td>
                 </tr>
@@ -432,16 +459,20 @@ export default function MatchesView({
                 <div className="card-status">
                   {dec ? (
                     <span className={`decision-badge ${dec.decision}`}>{decLabel(dec.decision)}</span>
+                  ) : match.percent < 80 ? (
+                    <span className="not-run auto-excluded-badge" style={{ opacity: 0.8, fontSize: '0.8rem', color: 'var(--muted, #64748b)' }}>
+                      {locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< ٨٠٪)'}
+                    </span>
                   ) : (
                     <span className="not-run">{m.notReviewed}</span>
                   )}
                 </div>
                 <button
                   type="button"
-                  className={`button ${isResolved ? 'secondary' : 'primary'} compact-action-btn`}
+                  className={`button ${isResolved ? 'secondary' : match.percent < 80 ? 'secondary' : 'primary'} compact-action-btn`}
                   onClick={e => openDrawer(match, e)}
                 >
-                  {isResolved ? (m.btnEditDecision || 'تعديل') : (m.btnReview || 'مراجعة')}
+                  {isResolved ? (m.btnEditDecision || 'تعديل') : match.percent < 80 ? (locale === 'en' ? 'Review (Opt)' : 'مراجعة (اختياري)') : (m.btnReview || 'مراجعة')}
                 </button>
               </div>
             </article>

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight, Info, ShieldAlert, User, Languages, FileCode, Building2, UserPlus } from 'lucide-react';
+import { ArrowRight, Info, ShieldAlert, User, Languages, FileCode, Building2, UserPlus, UserCheck, ExternalLink } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
 import { getSourceRecord } from '@/lib/search';
 import { loadCategories, categoryOf } from '@/lib/risk';
@@ -8,6 +8,7 @@ import { uuidSchema, canManageCustomers } from '@/lib/validation';
 import { getMessages, getLocale } from '@/lib/i18n';
 import { extractRecordCountry } from '@/lib/record-details';
 import { createCustomerFromSourceRecordAction } from '@/app/actions';
+import { findMatchingExistingCustomer } from '@/lib/customers';
 import { SourceRecordDetails } from '@/components/source-record-details';
 
 export default async function SourceDetail({
@@ -23,7 +24,12 @@ export default async function SourceDetail({
   const r = await getSourceRecord(id);
   if (!r) notFound();
 
-  const [catMap, m, locale] = await Promise.all([loadCategories(), getMessages(), getLocale()]);
+  const [catMap, m, locale, existingCustomer] = await Promise.all([
+    loadCategories(),
+    getMessages(),
+    getLocale(),
+    findMatchingExistingCustomer(actor.organizationId, r.name)
+  ]);
   const category = categoryOf(r.code, catMap);
   const isAdmin = actor.role === 'admin';
   const catLabel = ({
@@ -88,7 +94,26 @@ export default async function SourceDetail({
             </p>
           </div>
           <div className="source-hero-actions">
-            {canManageCustomers(actor.role) ? (
+            {existingCustomer ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success, #10b981)', fontWeight: 600, fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                    {locale === 'en' ? 'Already Registered' : 'مسجل في عملائك'}
+                  </span>
+                  <Link
+                    href={`/profiles/${existingCustomer.reference}`}
+                    className="button primary"
+                    style={{ background: 'var(--success, #10b981)', gap: '0.4rem' }}
+                  >
+                    <UserCheck size={16} aria-hidden="true" />
+                    <span>{locale === 'en' ? 'View Profile' : 'زيارة ملف العميل'}</span>
+                  </Link>
+                </div>
+                <small className="muted" style={{ fontSize: '0.75rem' }}>
+                  {locale === 'en' ? `${existingCustomer.name} (${existingCustomer.reference})` : `${existingCustomer.name} (${existingCustomer.reference})`}
+                </small>
+              </div>
+            ) : canManageCustomers(actor.role) ? (
               <>
                 <form action={createCustomerFromSourceRecordAction} className="inline-form">
                   <input type="hidden" name="recordId" value={r.id} />

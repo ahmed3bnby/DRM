@@ -94,7 +94,7 @@ export async function screenCustomer(actor: Pick<Actor, 'organizationId'> & Part
     const demote = dobConflict && !idMatch;                             // contradicting DOB, no identifier support
     const c = classifyMatch(r.code, r.match_kind, r.name_similarity, catMap, { strongId: idMatch || dobMatch, demote, details: r.details });
     return { r, c, dobMatch, idMatch, dobConflict, entityKey: canonicalEntityKey(r.details, r.id), sources:[{code:r.code, source:c.sourceTitle, recordId:r.id}] };
-  }).sort((a, b) => RANK[b.c.band] - RANK[a.c.band] || b.c.percent - a.c.percent);
+  }).filter(item => item.c.percent >= 50).sort((a, b) => RANK[b.c.band] - RANK[a.c.band] || b.c.percent - a.c.percent);
   const grouped = new Map<string, ScreenedMatch>();
   for (const candidate of candidates) {
     const current = grouped.get(candidate.entityKey);

@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import {gleifSearch} from '@/lib/gleif';
 import {adverseMediaSearch} from '@/lib/adverse-media';
-import {Search,ArrowUpLeft,Info,Newspaper,ExternalLink,History,Trash2,UserPlus} from 'lucide-react';
+import {Search,ArrowUpLeft,Info,Newspaper,ExternalLink,History,Trash2,UserPlus,UserCheck} from 'lucide-react';
 import {requireActor} from '@/lib/auth';
+import {findMatchingExistingCustomer} from '@/lib/customers';
 import {searchCoverage,searchPublicSources} from '@/lib/search';
 import {consumeSearch,quotaStatus,getRecentSearches} from '@/lib/team';
 import {clearMySearchHistoryAction} from '@/app/actions';
@@ -30,10 +31,11 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<{q
  const withFallback = <T,>(p: Promise<T>, fallback: T, ms = 2000): Promise<T> =>
    Promise.race([p, new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms))]);
 
- const [rawCoverage, rawResults, catMap] = await Promise.all([
+ const [rawCoverage, rawResults, catMap, existingCustomer] = await Promise.all([
    searchCoverage(),
    q.length >= 3 ? searchPublicSources(q) : Promise.resolve([]),
-   loadCategories()
+   loadCategories(),
+   q.length >= 2 ? findMatchingExistingCustomer(actor.organizationId, q) : Promise.resolve(null),
  ]);
 
  const coverage = rawCoverage.filter(c => isSourceAllowed(c.code, actor));
@@ -52,7 +54,7 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<{q
        { status: 'not_searched' as const, articles: [] }
      ];
  const advCatLabel=(c:string)=>({sanctions:m.catSanctions,laundering:locale==='en'?'Money laundering':'غسل أموال',fraud:locale==='en'?'Fraud':'احتيال',corruption:locale==='en'?'Bribery / corruption':'رشوة / فساد',terrorism:locale==='en'?'Terrorism':'إرهاب',crime:m.catCrime,other:locale==='en'?'Adverse':'خبر سلبي'} as Record<string,string>)[c]??c;
- const classified=results.map(r=>({r,c:classifyMatch(r.code,r.match_kind,r.name_similarity,catMap,{details:r.details})})).sort((a,b)=>RANK[b.c.band]-RANK[a.c.band]||b.c.percent-a.c.percent);
+ const classified=results.map(r=>({r,c:classifyMatch(r.code,r.match_kind,r.name_similarity,catMap,{details:r.details})})).filter(x=>x.c.percent>=50).sort((a,b)=>RANK[b.c.band]-RANK[a.c.band]||b.c.percent-a.c.percent);
  const overall=assess(classified.map(x=>x.c));
  const bandLabel=(b:string)=>({none:m.bandNone,low:m.bandLow,medium:m.bandMedium,high:m.bandHigh} as Record<string,string>)[b]??b;
  const catLabel=(c:string)=>({sanctions:m.catSanctions,pep:m.catPep,crime:m.catCrime,debarment:m.catDebarment,regulatory:m.catRegulatory,other:m.catOther} as Record<string,string>)[c]??c;
@@ -85,19 +87,51 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<{q
  </section>
  <div className="inline-info"><Info size={19}/><p>{m.srchInfoA} <b><bdi>{number(coverage.length)}</bdi> {m.srchInfoBold}</b> {m.srchInfoC} {actor.role === 'admin' && <Link href="/sources">{m.srchViewCoverage}</Link>}</p></div>
  {q && canManageCustomers(actor.role) && (
-   <div className="search-quick-add-banner">
-     <div className="quick-add-info">
-       <UserPlus size={20} />
-       <div>
-         <strong>{locale === 'en' ? `Add «${q.slice(0, 60)}» as a customer profile` : `إضافة «${q.slice(0, 60)}» كعميل في ملفاتي`}</strong>
-         <small>{locale === 'en' ? 'Create and screen a new customer profile under your account directly from this search query' : 'إنشاء ملف عميل جديد وربطه بحسابك وتوثيقه في قاعدة بياناتك مباشرة'}</small>
+   existingCustomer ? (
+     <div className="search-quick-add-banner existing-customer-banner" style={{ background: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+       <div className="quick-add-info">
+         <UserCheck size={24} style={{ color: 'var(--success, #10b981)', flexShrink: 0 }} />
+         <div>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+             <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success, #10b981)', fontWeight: 600, fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+               {locale === 'en' ? 'Already Registered' : 'مسجل مسبقاً'}
+             </span>
+             <strong style={{ fontSize: '1rem' }} dir="auto">{existingCustomer.name}</strong>
+             <small className="mono muted" dir="ltr">({existingCustomer.reference})</small>
+           </div>
+           <small style={{ display: 'block', marginTop: '0.2rem' }}>
+             {locale === 'en'
+               ? `This ${existingCustomer.entity_type === 'company' ? 'company' : 'customer'} is already registered in your files. You can visit their profile directly.`
+               : `هذا ${existingCustomer.entity_type === 'company' ? 'الكيان / الشركة' : 'العميل'} مسجل بالفعل في ملفاتك. يمكنك زيارة ملفه مباشرة دون إعادة الإضافة.`}
+           </small>
+         </div>
+       </div>
+       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+         <Link href={`/profiles/${existingCustomer.reference}`} className="button primary quick-add-action-btn" style={{ background: 'var(--success, #10b981)' }}>
+           <ExternalLink size={15} />
+           <span>{locale === 'en' ? 'View Profile' : 'زيارة الملف الشخصي'}</span>
+         </Link>
+         <Link href={`/profiles/new?name=${encodeURIComponent(q)}`} className="button secondary quick-add-action-btn" style={{ opacity: 0.8, fontSize: '0.8rem' }} title={locale === 'en' ? 'Create a separate duplicate profile' : 'إنشاء ملف إضافي جديد'}>
+           <UserPlus size={14} />
+           <span>{locale === 'en' ? 'New Duplicate' : 'إضافة ملف جديد'}</span>
+         </Link>
        </div>
      </div>
-     <Link href={`/profiles/new?name=${encodeURIComponent(q)}`} className="button primary quick-add-action-btn">
-       <UserPlus size={15} />
-       <span>{locale === 'en' ? 'Add as Customer' : '➕ إضافة كعميل'}</span>
-     </Link>
-   </div>
+   ) : (
+     <div className="search-quick-add-banner">
+       <div className="quick-add-info">
+         <UserPlus size={20} />
+         <div>
+           <strong>{locale === 'en' ? `Add «${q.slice(0, 60)}» as a customer profile` : `إضافة «${q.slice(0, 60)}» كعميل في ملفاتي`}</strong>
+           <small>{locale === 'en' ? 'Create and screen a new customer profile under your account directly from this search query' : 'إنشاء ملف عميل جديد وربطه بحسابك وتوثيقه في قاعدة بياناتك مباشرة'}</small>
+         </div>
+       </div>
+       <Link href={`/profiles/new?name=${encodeURIComponent(q)}`} className="button primary quick-add-action-btn">
+         <UserPlus size={15} />
+         <span>{locale === 'en' ? 'Add as Customer' : '➕ إضافة كعميل'}</span>
+       </Link>
+     </div>
+   )
  )}
  {q&&<section className="panel search-results"><div className="panel-heading"><h2>{m.resultsForA} «{q.slice(0,160)}»</h2><span className="muted">{results.length>50?m.first50:`${number(results.length)} ${m.potentialRecord}`}</span></div>
  {!results.length?<div className="empty"><Search size={30}/><h3>{q.length<3?m.emptyMin:m.emptyNoResults}</h3><p>{m.emptySearchBody}</p></div>:<>

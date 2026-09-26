@@ -281,13 +281,22 @@ export async function deleteTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
     const current = await db.query(`SELECT role,display_name,disabled_at FROM users WHERE id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
     if (!current.rowCount) throw new Error('NOT_FOUND');
     if (current.rows[0].role === 'admin' && !current.rows[0].disabled_at) await assertNotLastAdmin(db, actor.organizationId, userId);
-    const history = await db.query(`SELECT
-      (SELECT count(*)::int FROM search_events WHERE user_id=$1) AS searches,
-      (SELECT count(*)::int FROM audit_events WHERE actor_id=$1) AS actions,
-      (SELECT count(*)::int FROM customers WHERE created_by=$1) AS customers`, [userId]);
-    const row = history.rows[0] as { searches: number; actions: number; customers: number };
-    if (row.searches || row.actions || row.customers) throw new Error('HAS_HISTORY');
+
+    // Reassign customer records created by this member to the current admin
+    await db.query(`UPDATE customers SET created_by=$1 WHERE created_by=$2 AND organization_id=$3`, [actor.id, userId, actor.organizationId]);
+
+    // Unlink / clean up references in screenings, decisions, reviews, and audits
+    await db.query(`UPDATE customer_screenings SET run_by=NULL WHERE run_by=$1`, [userId]);
+    await db.query(`UPDATE match_decisions SET decided_by=NULL WHERE decided_by=$1`, [userId]);
+    await db.query(`UPDATE review_cases SET assigned_to=NULL WHERE assigned_to=$1 AND organization_id=$2`, [userId, actor.organizationId]);
+    await db.query(`UPDATE review_cases SET assigned_by=NULL WHERE assigned_by=$1 AND organization_id=$2`, [userId, actor.organizationId]);
+    await db.query(`UPDATE audit_events SET actor_id=NULL WHERE actor_id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
+
+    // Delete user searches and active sessions
+    await db.query('DELETE FROM search_events WHERE user_id=$1', [userId]);
     await db.query('DELETE FROM sessions WHERE user_id=$1', [userId]);
+
+    // Delete user record
     await db.query('DELETE FROM users WHERE id=$1 AND organization_id=$2', [userId, actor.organizationId]);
     await db.query(`INSERT INTO audit_events(organization_id,actor_id,action,summary) VALUES ($1,$2,'user.deleted',$3)`,
       [actor.organizationId, actor.id, `حُذف المستخدم ${current.rows[0].display_name}`]);
@@ -304,6 +313,18 @@ export async function clearUserSearches(actor: Pick<Actor, 'id' | 'organizationI
     await db.query('UPDATE users SET quota_anchor=0 WHERE organization_id=$1 AND id=$2', [actor.organizationId, userId]);
     await db.query(`INSERT INTO audit_events(organization_id,actor_id,action,summary) VALUES ($1,$2,'user.searches_cleared',$3)`,
       [actor.organizationId, actor.id, `مسح سجل عمليات البحث للمستخدم ${user.rows[0].display_name}`]);
+  });
+}
+
+export async function deleteUserSearchEvent(actor: Pick<Actor, 'id' | 'organizationId' | 'role'>, userId: string, eventId: string) {
+  if (actor.role !== 'admin') throw new Error('FORBIDDEN');
+  return withTenant(actor.organizationId, async db => {
+    await assertNotSuperAdmin(db, userId);
+    const user = await db.query('SELECT display_name FROM users WHERE id=$1 AND organization_id=$2', [userId, actor.organizationId]);
+    if (!user.rowCount) throw new Error('NOT_FOUND');
+    await db.query('DELETE FROM search_events WHERE id=$1 AND organization_id=$2 AND user_id=$3', [eventId, actor.organizationId, userId]);
+    await db.query(`INSERT INTO audit_events(organization_id,actor_id,action,summary) VALUES ($1,$2,'user.search_deleted',$3)`,
+      [actor.organizationId, actor.id, `حذف عملية بحث من سجل ${user.rows[0].display_name}`]);
   });
 }
 

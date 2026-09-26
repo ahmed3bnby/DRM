@@ -9,7 +9,7 @@ import {
 import { requireActor } from '@/lib/auth';
 import { hasFeature } from '@/lib/features';
 import { getCustomerByHandle, getActivity, enrichCustomerFromMatch, type EnrichedFields } from '@/lib/customers';
-import { getLastScreening } from '@/lib/screening';
+import { getLastScreening, runAndSaveScreening } from '@/lib/screening';
 import { getSourceRecordsMap } from '@/lib/search';
 import { extractRecordCountry, extractRecordDob, extractRecordIdentifier, extractRecordAliases } from '@/lib/record-details';
 import { getMatchDecisions, getMatchDecisionHistory } from '@/lib/decisions';
@@ -50,7 +50,7 @@ export default async function Profile({
     notFound();
   }
 
-  const [activity, last, decisions, decisionHistory, search, m, locale] = await Promise.all([
+  const [activity, initialLast, decisions, decisionHistory, search, m, locale] = await Promise.all([
     getActivity(actor.organizationId, customer.id),
     getLastScreening(actor.organizationId, customer.id),
     getMatchDecisions(actor.organizationId, customer.id),
@@ -59,6 +59,16 @@ export default async function Profile({
     getMessages(),
     getLocale(),
   ]);
+
+  let last = initialLast;
+  if (!last && canManageCustomers(actor.role)) {
+    try {
+      await runAndSaveScreening(actor, customer.id);
+      last = await getLastScreening(actor.organizationId, customer.id);
+    } catch (err) {
+      console.error('Failed auto-screening customer on view:', err);
+    }
+  }
 
   const matchRecordIds = (last?.top_matches ?? []).map(m => m.recordId).filter(Boolean);
   const sourceRecordsMap = await getSourceRecordsMap(matchRecordIds);

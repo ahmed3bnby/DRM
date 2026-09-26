@@ -8,11 +8,12 @@ import type { DecisionRow } from './decisions';
 export type RiskBand = 'low' | 'medium' | 'high';
 export type RiskFactor = { key: string; value: string; score: number; band: RiskBand };
 export type RiskRating = { factors: RiskFactor[]; base: number; baseBand: RiskBand; band: RiskBand; drivers: string[] };
-type ScreeningMatch = { recordId: string; category: string };
+type ScreeningMatch = { recordId: string; category: string; percent?: number };
 export type ReviewImpact = { flags: Partial<Record<Category, boolean>>; confirmed: number; dismissed: number; needsInfo: number; unreviewed: number };
 
 // Screening creates leads. Only a lead confirmed by the analyst may affect the
 // model. A dismissed lead is always excluded, even if the run raised a raw flag.
+// Decisions are required only for matches with similarity >= 80%.
 export function reviewImpact(matches: ScreeningMatch[], decisions: Record<string, DecisionRow>): ReviewImpact {
   const flags: Partial<Record<Category, boolean>> = {};
   let confirmed = 0, dismissed = 0, needsInfo = 0, unreviewed = 0;
@@ -20,7 +21,10 @@ export function reviewImpact(matches: ScreeningMatch[], decisions: Record<string
     const decision = decisions[match.recordId]?.decision;
     if (decision === 'dismissed') { dismissed++; continue; }
     if (decision === 'needs_info') { needsInfo++; continue; }
-    if (decision !== 'confirmed') { unreviewed++; continue; }
+    if (decision !== 'confirmed') {
+      if ((match.percent ?? 100) >= 80) unreviewed++;
+      continue;
+    }
     confirmed++;
     if (match.category === 'sanctions' || match.category === 'debarment' || match.category === 'crime' || match.category === 'pep' || match.category === 'regulatory') flags[match.category] = true;
   }

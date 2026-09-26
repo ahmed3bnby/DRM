@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight, LockKeyhole } from 'lucide-react';
+import { ArrowRight, LockKeyhole, Trash2 } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
 import { platformOwnerEmails } from '@/lib/platform-access';
 import { getMessages, getLocale } from '@/lib/i18n';
 import { getTeamMemberByUsername, listUserActions, listUserSearches } from '@/lib/team';
 import { DateTimeText, number, PAGE_SIZE, Pagination, parsePage, withQuery } from '@/components/ui';
 import UserControls from '@/components/user-controls';
+import { clearUserSearchesAction, deleteUserSearchEventAction } from '@/app/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,9 +66,35 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
     </div>
     <div className="profile-grid">
       <section className="panel">
-        <div className="panel-heading"><div><h2>{m.teamUsageTitle}</h2><p>{m.teamUsageSub}</p></div></div>
+        <div className="panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2>{m.teamUsageTitle}</h2>
+            <p>{m.teamUsageSub}</p>
+          </div>
+          {actor.role === 'admin' && member.searches > 0 && (
+            <form action={clearUserSearchesAction}>
+              <input type="hidden" name="userId" value={member.id} />
+              <input type="hidden" name="username" value={id} />
+              <button
+                type="submit"
+                className="button danger compact-action-btn"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
+                title={locale === 'en' ? 'Clear all search history for this member' : 'مسح كامل سجل البحث لهذا العضو'}
+              >
+                <Trash2 size={13} />
+                <span>{locale === 'en' ? 'Clear Searches' : 'مسح السجل'}</span>
+              </button>
+            </form>
+          )}
+        </div>
         {usage.length === 0 ? <div className="empty"><h3>{m.teamUsageEmpty}</h3></div> : <div className="table-scroll"><table className="data-table">
-          <thead><tr><th>{m.teamWhen}</th><th>{m.teamWhat}</th></tr></thead>
+          <thead>
+            <tr>
+              <th>{m.teamWhen}</th>
+              <th>{m.teamWhat}</th>
+              {actor.role === 'admin' && <th style={{ width: '50px', textAlign: 'center' }}>{locale === 'en' ? 'Action' : 'إجراء'}</th>}
+            </tr>
+          </thead>
           <tbody>{usage.map(row => {
             const item = searchLabel(row.query_key, row.customer_name, m.teamUsageSearch, m.teamUsageScreen);
             return <tr key={row.id}>
@@ -81,6 +108,24 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
                   </span>
                 </div>
               </td>
+              {actor.role === 'admin' && (
+                <td style={{ textAlign: 'center' }}>
+                  <form action={deleteUserSearchEventAction} style={{ display: 'inline' }}>
+                    <input type="hidden" name="userId" value={member.id} />
+                    <input type="hidden" name="eventId" value={row.id} />
+                    <input type="hidden" name="username" value={id} />
+                    <button
+                      type="submit"
+                      className="button icon-btn danger"
+                      style={{ padding: '4px', height: '26px', width: '26px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      title={locale === 'en' ? 'Delete this search entry' : 'حذف عملية البحث هذه'}
+                      aria-label={locale === 'en' ? 'Delete search entry' : 'حذف عملية البحث'}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </form>
+                </td>
+              )}
             </tr>;
           })}</tbody>
         </table></div>}

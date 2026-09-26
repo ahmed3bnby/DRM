@@ -6,7 +6,7 @@ import { createCustomer, updateCustomer, deleteCustomer } from '@/lib/customers'
 import { runAndSaveScreening } from '@/lib/screening';
 import { recordMatchDecision } from '@/lib/decisions';
 import { assignReviewCase } from '@/lib/review-cases';
-import { createTeamUser, setUserQuota, consumeSearch, setUserRole, setUserDisabled, resetUserPassword, updateUserProfile, deleteTeamUser, clearUserSearches, clearMySearchHistory, removeSearchHistoryItem } from '@/lib/team';
+import { createTeamUser, setUserQuota, consumeSearch, setUserRole, setUserDisabled, resetUserPassword, updateUserProfile, deleteTeamUser, clearUserSearches, deleteUserSearchEvent, clearMySearchHistory, removeSearchHistoryItem } from '@/lib/team';
 import { getSourceRecord } from '@/lib/search';
 import { extractRecordCountry, extractRecordDob, extractRecordIdentifier } from '@/lib/record-details';
 import { customerSchema, teamUserSchema, canManageCustomers, uuidSchema } from '@/lib/validation';
@@ -28,11 +28,23 @@ export async function createCustomerAction(_previous: FormState, data: FormData)
   const values = Object.fromEntries(['name','entityType','country','nationality','deliveryChannel','email','industry','dateOfBirth','identifier','notes'].map(key=>[key,String(data.get(key) ?? '')]));
   const parsed = customerSchema.safeParse(values);
   if (!parsed.success) return {error: 'راجع الحقول الموضحة أدناه.', fields: parsed.error.flatten().fieldErrors, values};
+  let customerId: string;
   let reference: string;
-  try { ({ reference } = await createCustomer(actor, parsed.data)); }
+  try {
+    const res = await createCustomer(actor, parsed.data);
+    customerId = res.id;
+    reference = res.reference;
+  }
   catch { return {error: 'تعذر حفظ الملف. لم يُسجل إنشاء مكتمل؛ أعد المحاولة.', values}; }
+
+  try {
+    await runAndSaveScreening(actor, customerId);
+  } catch (err) {
+    console.error('Failed to run initial screening after creating customer:', err);
+  }
+
   revalidatePath('/'); revalidatePath('/profiles');
-  redirect(`/profiles/${reference}?created=1`);
+  redirect(`/profiles/${reference}?created=1&screened=1`);
 }
 
 export async function editCustomerAction(_previous: FormState, data: FormData): Promise<FormState> {
@@ -274,6 +286,31 @@ export async function removeSearchHistoryItemAction(data: FormData) {
   }
   revalidatePath('/search');
   revalidatePath('/search/history');
+}
+
+export async function clearUserSearchesAction(data: FormData) {
+  const actor = await requireActor();
+  if (actor.role !== 'admin') throw new Error('FORBIDDEN');
+  const userId = String(data.get('userId') ?? '');
+  const username = String(data.get('username') ?? '');
+  if (!uuidSchema.safeParse(userId).success) return;
+  await clearUserSearches(actor, userId);
+  revalidatePath('/team');
+  revalidatePath('/team/[id]', 'page');
+  if (username) redirect(`/team/${encodeURIComponent(username)}?cleared=1`);
+}
+
+export async function deleteUserSearchEventAction(data: FormData) {
+  const actor = await requireActor();
+  if (actor.role !== 'admin') throw new Error('FORBIDDEN');
+  const userId = String(data.get('userId') ?? '');
+  const eventId = String(data.get('eventId') ?? '');
+  const username = String(data.get('username') ?? '');
+  if (!uuidSchema.safeParse(userId).success || !uuidSchema.safeParse(eventId).success) return;
+  await deleteUserSearchEvent(actor, userId, eventId);
+  revalidatePath('/team');
+  revalidatePath('/team/[id]', 'page');
+  if (username) redirect(`/team/${encodeURIComponent(username)}?deleted=1`);
 }
 
 

@@ -25,6 +25,7 @@ export async function searchPublicSources(query:string, limit=51){
  ORDER BY n.record_id,name_similarity DESC
  ) SELECT r.*,v.code,v.source_url,v.retrieved_at,v.sha256,c.matched_name,c.match_kind,c.name_similarity
  FROM candidates c JOIN source_records r ON r.id=c.record_id JOIN source_versions v ON v.id=r.version_id
+ WHERE c.name_similarity >= 0.50 OR c.match_kind = 'exact'
  ORDER BY c.name_similarity DESC,r.name,r.id LIMIT $4`,[normalized,phonetic,usePhon,cap])).rows as SearchResult[];
 }
 export type SearchResult={id:string;name:string;kind:string;aliases:string[];details:Record<string,unknown>;source_record_id:string;code:string;source_url:string;retrieved_at:Date;sha256:string;matched_name:string;match_kind:string;name_similarity:number};
