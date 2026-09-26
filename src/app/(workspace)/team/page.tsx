@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowUpLeft, LockKeyhole, Infinity as InfinityIcon, ShieldCheck, UserRound, UsersRound, Search, X } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
+import { platformOwnerEmails } from '@/lib/platform-access';
 import { getMessages, getLocale } from '@/lib/i18n';
 import { listTeam } from '@/lib/team';
 import { number, PAGE_SIZE, Pagination, parsePage, withQuery } from '@/components/ui';
@@ -55,7 +56,16 @@ export default async function TeamPage({
   const page = parsePage(search.page, total);
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const roleLabel = (role: string) => role === 'admin' ? m.roleAdminOpt : role === 'analyst' ? m.roleAnalystOpt : m.roleViewerOpt;
+  const ownerEmails = platformOwnerEmails();
+  const isOwnerUser = (email?: string) => !!email && ownerEmails.includes(email.toLowerCase().trim());
+  const roleLabel = (role: string, email?: string) => {
+    if (isOwnerUser(email)) return locale === 'en' ? '👑 Super Admin' : '👑 سوبر أدمن';
+    return role === 'admin' ? m.roleAdminOpt : role === 'analyst' ? m.roleAnalystOpt : m.roleViewerOpt;
+  };
+  const memberHref = (u: { username?: string; email: string; id: string }) => {
+    const slug = u.username || u.email.split('@')[0] || u.id;
+    return `/team/${encodeURIComponent(slug)}`;
+  };
   const others = members.filter(x => x.id !== actor.id);
 
   const labels = locale === 'en' ? {
@@ -256,8 +266,8 @@ export default async function TeamPage({
                 return (
                   <tr key={u.id}>
                     <td className="team-user-cell" data-label={m.teamCol}>
-                      <Link className="customer-cell" href={`/team/${u.username}`}>
-                        <span className={`avatar ${u.role === 'admin' ? 'avatar-admin' : ''}`}>{u.display_name[0]}</span>
+                      <Link className="customer-cell" href={memberHref(u)}>
+                        <span className={`avatar ${isOwnerUser(u.email) ? 'avatar-superadmin' : u.role === 'admin' ? 'avatar-admin' : ''}`}>{u.display_name[0]}</span>
                         <div>
                           <strong dir="auto">
                             {u.display_name}
@@ -270,7 +280,7 @@ export default async function TeamPage({
 
                     <td className="team-role-cell" data-label={m.teamColRole}>
                       <span className="role-cell">
-                        <span className={`role-badge role-${u.role}`}>{roleLabel(u.role)}</span>
+                        <span className={`role-badge role-${isOwnerUser(u.email) ? 'superadmin' : u.role}`}>{roleLabel(u.role, u.email)}</span>
                         {u.disabled_at && (
                           <span className="status amber">
                             <span className="status-mark" />
@@ -313,7 +323,7 @@ export default async function TeamPage({
                     </td>
 
                     <td className="row-open-cell" data-label={m.teamOpen} style={{ textAlign: 'center' }}>
-                      <Link className="row-open" href={`/team/${u.username}`} aria-label={`${m.teamOpen} ${u.display_name}`}>
+                      <Link className="row-open" href={memberHref(u)} aria-label={`${m.teamOpen} ${u.display_name}`}>
                         <ArrowUpLeft size={18} />
                       </Link>
                     </td>
@@ -343,8 +353,8 @@ export default async function TeamPage({
             return (
               <article className="team-mobile-card" key={u.id}>
                 <div className="team-card-head">
-                  <Link className="customer-cell" href={`/team/${u.username}`}>
-                    <span className={`avatar ${u.role === 'admin' ? 'avatar-admin' : ''}`}>{u.display_name[0]}</span>
+                  <Link className="customer-cell" href={memberHref(u)}>
+                    <span className={`avatar ${isOwnerUser(u.email) ? 'avatar-superadmin' : u.role === 'admin' ? 'avatar-admin' : ''}`}>{u.display_name[0]}</span>
                     <span className="customer-cell-text">
                       <strong dir="auto">
                         {u.display_name}
@@ -354,7 +364,7 @@ export default async function TeamPage({
                     </span>
                   </Link>
                   <span className="role-cell">
-                    <span className={`role-badge role-${u.role}`}>{roleLabel(u.role)}</span>
+                    <span className={`role-badge role-${isOwnerUser(u.email) ? 'superadmin' : u.role}`}>{roleLabel(u.role, u.email)}</span>
                     {u.disabled_at && (
                       <span className="status amber">
                         <span className="status-mark" />
@@ -402,7 +412,7 @@ export default async function TeamPage({
                       <QuotaForm userId={u.id} quota={u.search_quota} />
                     )}
                   </div>
-                  <Link className="button secondary sm team-view-btn" href={`/team/${u.username}`}>
+                  <Link className="button secondary sm team-view-btn" href={memberHref(u)}>
                     {m.teamOpen} <ArrowUpLeft size={15} />
                   </Link>
                 </div>

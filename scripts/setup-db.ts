@@ -36,6 +36,7 @@ try {
   await db.query(await readFile('db/015_phonetic.sql', 'utf8'));
   await db.query(await readFile('db/016_search_history.sql', 'utf8'));
   await db.query(await readFile('db/017_org_plans.sql', 'utf8'));
+  await db.query(await readFile('db/018_ensure_usernames.sql', 'utf8'));
   const organizations = [
     ['10000000-0000-4000-8000-000000000001', 'DRM — Diligence Risk Management', 'DRM']
   ];

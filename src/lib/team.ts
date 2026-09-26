@@ -14,7 +14,9 @@ export type ActionEvent = { id: string; action: string; summary: string; created
 export async function listTeam(organizationId: string): Promise<TeamMember[]> {
   const hidden = platformOwnerIds();
   return withTenant(organizationId, async db => {
-    const r = await db.query(`SELECT u.id,u.username,u.email,u.display_name,u.role,u.search_quota,u.quota_anchor,u.disabled_at,
+    const r = await db.query(`SELECT u.id,
+      COALESCE(NULLIF(u.username, ''), split_part(u.email, '@', 1), u.id::text) AS username,
+      u.email,u.display_name,u.role,u.search_quota,u.quota_anchor,u.disabled_at,
       (SELECT count(*)::int FROM search_events e WHERE e.user_id=u.id) AS used
       FROM users u WHERE u.organization_id=$1 AND NOT (u.id = ANY($2::uuid[]))
       ORDER BY (u.disabled_at IS NOT NULL), u.role, u.display_name`, [organizationId, hidden]);
@@ -22,7 +24,9 @@ export async function listTeam(organizationId: string): Promise<TeamMember[]> {
   });
 }
 
-const MEMBER_COLS = `u.id,u.username,u.email,u.display_name,u.role,u.search_quota,u.quota_anchor,u.disabled_at,
+const MEMBER_COLS = `u.id,
+  COALESCE(NULLIF(u.username, ''), split_part(u.email, '@', 1), u.id::text) AS username,
+  u.email,u.display_name,u.role,u.search_quota,u.quota_anchor,u.disabled_at,
   (SELECT count(*)::int FROM search_events e WHERE e.user_id=u.id) AS used,
   (SELECT count(*)::int FROM search_events e WHERE e.user_id=u.id) AS searches,
   (SELECT count(*)::int FROM audit_events a WHERE a.actor_id=u.id) AS actions,
@@ -33,10 +37,23 @@ export async function getTeamMember(organizationId: string, userId: string): Pro
     return (r.rows[0] as TeamProfile | undefined) ?? null;
   });
 }
-// Resolve a member by their readable per-org username (used for /team/<username> URLs).
-export async function getTeamMemberByUsername(organizationId: string, username: string): Promise<TeamProfile | null> {
+// Resolve a member by their readable per-org username, email prefix, email or UUID.
+export async function getTeamMemberByUsername(organizationId: string, identifier: string): Promise<TeamProfile | null> {
   return withTenant(organizationId, async db => {
-    const r = await db.query(`SELECT ${MEMBER_COLS} FROM users u WHERE u.username=$1 AND u.organization_id=$2`, [username, organizationId]);
+    const clean = (identifier || '').trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean);
+    const r = await db.query(
+      `SELECT ${MEMBER_COLS} FROM users u 
+       WHERE (
+         u.username = $1 
+         OR lower(u.email) = lower($1)
+         OR split_part(lower(u.email), '@', 1) = lower($1)
+         OR ($2::boolean AND u.id = $3::uuid)
+       ) AND u.organization_id = $4
+       ORDER BY (u.username = $1) DESC
+       LIMIT 1`,
+      [clean, isUuid, isUuid ? clean : null, organizationId]
+    );
     return (r.rows[0] as TeamProfile | undefined) ?? null;
   });
 }

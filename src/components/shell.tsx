@@ -30,8 +30,8 @@ export default async function Shell({ actor, children }: { actor: Actor; childre
       <Navigation isAdmin={actor.role === 'admin'} isOwner={isPlatformOwner(actor)} reviews={hasFeature(actor,'reviews')}/>
 
       <div className="sidebar-bottom">
-        <span className="avatar" title={actor.displayName}>{actor.displayName[0]}</span>
-        <span className="user-meta"><strong>{actor.displayName}</strong><small>{actor.role === 'admin' ? m.roleAdminOpt : actor.role === 'analyst' ? m.roleAnalystOpt : m.roleViewerOpt}</small></span>
+        <span className={`avatar ${isPlatformOwner(actor) ? 'avatar-superadmin' : ''}`} title={actor.displayName}>{actor.displayName[0]}</span>
+        <span className="user-meta"><strong>{actor.displayName}</strong><small>{isPlatformOwner(actor) ? (locale === 'en' ? '👑 Super Admin' : '👑 سوبر أدمن') : actor.role === 'admin' ? m.roleAdminOpt : actor.role === 'analyst' ? m.roleAnalystOpt : m.roleViewerOpt}</small></span>
         <div className="sidebar-bottom-actions">
           <LanguageToggle/>
           <form action={logoutAction}><button className="logout" aria-label={m.logout} title={m.logout}><LogOut size={18}/></button></form>

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, LockKeyhole } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
+import { platformOwnerEmails } from '@/lib/platform-access';
 import { getMessages, getLocale } from '@/lib/i18n';
 import { getTeamMemberByUsername, listUserActions, listUserSearches } from '@/lib/team';
 import { DateTimeText, number, PAGE_SIZE, Pagination, parsePage, withQuery } from '@/components/ui';
@@ -10,6 +11,7 @@ import UserControls from '@/components/user-controls';
 export const dynamic = 'force-dynamic';
 
 function searchLabel(key: string, customerName: string | null, search: string, screen: string) {
+  if (!key) return { kind: search, text: '—' };
   if (key.startsWith('query:')) return { kind: search, text: key.slice('query:'.length) };
   if (key.startsWith('screen:')) return { kind: screen, text: customerName || key.slice('screen:'.length) };
   return { kind: search, text: key };
@@ -20,8 +22,9 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
   const m = await getMessages();
   const locale = await getLocale();
   if (actor.role !== 'admin') return <div className="panel empty"><LockKeyhole/><h1>{m.viewOnlyTitle}</h1><p>{m.viewOnlyBody}</p></div>;
-  const { id } = await params;
-  if (!/^[a-z0-9._-]{1,80}$/i.test(id)) notFound();
+  const rawParams = await params;
+  const id = decodeURIComponent(rawParams.id || '').trim();
+  if (!id || id.length > 120) notFound();
   const member = await getTeamMemberByUsername(actor.organizationId, id);
   if (!member) notFound();
   const search = await searchParams;
@@ -31,13 +34,20 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
     listUserSearches(actor.organizationId, member.id, PAGE_SIZE, (usePage - 1) * PAGE_SIZE),
     listUserActions(actor.organizationId, member.id, PAGE_SIZE, (logPage - 1) * PAGE_SIZE),
   ]);
-  const roleLabel = member.role === 'admin' ? m.roleAdminOpt : member.role === 'analyst' ? m.roleAnalystOpt : m.roleViewerOpt;
+  const isSuperAdmin = !!member.email && platformOwnerEmails().includes(member.email.toLowerCase());
+  const roleLabel = isSuperAdmin
+    ? (locale === 'en' ? '👑 Super Admin' : '👑 سوبر أدمن')
+    : member.role === 'admin'
+    ? m.roleAdminOpt
+    : member.role === 'analyst'
+    ? m.roleAnalystOpt
+    : m.roleViewerOpt;
   const keep = { use: search.use, log: search.log };
   return <>
     <Link href="/team" className="back-link"><ArrowRight size={17}/>{m.teamTitle}</Link>
     <div className="profile-heading">
       <div className="profile-main-meta">
-        <span className="avatar lg">{member.display_name[0]}</span>
+        <span className="avatar lg">{member.display_name?.[0] || 'U'}</span>
         <div className="profile-title-block">
           <div className="eyebrow">{m.teamProfile}</div>
           <h1 dir="auto">{member.display_name}</h1>
@@ -45,7 +55,7 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
         </div>
       </div>
       <div className="profile-head-actions">
-        <span className={`role-badge role-${member.role}`}>{roleLabel}</span>
+        <span className={`role-badge role-${isSuperAdmin ? 'superadmin' : member.role}`}>{roleLabel}</span>
         <span className={`status ${member.disabled_at ? 'amber' : 'neutral'}`}><span className="status-mark"/>{member.disabled_at ? m.teamDisabled : m.teamActive}</span>
       </div>
     </div>
@@ -67,7 +77,7 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
                 <div className="team-activity-cell">
                   <span className="status neutral">{item.kind}</span>
                   <span className="team-activity-desc">
-                    {row.customer_id ? <Link href={`/profiles/${row.customer_ref}`} dir="auto">{item.text}</Link> : <span dir="auto">{item.text}</span>}
+                    {row.customer_id ? <Link href={`/profiles/${row.customer_ref || row.customer_id}`} dir="auto">{item.text}</Link> : <span dir="auto">{item.text}</span>}
                     {row.customer_ref && <small dir="ltr"> {row.customer_ref}</small>}
                   </span>
                 </div>
@@ -91,7 +101,7 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
           <td data-label={m.teamWhat}>
             <div className="team-activity-cell">
               <span className="team-activity-desc">
-                {row.customer_id ? <Link href={`/profiles/${row.customer_ref}`} dir="auto">{row.summary}</Link> : <span dir="auto">{row.summary}</span>}
+                {row.customer_id ? <Link href={`/profiles/${row.customer_ref || row.customer_id}`} dir="auto">{row.summary}</Link> : <span dir="auto">{row.summary}</span>}
               </span>
             </div>
           </td>
