@@ -6,6 +6,8 @@ import { countReviewCases, getReviewQueueStats, listReviewAssignees, listReviewC
 import { assignReviewCaseAction } from '@/app/actions';
 import { countryName, flag, number, Pagination, parsePage, withQuery } from '@/components/ui';
 import { canManageCustomers } from '@/lib/validation';
+import { hasFeature } from '@/lib/features';
+import FeatureLocked from '@/components/feature-locked';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -15,7 +17,9 @@ const dayAge = (date: Date) => Math.max(0, Math.floor((Date.now() - new Date(dat
 const REVIEW_PAGE_SIZE = 12;
 
 export default async function ReviewsPage({ searchParams }: { searchParams: Promise<{ status?: string; priority?: string; owner?: string; assignment?: string; q?: string; sort?: string; page?: string }> }) {
-  const actor = await requireActor(); const search = await searchParams;
+  const actor = await requireActor();
+  if (!hasFeature(actor, 'reviews')) return <FeatureLocked feature={(await getMessages()).navReviews}/>;
+  const search = await searchParams;
   const status = ['open', 'in_review', 'resolved'].includes(search.status ?? '') ? search.status! : '';
   const priority = ['high', 'medium', 'low'].includes(search.priority ?? '') ? search.priority! : '';
   const defaultOwner = actor.role === 'analyst' ? 'mine' : 'all';

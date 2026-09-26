@@ -1,12 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, UsersRound, Database, Search, UserCog, ClipboardCheck, Activity, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, UsersRound, Database, Search, UserCog, ClipboardCheck, Activity, MoreHorizontal, Building2 } from 'lucide-react';
 import { useLocale } from './locale-context';
 
 type NavigationItem = { href: string; label: string; short: string; icon: typeof LayoutDashboard };
 
-export default function Navigation({ isAdmin = false, isOwner = false }: { isAdmin?: boolean; isOwner?: boolean }) {
+export default function Navigation({ isAdmin = false, isOwner = false, reviews = false }: { isAdmin?: boolean; isOwner?: boolean; reviews?: boolean }) {
   const path = usePathname();
   const { m } = useLocale();
   const groups: { label: string; items: NavigationItem[] }[] = [
@@ -16,16 +16,18 @@ export default function Navigation({ isAdmin = false, isOwner = false }: { isAdm
     ] },
     { label: m.navGroupCompliance, items: [
       { href: '/profiles', label: m.navCustomers, short: m.navCustomersShort, icon: UsersRound },
-      { href: '/reviews', label: m.navReviews, short: m.navReviewsShort, icon: ClipboardCheck },
+      ...(reviews ? [{ href: '/reviews', label: m.navReviews, short: m.navReviewsShort, icon: ClipboardCheck }] : []),
     ] },
     ...(isAdmin ? [{ label: m.navGroupAdministration, items: [
       { href: '/sources', label: m.navSources, short: m.navSourcesShort, icon: Database },
       { href: '/team', label: m.navTeam, short: m.navTeamShort, icon: UserCog },
       ...(isOwner ? [{ href: '/admin', label: m.opNav, short: m.opNavShort, icon: Activity }] : []),
+      ...(isOwner ? [{ href: '/platform', label: m.platformNav, short: m.platformNavShort, icon: Building2 }] : []),
     ] }] : []),
   ];
   const mobileOverflow = [
     ...(isOwner ? [{ href: '/admin', label: m.opNav, icon: Activity }] : []),
+    ...(isOwner ? [{ href: '/platform', label: m.platformNav, icon: Building2 }] : []),
     ...(isAdmin ? [{ href: '/sources', label: m.navSources, icon: Database }, { href: '/team', label: m.navTeam, icon: UserCog }] : []),
   ];
 

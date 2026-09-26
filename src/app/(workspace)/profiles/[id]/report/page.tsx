@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
+import { hasFeature } from '@/lib/features';
 import { getCustomerByHandle, getActivity } from '@/lib/customers';
 import { getLastScreening } from '@/lib/screening';
 import { getMatchDecisions } from '@/lib/decisions';
@@ -71,7 +72,7 @@ export default async function Report({ params }: { params: Promise<{ id: string 
     return '—';
   };
 
-  const adverseHit = !!last?.adverse_media && last.adverse_media.status === 'searched' && last.adverse_media.count > 0;
+  const adverseHit = hasFeature(actor, 'adverse_media') && !!last?.adverse_media && last.adverse_media.status === 'searched' && last.adverse_media.count > 0;
   const riskAssessment = evaluateRiskAssessment(customer, last?.top_matches ?? [], decisions, !!last, adverseHit);
   const rating = riskAssessment.rating;
   const reviewPending = riskAssessment.isPending;

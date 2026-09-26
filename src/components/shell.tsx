@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import {isPlatformOwner} from '@/lib/platform-access';
+import {hasFeature} from '@/lib/features';
 import { LogOut } from 'lucide-react';
 import Navigation from './navigation';
 import SidebarShell from './sidebar-shell';
@@ -26,7 +27,7 @@ export default async function Shell({ actor, children }: { actor: Actor; childre
           <form action={logoutAction}><button className="logout" aria-label={m.logout} title={m.logout}><LogOut size={18}/></button></form>
         </div>
       </div>
-      <Navigation isAdmin={actor.role === 'admin'} isOwner={isPlatformOwner(actor)}/>
+      <Navigation isAdmin={actor.role === 'admin'} isOwner={isPlatformOwner(actor)} reviews={hasFeature(actor,'reviews')}/>
       <div className="sidebar-help">
         <span className="sidebar-help-badge">{locale === 'en' ? 'DRM Advisory' : 'استشارات DRM'}</span>
         <strong>{m.helpTitle}</strong>

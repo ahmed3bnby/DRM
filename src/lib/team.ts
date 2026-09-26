@@ -3,6 +3,7 @@ import type { PoolClient } from 'pg';
 import { withTenant } from './db';
 import { hashPassword } from './password';
 import { teamUserSchema } from './validation';
+import { platformOwnerIds } from './platform-access';
 import type { Actor } from './auth';
 
 export type TeamMember = { id: string; username: string; email: string; display_name: string; role: string; search_quota: number | null; used: number; quota_anchor: number; disabled_at: Date | null };
@@ -11,10 +12,12 @@ export type UsageEvent = { id: string; query_key: string; created_at: Date; cust
 export type ActionEvent = { id: string; action: string; summary: string; created_at: Date; customer_id: string | null; customer_ref: string | null };
 
 export async function listTeam(organizationId: string): Promise<TeamMember[]> {
+  const hidden = platformOwnerIds();
   return withTenant(organizationId, async db => {
     const r = await db.query(`SELECT u.id,u.username,u.email,u.display_name,u.role,u.search_quota,u.quota_anchor,u.disabled_at,
       (SELECT count(*)::int FROM search_events e WHERE e.user_id=u.id) AS used
-      FROM users u WHERE u.organization_id=$1 ORDER BY (u.disabled_at IS NOT NULL), u.role, u.display_name`, [organizationId]);
+      FROM users u WHERE u.organization_id=$1 AND NOT (u.id = ANY($2::uuid[]))
+      ORDER BY (u.disabled_at IS NOT NULL), u.role, u.display_name`, [organizationId, hidden]);
     return r.rows as TeamMember[];
   });
 }
@@ -62,7 +65,13 @@ export async function createTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
   if (actor.role !== 'admin') throw new Error('FORBIDDEN');
   const input = teamUserSchema.parse(raw);
   const quota = input.role === 'admin' ? null : input.quota;
+  const hidden = platformOwnerIds();
   return withTenant(actor.organizationId, async db => {
+    // Enforce the plan's team-member cap (platform-owner accounts don't count).
+    const org = await db.query('SELECT member_limit FROM organizations WHERE id=$1', [actor.organizationId]);
+    const limit = org.rows[0]?.member_limit ?? 5;
+    const active = await db.query(`SELECT count(*)::int AS c FROM users WHERE organization_id=$1 AND disabled_at IS NULL AND NOT (id = ANY($2::uuid[]))`, [actor.organizationId, hidden]);
+    if (active.rows[0].c >= limit) throw new Error('MEMBER_LIMIT');
     const base = (input.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'user');
     let username = base;
     for (let n = 2; n < 100; n++) {

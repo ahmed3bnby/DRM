@@ -7,6 +7,7 @@ import {
   AlertOctagon, CheckCheck
 } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
+import { hasFeature } from '@/lib/features';
 import { getCustomerByHandle, getActivity, enrichCustomerFromMatch, type EnrichedFields } from '@/lib/customers';
 import { getLastScreening } from '@/lib/screening';
 import { getSourceRecordsMap } from '@/lib/search';
@@ -500,7 +501,7 @@ export default async function Profile({
                       initialFilter={search.match || 'all'}
                     />
 
-                    {last.adverse_media && (
+                    {hasFeature(actor, 'adverse_media') && last.adverse_media && (
                       <section className="panel search-results adverse-media-section" style={{ marginTop: '24px' }}>
                         <div className="panel-heading">
                           <div>

@@ -90,7 +90,7 @@ export async function createUserAction(_previous: FormState, data: FormData): Pr
   const parsed = teamUserSchema.safeParse(values);
   if (!parsed.success) return {error: 'راجع الحقول الموضحة أدناه.', fields: parsed.error.flatten().fieldErrors, values};
   try { await createTeamUser(actor, parsed.data); }
-  catch (e) { const msg = String((e as Error).message ?? ''); return {error: /duplicate|unique/i.test(msg) ? 'هذا البريد مستخدم بالفعل.' : 'تعذر إنشاء المستخدم؛ أعد المحاولة.', values}; }
+  catch (e) { const msg = String((e as Error).message ?? ''); return {error: /MEMBER_LIMIT/.test(msg) ? 'وصلت للحد الأقصى لعدد المستخدمين في باقتك. تواصل مع مزوّد الخدمة لرفع الحد.' : /duplicate|unique/i.test(msg) ? 'هذا البريد مستخدم بالفعل.' : 'تعذر إنشاء المستخدم؛ أعد المحاولة.', values}; }
   revalidatePath('/team');
   return {};
 }
@@ -309,4 +309,24 @@ export async function createCustomerFromSourceRecordAction(data: FormData) {
   revalidatePath('/');
   revalidatePath('/profiles');
   redirect(`/profiles/${reference}?created=1&from_record=1`);
+}
+
+// ── Platform owner (super admin): toggle premium features per organization ──
+export async function updateOrgPlanAction(data: FormData) {
+  const actor = await requireActor();
+  const { isPlatformOwner } = await import('@/lib/platform-access');
+  if (!isPlatformOwner(actor)) throw new Error('FORBIDDEN');
+  const { updateOrgPlan } = await import('@/lib/platform');
+  const { PREMIUM_FEATURES } = await import('@/lib/features');
+  const orgId = String(data.get('orgId') || '');
+  if (!/^[0-9a-fA-F-]{36}$/.test(orgId)) throw new Error('BAD_ORG');
+  const features: Record<string, boolean> = {};
+  for (const key of PREMIUM_FEATURES) features[key] = data.get(`f_${key}`) === 'on';
+  await updateOrgPlan(orgId, {
+    features,
+    member_limit: Number(data.get('member_limit')) || 5,
+    plan: String(data.get('plan') || 'base'),
+  });
+  revalidatePath('/platform');
+  redirect('/platform?saved=1');
 }

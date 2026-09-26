@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { pool } from './db';
 import { verifyPassword } from './password';
 
-export type Actor = { id: string; organizationId: string; organizationName: string; displayName: string; email: string; role: string };
+export type Actor = { id: string; organizationId: string; organizationName: string; displayName: string; email: string; role: string; plan?: string; features?: Record<string, boolean>; memberLimit?: number };
 const digest = (value: string) => createHash('sha256').update(value).digest('hex');
 const cookieName = 'mizan_session';
 
@@ -22,6 +22,7 @@ export async function currentActor(): Promise<Actor | null> {
   const token = (await cookies()).get(cookieName)?.value;
   if (!token || !/^[a-f0-9]{64}$/.test(token)) return null;
   const result = await pool.query(`SELECT u.id, u.organization_id AS "organizationId", o.name AS "organizationName",
+    o.plan, o.features, o.member_limit AS "memberLimit",
     u.display_name AS "displayName", u.email, u.role FROM sessions s
     JOIN users u ON u.id=s.user_id JOIN organizations o ON o.id=u.organization_id
     WHERE s.token_hash=$1 AND s.expires_at>now() AND u.disabled_at IS NULL`, [digest(token)]);
