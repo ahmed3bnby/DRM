@@ -89,7 +89,17 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
       </section>
       <aside className="panel">
         <div className="panel-heading"><h2>{m.teamControls}</h2></div>
-        <div className="user-controls-wrap"><UserControls userId={member.id} role={member.role} quota={member.search_quota} disabled={!!member.disabled_at} isSelf={member.id === actor.id}/></div>
+        <div className="user-controls-wrap">
+          <UserControls
+            userId={member.id}
+            displayName={member.display_name}
+            email={member.email}
+            role={member.role}
+            quota={member.search_quota}
+            disabled={!!member.disabled_at}
+            isSelf={member.id === actor.id}
+          />
+        </div>
       </aside>
     </div>
     <section className="panel user-log">

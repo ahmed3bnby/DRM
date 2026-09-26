@@ -163,6 +163,63 @@ export async function resetUserPassword(actor: Pick<Actor, 'id' | 'organizationI
   });
 }
 
+export async function updateUserProfile(
+  actor: Pick<Actor, 'id' | 'organizationId' | 'role'>,
+  userId: string,
+  data: { displayName: string; email: string }
+) {
+  if (actor.role !== 'admin') throw new Error('FORBIDDEN');
+  const displayName = data.displayName.trim();
+  const email = data.email.trim().toLowerCase();
+  if (displayName.length < 2 || displayName.length > 80) throw new Error('INVALID_NAME');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('INVALID_EMAIL');
+
+  return withTenant(actor.organizationId, async db => {
+    const existing = await db.query(
+      'SELECT id FROM users WHERE lower(email) = $1 AND id <> $2',
+      [email, userId]
+    );
+    if (existing.rowCount && existing.rowCount > 0) {
+      throw new Error('EMAIL_TAKEN');
+    }
+
+    const current = await db.query(
+      'SELECT display_name, email, username FROM users WHERE id = $1 AND organization_id = $2',
+      [userId, actor.organizationId]
+    );
+    if (!current.rowCount) throw new Error('NOT_FOUND');
+
+    const base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'user';
+    let username = base;
+    for (let n = 2; n < 100; n++) {
+      const taken = await db.query(
+        'SELECT 1 FROM users WHERE organization_id = $1 AND username = $2 AND id <> $3',
+        [actor.organizationId, username, userId]
+      );
+      if (!taken.rowCount) break;
+      username = `${base}-${n}`;
+    }
+
+    await db.query(
+      `UPDATE users 
+       SET display_name = $1, email = $2, username = $3
+       WHERE id = $4 AND organization_id = $5`,
+      [displayName, email, username, userId, actor.organizationId]
+    );
+
+    await db.query(
+      `INSERT INTO audit_events(organization_id, actor_id, action, summary) VALUES ($1, $2, 'user.updated', $3)`,
+      [
+        actor.organizationId,
+        actor.id,
+        `تحديث بيانات المستخدم: ${current.rows[0].display_name} → ${displayName} (${email})`
+      ]
+    );
+
+    return { displayName, email, username };
+  });
+}
+
 export async function deleteTeamUser(actor: Pick<Actor, 'id' | 'organizationId' | 'role'>, userId: string) {
   if (actor.role !== 'admin') throw new Error('FORBIDDEN');
   if (userId === actor.id) throw new Error('SELF');

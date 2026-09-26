@@ -1168,7 +1168,8 @@ html[dir="ltr"] .team-quota-cell .quota-form { justify-content: flex-start; }
 .user-control-head p,
 .security-control > form > p,
 .danger-control > p { margin-top: 4px; color: #7889a1; font-size: 11px; line-height: 1.65; }
-.access-control form { display: grid; gap: 14px; padding: 15px 16px 16px; }
+.access-control form,
+.profile-control form { display: grid; gap: 14px; padding: 15px 16px 16px; }
 .role-picker { display: grid; grid-template-columns: 1fr; gap: 7px; }
 .role-option {
   display: grid;

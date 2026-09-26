@@ -6,7 +6,7 @@ import { createCustomer, updateCustomer, deleteCustomer } from '@/lib/customers'
 import { runAndSaveScreening } from '@/lib/screening';
 import { recordMatchDecision } from '@/lib/decisions';
 import { assignReviewCase } from '@/lib/review-cases';
-import { createTeamUser, setUserQuota, consumeSearch, setUserRole, setUserDisabled, resetUserPassword, deleteTeamUser, clearUserSearches, clearMySearchHistory, removeSearchHistoryItem } from '@/lib/team';
+import { createTeamUser, setUserQuota, consumeSearch, setUserRole, setUserDisabled, resetUserPassword, updateUserProfile, deleteTeamUser, clearUserSearches, clearMySearchHistory, removeSearchHistoryItem } from '@/lib/team';
 import { getSourceRecord } from '@/lib/search';
 import { extractRecordCountry, extractRecordDob, extractRecordIdentifier } from '@/lib/record-details';
 import { customerSchema, teamUserSchema, canManageCustomers, uuidSchema } from '@/lib/validation';
@@ -107,12 +107,15 @@ export async function updateQuotaAction(_previous: QuotaState, data: FormData): 
   return {ok: true};
 }
 
-export type UserControlState = { ok?: 'role' | 'password' | 'disabled' | 'enabled' | 'searches_cleared'; error?: string };
+export type UserControlState = { ok?: 'role' | 'password' | 'disabled' | 'enabled' | 'searches_cleared' | 'profile'; error?: string };
 const controlError = (error: unknown) => {
   const code = error instanceof Error ? error.message : '';
   if (code === 'SELF') return 'SELF';
   if (code === 'LAST_ADMIN') return 'LAST_ADMIN';
   if (code === 'HAS_HISTORY') return 'HAS_HISTORY';
+  if (code === 'EMAIL_TAKEN') return 'EMAIL_TAKEN';
+  if (code === 'INVALID_NAME') return 'NAME_SHORT';
+  if (code === 'INVALID_EMAIL') return 'INVALID_EMAIL';
   return 'GENERIC';
 };
 export async function manageUserAction(_previous: UserControlState, data: FormData): Promise<UserControlState> {
@@ -129,7 +132,13 @@ export async function manageUserAction(_previous: UserControlState, data: FormDa
     redirect('/team?removed=1');
   }
   try {
-    if (intent === 'role') {
+    if (intent === 'profile') {
+      const displayName = String(data.get('displayName') ?? '').trim();
+      const email = String(data.get('email') ?? '').trim().toLowerCase();
+      if (displayName.length < 2) return { error: 'NAME_SHORT' };
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'INVALID_EMAIL' };
+      await updateUserProfile(actor, userId, { displayName, email });
+    } else if (intent === 'role') {
       const role = String(data.get('role') ?? '');
       if (role !== 'admin' && role !== 'analyst' && role !== 'viewer') return {error: 'GENERIC'};
       await setUserRole(actor, userId, role, Number(data.get('quota') ?? 0));
@@ -145,7 +154,7 @@ export async function manageUserAction(_previous: UserControlState, data: FormDa
   } catch (error) { return fail(error); }
   revalidatePath('/team');
   revalidatePath('/team/[id]', 'page');
-  return {ok: intent === 'enable' ? 'enabled' : intent === 'disable' ? 'disabled' : intent === 'password' ? 'password' : intent === 'clear_searches' ? 'searches_cleared' : 'role'};
+  return {ok: intent === 'enable' ? 'enabled' : intent === 'disable' ? 'disabled' : intent === 'password' ? 'password' : intent === 'clear_searches' ? 'searches_cleared' : intent === 'profile' ? 'profile' : 'role'};
 }
 
 export async function deleteCustomerAction(data: FormData) {
