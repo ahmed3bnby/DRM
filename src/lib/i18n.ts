@@ -4,7 +4,7 @@ export type Locale = 'ar' | 'en';
 export const dirOf = (l: Locale): 'rtl' | 'ltr' => (l === 'ar' ? 'rtl' : 'ltr');
 
 export async function getLocale(): Promise<Locale> {
-  try { return (await cookies()).get('lang')?.value === 'en' ? 'en' : 'ar'; } catch { return 'ar'; }
+  try { return (await cookies()).get('lang')?.value === 'ar' ? 'ar' : 'en'; } catch { return 'en'; }
 }
 
 export const messages = {

@@ -1,5 +1,6 @@
 import { withTenant } from './db';
 import { canManageCustomers } from './validation';
+import { platformOwnerEmails, platformOwnerIds } from './platform-access';
 import type { Actor } from './auth';
 
 export type ReviewCaseStatus = 'open' | 'in_review' | 'resolved';
@@ -77,9 +78,18 @@ export async function getReviewQueueStats(organizationId: string, actorId?: stri
 }
 
 export async function listReviewAssignees(organizationId: string): Promise<ReviewAssignee[]> {
+  const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
+  const hiddenIds = platformOwnerIds();
   return withTenant(organizationId, async db => {
-    const r = await db.query(`SELECT id,display_name,role FROM users WHERE organization_id=$1 AND disabled_at IS NULL
-      AND role IN ('admin','analyst') ORDER BY display_name`, [organizationId]);
+    const r = await db.query(
+      `SELECT id,display_name,role FROM users 
+       WHERE organization_id=$1 AND disabled_at IS NULL
+         AND role IN ('admin','analyst')
+         AND NOT (lower(email) = ANY($2::text[]))
+         AND NOT (id = ANY($3::uuid[]))
+       ORDER BY display_name`,
+      [organizationId, hiddenEmails, hiddenIds]
+    );
     return r.rows as ReviewAssignee[];
   });
 }

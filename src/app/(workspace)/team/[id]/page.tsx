@@ -35,9 +35,8 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
     listUserActions(actor.organizationId, member.id, PAGE_SIZE, (logPage - 1) * PAGE_SIZE),
   ]);
   const isSuperAdmin = !!member.email && platformOwnerEmails().includes(member.email.toLowerCase());
-  const roleLabel = isSuperAdmin
-    ? (locale === 'en' ? '👑 Super Admin' : '👑 سوبر أدمن')
-    : member.role === 'admin'
+  if (isSuperAdmin) notFound();
+  const roleLabel = member.role === 'admin'
     ? m.roleAdminOpt
     : member.role === 'analyst'
     ? m.roleAnalystOpt

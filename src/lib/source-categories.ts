@@ -61,7 +61,7 @@ export function isSourceAllowed(
   return true;
 }
 
-export function getCategoryLabel(category: SourceCategory, locale: string = 'ar') {
+export function getCategoryLabel(category: SourceCategory, locale: string = 'en') {
   const isAr = locale === 'ar';
   switch (category) {
     case 'core':

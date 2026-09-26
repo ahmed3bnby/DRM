@@ -1,5 +1,6 @@
 import { pool } from './db';
 import { PREMIUM_FEATURES } from './features';
+import { platformOwnerEmails, platformOwnerIds } from './platform-access';
 
 // Platform-owner (super admin) operations act ACROSS organizations, so they use
 // the base pool without a tenant scope. Only organizations/users are read here
@@ -10,9 +11,15 @@ export type PlatformOrg = {
 };
 
 export async function listAllOrgs(): Promise<PlatformOrg[]> {
+  const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
+  const hiddenIds = platformOwnerIds();
   const r = await pool.query(`SELECT o.id,o.name,o.reference,o.plan,o.features,o.member_limit,
-    (SELECT count(*)::int FROM users u WHERE u.organization_id=o.id AND u.disabled_at IS NULL) AS users
-    FROM organizations o ORDER BY o.name`);
+    (SELECT count(*)::int FROM users u 
+     WHERE u.organization_id=o.id 
+       AND u.disabled_at IS NULL 
+       AND NOT (lower(u.email) = ANY($1::text[])) 
+       AND NOT (u.id = ANY($2::uuid[]))) AS users
+    FROM organizations o ORDER BY o.name`, [hiddenEmails, hiddenIds]);
   return r.rows as PlatformOrg[];
 }
 

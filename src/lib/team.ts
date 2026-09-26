@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 import { withTenant } from './db';
 import { hashPassword } from './password';
 import { teamUserSchema } from './validation';
-import { platformOwnerIds } from './platform-access';
+import { platformOwnerIds, platformOwnerEmails, isSuperAdminEmail, isSuperAdminId } from './platform-access';
 import type { Actor } from './auth';
 
 export type TeamMember = { id: string; username: string; email: string; display_name: string; role: string; search_quota: number | null; used: number; quota_anchor: number; disabled_at: Date | null };
@@ -11,15 +11,33 @@ export type TeamProfile = TeamMember & { searches: number; actions: number; cust
 export type UsageEvent = { id: string; query_key: string; created_at: Date; customer_id: string | null; customer_name: string | null; customer_ref: string | null };
 export type ActionEvent = { id: string; action: string; summary: string; created_at: Date; customer_id: string | null; customer_ref: string | null };
 
+function getPlatformOwnerFilters() {
+  const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
+  const hiddenIds = platformOwnerIds();
+  return { hiddenEmails, hiddenIds };
+}
+
+async function assertNotSuperAdmin(db: PoolClient, userId: string) {
+  const { hiddenEmails, hiddenIds } = getPlatformOwnerFilters();
+  if (hiddenIds.includes(userId)) throw new Error('FORBIDDEN');
+  const res = await db.query('SELECT email FROM users WHERE id=$1', [userId]);
+  if (res.rowCount && isSuperAdminEmail(res.rows[0].email)) {
+    throw new Error('FORBIDDEN');
+  }
+}
+
 export async function listTeam(organizationId: string): Promise<TeamMember[]> {
-  const hidden = platformOwnerIds();
+  const { hiddenEmails, hiddenIds } = getPlatformOwnerFilters();
   return withTenant(organizationId, async db => {
     const r = await db.query(`SELECT u.id,
       COALESCE(NULLIF(u.username, ''), split_part(u.email, '@', 1), u.id::text) AS username,
       u.email,u.display_name,u.role,u.search_quota,u.quota_anchor,u.disabled_at,
       (SELECT count(*)::int FROM search_events e WHERE e.user_id=u.id) AS used
-      FROM users u WHERE u.organization_id=$1 AND NOT (u.id = ANY($2::uuid[]))
-      ORDER BY (u.disabled_at IS NOT NULL), u.role, u.display_name`, [organizationId, hidden]);
+      FROM users u 
+      WHERE u.organization_id=$1 
+        AND NOT (lower(u.email) = ANY($2::text[]))
+        AND NOT (u.id = ANY($3::uuid[]))
+      ORDER BY (u.disabled_at IS NOT NULL), u.role, u.display_name`, [organizationId, hiddenEmails, hiddenIds]);
     return r.rows as TeamMember[];
   });
 }
@@ -32,13 +50,21 @@ const MEMBER_COLS = `u.id,
   (SELECT count(*)::int FROM audit_events a WHERE a.actor_id=u.id) AS actions,
   (SELECT count(*)::int FROM customers c WHERE c.created_by=u.id) AS customers`;
 export async function getTeamMember(organizationId: string, userId: string): Promise<TeamProfile | null> {
+  const { hiddenEmails, hiddenIds } = getPlatformOwnerFilters();
   return withTenant(organizationId, async db => {
-    const r = await db.query(`SELECT ${MEMBER_COLS} FROM users u WHERE u.id=$1 AND u.organization_id=$2`, [userId, organizationId]);
+    const r = await db.query(
+      `SELECT ${MEMBER_COLS} FROM users u 
+       WHERE u.id=$1 AND u.organization_id=$2
+         AND NOT (lower(u.email) = ANY($3::text[]))
+         AND NOT (u.id = ANY($4::uuid[]))`,
+      [userId, organizationId, hiddenEmails, hiddenIds]
+    );
     return (r.rows[0] as TeamProfile | undefined) ?? null;
   });
 }
 // Resolve a member by their readable per-org username, email prefix, email or UUID.
 export async function getTeamMemberByUsername(organizationId: string, identifier: string): Promise<TeamProfile | null> {
+  const { hiddenEmails, hiddenIds } = getPlatformOwnerFilters();
   return withTenant(organizationId, async db => {
     const clean = (identifier || '').trim();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean);
@@ -50,9 +76,11 @@ export async function getTeamMemberByUsername(organizationId: string, identifier
          OR split_part(lower(u.email), '@', 1) = lower($1)
          OR ($2::boolean AND u.id = $3::uuid)
        ) AND u.organization_id = $4
+         AND NOT (lower(u.email) = ANY($5::text[]))
+         AND NOT (u.id = ANY($6::uuid[]))
        ORDER BY (u.username = $1) DESC
        LIMIT 1`,
-      [clean, isUuid, isUuid ? clean : null, organizationId]
+      [clean, isUuid, isUuid ? clean : null, organizationId, hiddenEmails, hiddenIds]
     );
     return (r.rows[0] as TeamProfile | undefined) ?? null;
   });
@@ -82,12 +110,19 @@ export async function createTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
   if (actor.role !== 'admin') throw new Error('FORBIDDEN');
   const input = teamUserSchema.parse(raw);
   const quota = input.role === 'admin' ? null : input.quota;
-  const hidden = platformOwnerIds();
+  const { hiddenEmails, hiddenIds } = getPlatformOwnerFilters();
   return withTenant(actor.organizationId, async db => {
     // Enforce the plan's team-member cap (platform-owner accounts don't count).
     const org = await db.query('SELECT member_limit FROM organizations WHERE id=$1', [actor.organizationId]);
     const limit = org.rows[0]?.member_limit ?? 5;
-    const active = await db.query(`SELECT count(*)::int AS c FROM users WHERE organization_id=$1 AND disabled_at IS NULL AND NOT (id = ANY($2::uuid[]))`, [actor.organizationId, hidden]);
+    const active = await db.query(
+      `SELECT count(*)::int AS c FROM users 
+       WHERE organization_id=$1 
+         AND disabled_at IS NULL 
+         AND NOT (lower(email) = ANY($2::text[]))
+         AND NOT (id = ANY($3::uuid[]))`,
+      [actor.organizationId, hiddenEmails, hiddenIds]
+    );
     if (active.rows[0].c >= limit) throw new Error('MEMBER_LIMIT');
     const base = (input.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'user');
     let username = base;
@@ -108,6 +143,7 @@ export async function setUserQuota(actor: Pick<Actor, 'id' | 'organizationId' | 
   if (actor.role !== 'admin') throw new Error('FORBIDDEN');
   const q = Math.max(0, Math.min(1000000, Math.floor(quota)));
   return withTenant(actor.organizationId, async db => {
+    await assertNotSuperAdmin(db, userId);
     const r = await db.query(`UPDATE users SET search_quota=$3,
       quota_anchor=(SELECT count(*)::int FROM search_events e WHERE e.user_id=users.id)
       WHERE id=$1 AND organization_id=$2 AND role<>'admin' RETURNING display_name`, [userId, actor.organizationId, q]);
@@ -117,7 +153,17 @@ export async function setUserQuota(actor: Pick<Actor, 'id' | 'organizationId' | 
 }
 
 async function assertNotLastAdmin(db: PoolClient, organizationId: string, userId: string) {
-  const others = await db.query(`SELECT count(*)::int AS c FROM users WHERE organization_id=$1 AND role='admin' AND disabled_at IS NULL AND id<>$2`, [organizationId, userId]);
+  const { hiddenEmails, hiddenIds } = getPlatformOwnerFilters();
+  const others = await db.query(
+    `SELECT count(*)::int AS c FROM users 
+     WHERE organization_id=$1 
+       AND role='admin' 
+       AND disabled_at IS NULL 
+       AND id<>$2
+       AND NOT (lower(email) = ANY($3::text[]))
+       AND NOT (id = ANY($4::uuid[]))`,
+    [organizationId, userId, hiddenEmails, hiddenIds]
+  );
   if (others.rows[0].c === 0) throw new Error('LAST_ADMIN');
 }
 
@@ -126,6 +172,7 @@ export async function setUserRole(actor: Pick<Actor, 'id' | 'organizationId' | '
   if (userId === actor.id) throw new Error('SELF');
   const q = role === 'admin' ? null : Math.max(0, Math.min(1000000, Math.floor(quota)));
   return withTenant(actor.organizationId, async db => {
+    await assertNotSuperAdmin(db, userId);
     const current = await db.query(`SELECT role,display_name FROM users WHERE id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
     if (!current.rowCount) throw new Error('NOT_FOUND');
     if (current.rows[0].role === 'admin' && role !== 'admin') await assertNotLastAdmin(db, actor.organizationId, userId);
@@ -141,6 +188,7 @@ export async function setUserDisabled(actor: Pick<Actor, 'id' | 'organizationId'
   if (actor.role !== 'admin') throw new Error('FORBIDDEN');
   if (userId === actor.id) throw new Error('SELF');
   return withTenant(actor.organizationId, async db => {
+    await assertNotSuperAdmin(db, userId);
     const current = await db.query(`SELECT role,display_name,disabled_at FROM users WHERE id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
     if (!current.rowCount) throw new Error('NOT_FOUND');
     if (disabled && current.rows[0].role === 'admin' && !current.rows[0].disabled_at) await assertNotLastAdmin(db, actor.organizationId, userId);
@@ -155,6 +203,7 @@ export async function resetUserPassword(actor: Pick<Actor, 'id' | 'organizationI
   if (actor.role !== 'admin') throw new Error('FORBIDDEN');
   if (userId === actor.id) throw new Error('SELF');
   return withTenant(actor.organizationId, async db => {
+    await assertNotSuperAdmin(db, userId);
     const current = await db.query(`UPDATE users SET password_hash=$3 WHERE id=$1 AND organization_id=$2 RETURNING display_name`, [userId, actor.organizationId, hashPassword(password)]);
     if (!current.rowCount) throw new Error('NOT_FOUND');
     await db.query('DELETE FROM sessions WHERE user_id=$1', [userId]);
@@ -175,6 +224,10 @@ export async function updateUserProfile(
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('INVALID_EMAIL');
 
   return withTenant(actor.organizationId, async db => {
+    await assertNotSuperAdmin(db, userId);
+    if (isSuperAdminEmail(email)) {
+      throw new Error('EMAIL_TAKEN');
+    }
     const existing = await db.query(
       'SELECT id FROM users WHERE lower(email) = $1 AND id <> $2',
       [email, userId]
@@ -224,6 +277,7 @@ export async function deleteTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
   if (actor.role !== 'admin') throw new Error('FORBIDDEN');
   if (userId === actor.id) throw new Error('SELF');
   return withTenant(actor.organizationId, async db => {
+    await assertNotSuperAdmin(db, userId);
     const current = await db.query(`SELECT role,display_name,disabled_at FROM users WHERE id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
     if (!current.rowCount) throw new Error('NOT_FOUND');
     if (current.rows[0].role === 'admin' && !current.rows[0].disabled_at) await assertNotLastAdmin(db, actor.organizationId, userId);
@@ -243,6 +297,7 @@ export async function deleteTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
 export async function clearUserSearches(actor: Pick<Actor, 'id' | 'organizationId' | 'role'>, userId: string) {
   if (actor.role !== 'admin') throw new Error('FORBIDDEN');
   return withTenant(actor.organizationId, async db => {
+    await assertNotSuperAdmin(db, userId);
     const user = await db.query('SELECT display_name FROM users WHERE id=$1 AND organization_id=$2', [userId, actor.organizationId]);
     if (!user.rowCount) throw new Error('NOT_FOUND');
     await db.query('DELETE FROM search_events WHERE organization_id=$1 AND user_id=$2', [actor.organizationId, userId]);

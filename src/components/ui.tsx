@@ -11,12 +11,12 @@ export function RiskPill({band,m}:{band:string;m:Messages}) {
 }
 // ISO 3166-1 alpha-2 → emoji flag (🇦🇪…). Returns '' for non-country codes (OTHER, blank).
 export const flag = (code:string)=>{const c=(code||'').trim().toUpperCase();if(!/^[A-Z]{2}$/.test(c)||['ZZ','XX','OT'].includes(c))return '';return String.fromCodePoint(...[...c].map(ch=>0x1F1E6+ch.charCodeAt(0)-65));};
-export const date = (value:Date|string,locale:Locale='ar')=>new Date(value).toLocaleDateString(locale==='en'?'en-GB':'ar-EG',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Dubai'});
-export function DateText({value,locale='ar'}:{value:Date|string;locale?:Locale}) {
+export const date = (value:Date|string,locale:Locale='en')=>new Date(value).toLocaleDateString(locale==='en'?'en-GB':'ar-EG',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Dubai'});
+export function DateText({value,locale='en'}:{value:Date|string;locale?:Locale}) {
   const d=new Date(value); const iso=Number.isNaN(d.getTime())?undefined:d.toISOString();
   return <time dateTime={iso} dir={locale==='en'?'ltr':'rtl'}><bdi>{date(value,locale)}</bdi></time>;
 }
-export function DateTimeText({value,locale='ar'}:{value:Date|string;locale?:Locale}) {
+export function DateTimeText({value,locale='en'}:{value:Date|string;locale?:Locale}) {
   const d=new Date(value); const iso=Number.isNaN(d.getTime())?undefined:d.toISOString();
   const text=d.toLocaleString(locale==='en'?'en-GB':'ar-EG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'});
   return <time dateTime={iso} dir={locale==='en'?'ltr':'rtl'}><bdi>{text}</bdi></time>;
@@ -98,7 +98,7 @@ export function Pagination({
   </div>;
 }
 const regionAr=new Intl.DisplayNames(['ar'],{type:'region'});const regionEn=new Intl.DisplayNames(['en'],{type:'region'});
-export const countryName = (code:string,locale:Locale='ar')=>{const c=(code||'').toUpperCase();if(!c||c==='OTHER'||c==='OT')return locale==='en'?'Other':'أخرى';if(/^[A-Z]{2}$/.test(c)){try{return (locale==='en'?regionEn:regionAr).of(c)??c;}catch{return c;}}return code;};
+export const countryName = (code:string,locale:Locale='en')=>{const c=(code||'').toUpperCase();if(!c||c==='OTHER'||c==='OT')return locale==='en'?'Other':'أخرى';if(/^[A-Z]{2}$/.test(c)){try{return (locale==='en'?regionEn:regionAr).of(c)??c;}catch{return c;}}return code;};
 export function Status({status,m}:{status:string;m:Messages}) {return <span className={`status ${status==='awaiting_information'?'amber':'neutral'}`}><span className="status-mark"/>{status==='awaiting_information'?m.stAwaiting:m.stDraft}</span>;}
 const screeningCls:Record<string,string>={not_run:'not-run',no_match:'neutral',screened:'neutral',potential_match:'amber'};
 export function ScreeningTag({status,m}:{status:string;m:Messages}) {const cls=screeningCls[status]??'not-run';const label=({not_run:m.scNotRun,no_match:m.scNoMatch,screened:m.scScreened,potential_match:m.scPotential} as Record<string,string>)[status]??m.scNotRun;return cls==='not-run'?<span className="not-run">{label}</span>:<span className={`status ${cls}`}><span className="status-mark"/>{label}</span>;}
