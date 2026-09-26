@@ -1,0 +1,150 @@
+{
+  "checkedAt": "2026-09-21T18:48:38.160Z",
+  "activeLists": 27,
+  "richLists": 25,
+  "totalSnapshotRecords": 201579,
+  "versions": [
+    {
+      "code": "UK",
+      "record_count": 6339,
+      "parser_version": "0.2"
+    },
+    {
+      "code": "UN",
+      "record_count": 1011,
+      "parser_version": "0.1"
+    },
+    {
+      "code": "ae_dfsa_prohibited",
+      "record_count": 24,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "ae_local_terrorists",
+      "record_count": 308,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "afdb_sanctions",
+      "record_count": 1313,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "au_dfat_sanctions",
+      "record_count": 3796,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "bh_nuwab",
+      "record_count": 178,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "ca_dfatd_sema_sanctions",
+      "record_count": 5610,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "ch_seco_sanctions",
+      "record_count": 6739,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "ebrd_ineligible",
+      "record_count": 1193,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "eu_fsf",
+      "record_count": 6128,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "gb_fcdo_sanctions",
+      "record_count": 6283,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "iadb_sanctions",
+      "record_count": 1210,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "jp_mof_sanctions",
+      "record_count": 2804,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "nz_designated_terrorists",
+      "record_count": 21,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "nz_russia_sanctions",
+      "record_count": 1902,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "om_parliament",
+      "record_count": 366,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "qa_shura_council",
+      "record_count": 49,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "un_sc_sanctions",
+      "record_count": 1005,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "us_bis_denied",
+      "record_count": 382,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "us_ofac_cons",
+      "record_count": 711,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "us_ofac_sdn",
+      "record_count": 20348,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "us_sam_exclusions",
+      "record_count": 105716,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "us_sec_harmed_investors",
+      "record_count": 861,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "us_sec_pause",
+      "record_count": 1671,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "us_trade_csl",
+      "record_count": 24208,
+      "parser_version": "os-rich-1.0"
+    },
+    {
+      "code": "worldbank_debarred",
+      "record_count": 1403,
+      "parser_version": "os-rich-1.0"
+    }
+  ],
+  "checks": [
+    "requested coverage visible",
+    "Canada searchable",
+    "nested evidence renders",
+    "mobile no overflow",
+    "no browser errors"
+  ]
+}

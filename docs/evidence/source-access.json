@@ -1,0 +1,67 @@
+{
+  "purpose": "P00 access and format experiment only",
+  "sources": [
+    {
+      "code": "UN",
+      "url": "https://scsanctions.un.org/resources/xml/en/consolidated.xml",
+      "checkedAt": "2026-09-21T10:04:13.961355+00:00",
+      "status": "structure_verified",
+      "format": "xml",
+      "screeningReady": false,
+      "httpStatus": 200,
+      "finalUrl": "https://unsolprodfiles.blob.core.windows.net/publiclegacyxmlfiles/EN/consolidatedLegacyByPRN.xml",
+      "contentType": "application/xml",
+      "bytes": 2176957,
+      "sha256": "e00d452dec23b46dfff9804e59d6c8851593020192360d144fa0e81f9cdcff2e",
+      "rootTag": "CONSOLIDATED_LIST",
+      "recordCount": 1011,
+      "sourceDate": "2026-09-19T23:00:03.787Z"
+    },
+    {
+      "code": "UK",
+      "url": "https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.csv",
+      "checkedAt": "2026-09-21T10:04:13.961721+00:00",
+      "status": "structure_verified",
+      "format": "csv",
+      "screeningReady": false,
+      "httpStatus": 200,
+      "finalUrl": "https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.csv",
+      "contentType": "application/octet-stream",
+      "bytes": 49928338,
+      "sha256": "70f3ef0751ff3c099cb740d24068331e7fa8289a8af154d040a1da024e222c7c",
+      "columns": 58,
+      "rowCount": 58450,
+      "recordCount": 6340
+    },
+    {
+      "code": "OFAC",
+      "url": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML",
+      "checkedAt": "2026-09-21T10:04:13.961889+00:00",
+      "status": "structure_verified",
+      "format": "xml",
+      "screeningReady": false,
+      "httpStatus": 200,
+      "finalUrl": "https://wc2h-sls-prod-public-published.s3.us-gov-west-1.amazonaws.com/Published/6f141e88-8b06-41e6-89e7-d4017d73a738/2026-09-17/ac391fbd-8ac6-4dce-b73b-115435194157/SDN.XML",
+      "contentType": "text/xml",
+      "bytes": 29093584,
+      "sha256": "30c2a70887d694f7242254e96d505a9bc67b19ef4c246ae9fc7d21ad7e9101b9",
+      "rootTag": "sdnList",
+      "recordCount": 19393,
+      "sourceDate": null
+    },
+    {
+      "code": "UAE",
+      "url": "https://www.uaeiec.gov.ae/",
+      "checkedAt": "2026-09-21T10:04:13.962023+00:00",
+      "status": "landing_only",
+      "format": "landing",
+      "screeningReady": false,
+      "httpStatus": 200,
+      "finalUrl": "https://www.uaeiec.gov.ae/ar-ae/",
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 95861,
+      "sha256": "40857ee770c7c76369e7b0a18df898b189678cbe599d28434534459cc3fac5ec",
+      "note": "A current machine-readable download still needs verification."
+    }
+  ]
+}

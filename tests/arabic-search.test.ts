@@ -1,0 +1,10 @@
+import {test,after} from 'node:test';
+import assert from 'node:assert/strict';
+import {Pool} from 'pg';
+import {pool} from '../src/lib/db';
+import {searchPublicSources} from '../src/lib/search';
+import {createCustomer,listCustomers} from '../src/lib/customers';
+const admin=new Pool({connectionString:process.env.DATABASE_ADMIN_URL});const created:string[]=[];
+after(async()=>{for(const id of created){await admin.query('DELETE FROM audit_events WHERE customer_id=$1',[id]);await admin.query('DELETE FROM customers WHERE id=$1',[id]);}await admin.end();await pool.end();});
+test('reported source name resolves equally with all alef variants and decomposed hamza',async()=>{let baseline:string[]=[];for(const name of ['أحمد علي أحمد برعود','احمد علي احمد برعود','آحمد علي آحمد برعود','إحمد علي إحمد برعود','أحمد علي أحمد برعود']){const r=await searchPublicSources(name);const ids=r.filter(x=>x.match_kind==='exact'&&x.code==='ae_local_terrorists').map(x=>x.id);assert.ok(ids.length>0);if(baseline.length)assert.deepEqual(ids,baseline);baseline=ids;}});
+test('customer name search ignores alef spelling and diacritics while preserving source name and tenant isolation',async()=>{const actor={id:'20000000-0000-4000-8000-000000000001',organizationId:'10000000-0000-4000-8000-000000000001',role:'admin' as const};const name='أحمد آلاء إيمان اختبار اصطناعي';const {id}=await createCustomer(actor,{name,entityType:'individual',country:'AE'});created.push(id);for(const q of ['أحمد آلاء إيمان','احمد الاء ايمان','آحمد ألاء إيمان','أَحْمَد الاء ايمان']){const rows=await listCustomers(actor.organizationId,q);assert.ok(rows.some(r=>r.id===id&&r.name===name));}assert.equal((await listCustomers('10000000-0000-4000-8000-000000000002','احمد الاء ايمان')).some(r=>r.id===id),false);});

@@ -1,0 +1,17 @@
+import {chromium} from '/Users/ahmed/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import {Pool} from 'pg';import {createHash,randomBytes} from 'node:crypto';import assert from 'node:assert/strict';import {mkdir} from 'node:fs/promises';
+const db=new Pool({connectionString:process.env.DATABASE_ADMIN_URL});const tokens=[];
+const browser=await chromium.launch({headless:true,channel:'chrome'});
+async function context(userId,locale){const token=randomBytes(32).toString('hex'),hash=createHash('sha256').update(token).digest('hex');tokens.push(hash);await db.query("INSERT INTO sessions(token_hash,user_id,expires_at)VALUES($1,$2,now()+interval '15 minutes')",[hash,userId]);const c=await browser.newContext();await c.addCookies([{name:'mizan_session',value:token,url:'http://127.0.0.1:3000',httpOnly:true,sameSite:'Strict'},...(locale?[{name:'lang',value:locale,url:'http://127.0.0.1:3000',sameSite:'Lax'}]:[])]);return c;}
+try{
+ const owner=process.env.PLATFORM_ADMIN_USER_IDS.split(',')[0];const c=await context(owner);const p=await c.newPage();
+ const errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto('http://127.0.0.1:3000/admin');await p.getByRole('heading',{name:'مراقبة التشغيل',exact:true}).waitFor();
+ await mkdir('docs/evidence/screenshots',{recursive:true});await p.screenshot({path:'docs/evidence/screenshots/operations.png',fullPage:true});
+ const english=await context(owner,'en');const ep=await english.newPage();await ep.goto('http://127.0.0.1:3000/admin');await ep.getByRole('heading',{name:'Operations monitoring',exact:true}).waitFor();assert.equal(await ep.getByRole('button',{name:'Refresh status',exact:true}).count(),1);
+ const other=(await db.query("SELECT id FROM users WHERE role='admin' AND id<>$1 AND disabled_at IS NULL LIMIT 1",[owner])).rows[0];const oc=await context(other.id);const op=await oc.newPage();const denied=await op.goto('http://127.0.0.1:3000/admin');assert.equal(denied.status(),404);assert.equal(await op.getByRole('button',{name:'سحب تحديثات المصادر الآن'}).count(),0);
+ const sample=(await db.query('SELECT c.id FROM customers c JOIN users u ON u.organization_id=c.organization_id JOIN customer_screenings s ON s.customer_id=c.id WHERE u.id=$1 AND jsonb_array_length(s.top_matches)>0 ORDER BY s.created_at DESC LIMIT 1',[owner])).rows[0];assert.ok(sample,'Need an existing screened customer to check print');
+ await p.goto(`http://127.0.0.1:3000/profiles/${sample.id}/report`);await p.emulateMedia({media:'print'});await p.setViewportSize({width:794,height:1123});await p.evaluate(()=>document.fonts.ready);
+ const styles=await p.locator('.report-table').first().evaluate(t=>({table:getComputedStyle(t).display,head:getComputedStyle(t.querySelector('thead')).position,clip:getComputedStyle(t.querySelector('thead')).clipPath,cell:getComputedStyle(t.querySelector('td')).display}));assert.equal(styles.table,'table');assert.equal(styles.head,'static');assert.equal(styles.clip,'none');assert.equal(styles.cell,'table-cell');
+ await p.pdf({path:'docs/evidence/report-print-check.pdf',format:'A4',printBackground:true,preferCSSPageSize:true});
+ await p.emulateMedia({media:'screen'});assert.deepEqual(errors,[]);console.log('PASS owner access in Arabic and English, tenant admin denied, print table and headers, PDF export');
+}finally{await browser.close();for(const h of tokens)await db.query('DELETE FROM sessions WHERE token_hash=$1',[h]);await db.end();}

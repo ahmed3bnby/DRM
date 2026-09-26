@@ -1,0 +1,6 @@
+2026-09-21
+Foundation tests: 8 passed, 0 failed.
+Next production build + TypeScript: passed.
+Browser: Chrome desktop 1440x1100 and mobile 390x844.
+PASS login, persisted customer after reload, cross-tenant detail denied, viewer restricted, search, sources, mobile page overflow, no page errors.
+Scope: local synthetic data, two tenant fixtures. No load or production security certification.

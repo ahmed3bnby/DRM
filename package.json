@@ -1,0 +1,41 @@
+{
+  "name": "mizan-compliance",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3000",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 3000",
+    "typecheck": "tsc --noEmit",
+    "test": "node --env-file=.env.local --import tsx --test tests/*.test.ts",
+    "db:setup": "node --env-file=.env.local --import tsx scripts/setup-db.ts && npm run db:search-keys",
+    "sources:probe": "python3 scripts/probe-sources.py",
+    "sources:catalog": "python3 scripts/connectors/opensanctions.py catalog",
+    "sources:uae": "python3 scripts/connectors/uaeiec.py",
+    "sources:fetch": "python3 scripts/connectors/opensanctions.py",
+    "sources:import": "node --env-file=.env.local --import tsx scripts/import-sources.ts",
+    "sources:sync": "node scripts/sync-runner.mjs --all",
+    "sources:sync:changed": "node scripts/sync-runner.mjs",
+    "sources:schedule": "bash scripts/install-schedule.sh",
+    "sources:unschedule": "bash scripts/uninstall-schedule.sh",
+    "db:search-keys": "node --env-file=.env.local --import tsx scripts/migrate-customer-search.ts"
+  },
+  "dependencies": {
+    "next": "16.3.5",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "pg": "^8.16.3",
+    "zod": "^4.1.0",
+    "lucide-react": "^0.468.0",
+    "@fontsource/ibm-plex-sans-arabic": "^5.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/pg": "^8.15.0",
+    "tsx": "^4.20.0"
+  },
+  "type": "module"
+}

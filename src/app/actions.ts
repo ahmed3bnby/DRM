@@ -1,0 +1,312 @@
+'use server';
+import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
+import { createSession, destroySession, requireActor } from '@/lib/auth';
+import { createCustomer, updateCustomer, deleteCustomer } from '@/lib/customers';
+import { runAndSaveScreening } from '@/lib/screening';
+import { recordMatchDecision } from '@/lib/decisions';
+import { assignReviewCase } from '@/lib/review-cases';
+import { createTeamUser, setUserQuota, consumeSearch, setUserRole, setUserDisabled, resetUserPassword, deleteTeamUser, clearUserSearches, clearMySearchHistory, removeSearchHistoryItem } from '@/lib/team';
+import { getSourceRecord } from '@/lib/search';
+import { extractRecordCountry, extractRecordDob, extractRecordIdentifier } from '@/lib/record-details';
+import { customerSchema, teamUserSchema, canManageCustomers, uuidSchema } from '@/lib/validation';
+
+export type LoginState = {error?: string};
+export async function loginAction(_previous: LoginState, data: FormData): Promise<LoginState> {
+  const email = String(data.get('email') ?? '');
+  const password = String(data.get('password') ?? '');
+  const remember = data.get('remember') === 'on';
+  if (!email || !password || !(await createSession(email,password,remember))) return {error: 'تعذر تسجيل الدخول. راجع البيانات أو انتظر قليلًا إذا تكررت المحاولات.'};
+  redirect('/');
+}
+export async function logoutAction() { await destroySession(); redirect('/login'); }
+
+export type FormState = {error?: string; fields?: Record<string, string[] | undefined>; values?: Record<string,string>};
+export async function createCustomerAction(_previous: FormState, data: FormData): Promise<FormState> {
+  const actor = await requireActor();
+  if (!canManageCustomers(actor.role)) return {error: 'صلاحيتك تسمح بالاطلاع فقط.'};
+  const values = Object.fromEntries(['name','entityType','country','nationality','deliveryChannel','email','industry','dateOfBirth','identifier','notes'].map(key=>[key,String(data.get(key) ?? '')]));
+  const parsed = customerSchema.safeParse(values);
+  if (!parsed.success) return {error: 'راجع الحقول الموضحة أدناه.', fields: parsed.error.flatten().fieldErrors, values};
+  let reference: string;
+  try { ({ reference } = await createCustomer(actor, parsed.data)); }
+  catch { return {error: 'تعذر حفظ الملف. لم يُسجل إنشاء مكتمل؛ أعد المحاولة.', values}; }
+  revalidatePath('/'); revalidatePath('/profiles');
+  redirect(`/profiles/${reference}?created=1`);
+}
+
+export async function editCustomerAction(_previous: FormState, data: FormData): Promise<FormState> {
+  const actor = await requireActor();
+  if (!canManageCustomers(actor.role)) return {error: 'صلاحيتك تسمح بالاطلاع فقط.'};
+  const id = String(data.get('id') ?? '');
+  if (!uuidSchema.safeParse(id).success) return {error: 'ملف غير صالح.'};
+  const values = Object.fromEntries(['name','entityType','country','nationality','deliveryChannel','email','industry','dateOfBirth','identifier','notes'].map(key=>[key,String(data.get(key) ?? '')]));
+  const parsed = customerSchema.safeParse(values);
+  if (!parsed.success) return {error: 'راجع الحقول الموضحة أدناه.', fields: parsed.error.flatten().fieldErrors, values};
+  let reference: string;
+  try { reference = await updateCustomer(actor, id, parsed.data); }
+  catch (err: unknown) {
+    if (err instanceof Error && err.message === 'FORBIDDEN_NOT_CREATOR') {
+      return {error: 'لا تملك صلاحية تعديل هذا الملف. التعديل متاح فقط لمنشئ الملف أو مدير النظام.', values};
+    }
+    return {error: 'تعذر حفظ التعديلات؛ أعد المحاولة.', values};
+  }
+  revalidatePath('/profiles/[id]', 'page'); revalidatePath('/profiles'); revalidatePath('/');
+  redirect(`/profiles/${reference}?updated=1`);
+}
+
+export async function screenCustomerAction(data: FormData) {
+  const actor = await requireActor();
+  const id = String(data.get('customerId') ?? '');
+  const reference = String(data.get('reference') ?? '');
+  if (!uuidSchema.safeParse(id).success || !canManageCustomers(actor.role)) {
+    if (reference) redirect(`/profiles/${reference}?screen=error`);
+    return;
+  }
+  const quota = await consumeSearch(actor, `screen:${id}`);
+  if (!quota.allowed) {
+    revalidatePath('/profiles/[id]', 'page');
+    if (reference) redirect(`/profiles/${reference}?screen=quota`);
+    return;
+  }
+  try { await runAndSaveScreening(actor, id); }
+  catch {
+    revalidatePath('/profiles/[id]', 'page');
+    if (reference) redirect(`/profiles/${reference}?screen=error`);
+    return;
+  }
+  revalidatePath('/profiles/[id]', 'page');
+  revalidatePath('/profiles/[id]/report', 'page');
+  revalidatePath('/profiles');
+  revalidatePath('/reviews');
+  revalidatePath('/');
+  if (reference) redirect(`/profiles/${reference}?screen=success`);
+}
+
+export async function createUserAction(_previous: FormState, data: FormData): Promise<FormState> {
+  const actor = await requireActor();
+  if (actor.role !== 'admin') return {error: 'هذا الإجراء خاص بالمدير.'};
+  const values = Object.fromEntries(['email','displayName','role','quota','password'].map(key=>[key,String(data.get(key) ?? '')]));
+  const parsed = teamUserSchema.safeParse(values);
+  if (!parsed.success) return {error: 'راجع الحقول الموضحة أدناه.', fields: parsed.error.flatten().fieldErrors, values};
+  try { await createTeamUser(actor, parsed.data); }
+  catch (e) { const msg = String((e as Error).message ?? ''); return {error: /duplicate|unique/i.test(msg) ? 'هذا البريد مستخدم بالفعل.' : 'تعذر إنشاء المستخدم؛ أعد المحاولة.', values}; }
+  revalidatePath('/team');
+  return {};
+}
+
+export type QuotaState = { ok?: boolean; error?: string };
+export async function updateQuotaAction(_previous: QuotaState, data: FormData): Promise<QuotaState> {
+  const actor = await requireActor();
+  if (actor.role !== 'admin') return {error: 'هذا الإجراء خاص بالمدير.'};
+  const userId = String(data.get('userId') ?? '');
+  if (!uuidSchema.safeParse(userId).success) return {error: 'مستخدم غير صالح.'};
+  try { await setUserQuota(actor, userId, Number(data.get('quota') ?? 0)); }
+  catch { return {error: 'تعذر تحديث الحصة؛ أعد المحاولة.'}; }
+  revalidatePath('/team');
+  return {ok: true};
+}
+
+export type UserControlState = { ok?: 'role' | 'password' | 'disabled' | 'enabled' | 'searches_cleared'; error?: string };
+const controlError = (error: unknown) => {
+  const code = error instanceof Error ? error.message : '';
+  if (code === 'SELF') return 'SELF';
+  if (code === 'LAST_ADMIN') return 'LAST_ADMIN';
+  if (code === 'HAS_HISTORY') return 'HAS_HISTORY';
+  return 'GENERIC';
+};
+export async function manageUserAction(_previous: UserControlState, data: FormData): Promise<UserControlState> {
+  const actor = await requireActor();
+  if (actor.role !== 'admin') return {error: 'GENERIC'};
+  const userId = String(data.get('userId') ?? '');
+  const intent = String(data.get('intent') ?? '');
+  if (!uuidSchema.safeParse(userId).success) return {error: 'GENERIC'};
+  const fail = (error: unknown) => ({error: controlError(error)}) as UserControlState;
+  if (intent === 'delete') {
+    try { await deleteTeamUser(actor, userId); }
+    catch (error) { return fail(error); }
+    revalidatePath('/team');
+    redirect('/team?removed=1');
+  }
+  try {
+    if (intent === 'role') {
+      const role = String(data.get('role') ?? '');
+      if (role !== 'admin' && role !== 'analyst' && role !== 'viewer') return {error: 'GENERIC'};
+      await setUserRole(actor, userId, role, Number(data.get('quota') ?? 0));
+    } else if (intent === 'password') {
+      const password = String(data.get('password') ?? '');
+      if (password.length < 12 || password.length > 200) return {error: 'PASSWORD'};
+      await resetUserPassword(actor, userId, password);
+    } else if (intent === 'disable' || intent === 'enable') {
+      await setUserDisabled(actor, userId, intent === 'disable');
+    } else if (intent === 'clear_searches') {
+      await clearUserSearches(actor, userId);
+    } else return {error: 'GENERIC'};
+  } catch (error) { return fail(error); }
+  revalidatePath('/team');
+  revalidatePath('/team/[id]', 'page');
+  return {ok: intent === 'enable' ? 'enabled' : intent === 'disable' ? 'disabled' : intent === 'password' ? 'password' : intent === 'clear_searches' ? 'searches_cleared' : 'role'};
+}
+
+export async function deleteCustomerAction(data: FormData) {
+  const actor = await requireActor();
+  if (actor.role !== 'admin') {
+    redirect('/profiles?delete=forbidden');
+  }
+  const customerId = String(data.get('customerId') ?? '');
+  if (!uuidSchema.safeParse(customerId).success) {
+    redirect('/profiles?delete=error');
+  }
+  try {
+    await deleteCustomer(actor, customerId);
+  } catch {
+    redirect('/profiles?delete=error');
+  }
+  revalidatePath('/profiles');
+  revalidatePath('/profiles/[id]', 'page');
+  revalidatePath('/reviews');
+  revalidatePath('/');
+  redirect('/profiles?deleted=1');
+}
+
+export type DecisionActionState = {
+  ok?: boolean;
+  error?: string;
+  decision?: string;
+  recordId?: string;
+};
+
+export async function saveMatchDecisionAction(
+  _previous: DecisionActionState,
+  data: FormData
+): Promise<DecisionActionState> {
+  const actor = await requireActor();
+  const customerId = String(data.get('customerId') ?? '');
+  const recordId = String(data.get('recordId') ?? '');
+  const decision = String(data.get('decision') ?? '');
+  const reason = String(data.get('reason') ?? '');
+  if (!uuidSchema.safeParse(customerId).success || !recordId || !canManageCustomers(actor.role)) {
+    return { ok: false, error: 'INVALID_INPUT', recordId };
+  }
+  if (!['confirmed', 'dismissed', 'needs_info'].includes(decision)) {
+    return { ok: false, error: 'BAD_DECISION', recordId };
+  }
+  if (!reason.trim()) {
+    return { ok: false, error: 'REASON_REQUIRED', recordId };
+  }
+  try {
+    await recordMatchDecision(actor, customerId, recordId, decision, reason);
+  } catch (err) {
+    return { ok: false, error: (err as Error).message || 'SAVE_FAILED', recordId };
+  }
+  revalidatePath('/profiles/[id]', 'page');
+  revalidatePath('/profiles/[id]/report', 'page');
+  revalidatePath('/reviews');
+  revalidatePath('/profiles');
+  revalidatePath('/');
+  return { ok: true, decision, recordId };
+}
+
+export async function decideMatchAction(data: FormData) {
+  const actor = await requireActor();
+  const customerId = String(data.get('customerId') ?? '');
+  const recordId = String(data.get('recordId') ?? '');
+  const reference = String(data.get('reference') ?? '');
+  if (!uuidSchema.safeParse(customerId).success || !recordId || !canManageCustomers(actor.role) || !/^[\w-]{4,60}$/.test(reference)) {
+    if (reference) redirect(`/profiles/${reference}?decision=error`);
+    return;
+  }
+  try { await recordMatchDecision(actor, customerId, recordId, String(data.get('decision') ?? ''), String(data.get('reason') ?? '')); }
+  catch {
+    redirect(`/profiles/${reference}?decision=error`);
+  }
+  revalidatePath('/profiles/[id]', 'page');
+  revalidatePath('/profiles/[id]/report', 'page');
+  revalidatePath('/reviews');
+  revalidatePath('/profiles');
+  revalidatePath('/');
+  redirect(`/profiles/${reference}?decision=saved`);
+}
+
+export async function assignReviewCaseAction(data: FormData) {
+  const actor = await requireActor();
+  const caseId = String(data.get('caseId') ?? '');
+  const intent = String(data.get('intent') ?? '');
+  const assigneeId = String(data.get('assigneeId') ?? '') || null;
+  const returnTo = String(data.get('returnTo') ?? '/reviews');
+  const safeReturnTo = /^\/reviews(?:\?[^#]*)?$/.test(returnTo) ? returnTo : '/reviews';
+  const outcomeUrl = (outcome: 'saved' | 'error') => `${safeReturnTo}${safeReturnTo.includes('?') ? '&' : '?'}assignment=${outcome}`;
+  if (!uuidSchema.safeParse(caseId).success || (intent !== 'claim' && intent !== 'assign')) {
+    redirect(outcomeUrl('error'));
+  }
+  try { await assignReviewCase(actor, caseId, assigneeId, intent === 'claim'); }
+  catch { redirect(outcomeUrl('error')); }
+  revalidatePath('/reviews');
+  redirect(outcomeUrl('saved'));
+}
+
+export async function clearMySearchHistoryAction(data?: FormData) {
+  const actor = await requireActor();
+  await clearMySearchHistory(actor);
+  revalidatePath('/search');
+  revalidatePath('/search/history');
+  const returnTo = data ? String(data.get('returnTo') ?? '') : '';
+  if (returnTo === 'history') {
+    redirect('/search/history');
+  }
+  redirect('/search');
+}
+
+export async function removeSearchHistoryItemAction(data: FormData) {
+  const actor = await requireActor();
+  const query = String(data.get('query') ?? '');
+  if (query) {
+    await removeSearchHistoryItem(actor, query);
+  }
+  revalidatePath('/search');
+  revalidatePath('/search/history');
+}
+
+
+export async function createCustomerFromSourceRecordAction(data: FormData) {
+  const actor = await requireActor();
+  if (!canManageCustomers(actor.role)) {
+    redirect('/search?error=forbidden');
+  }
+  const recordId = String(data.get('recordId') ?? '');
+  if (!uuidSchema.safeParse(recordId).success) {
+    redirect('/search?error=invalid_record');
+  }
+  const r = await getSourceRecord(recordId);
+  if (!r) {
+    redirect('/search?error=record_not_found');
+  }
+
+  const schemaType = String(r.details?.schema || (r.details?._provenance as Record<string, unknown> | undefined)?.schema || '');
+  const isCompany = /company|organization|legalentity/i.test(schemaType);
+  const country = extractRecordCountry(r.details) || 'AE';
+  const dateOfBirth = extractRecordDob(r.details) || null;
+  const identifier = extractRecordIdentifier(r.details, r.source_record_id) || null;
+  const notes = `تم إنشاء هذا الملف تلقائياً من سجل المصادر (${r.code} - ${r.source_record_id})`;
+
+  const { id: customerId, reference } = await createCustomer(actor, {
+    name: r.name,
+    entityType: isCompany ? 'company' : 'individual',
+    country,
+    dateOfBirth,
+    identifier,
+    nationality: isCompany ? null : country,
+    deliveryChannel: 'online',
+    notes,
+  });
+
+  try {
+    await runAndSaveScreening(actor, customerId);
+  } catch (err) {
+    console.error('Failed to run initial screening after creating customer from record:', err);
+  }
+
+  revalidatePath('/');
+  revalidatePath('/profiles');
+  redirect(`/profiles/${reference}?created=1&from_record=1`);
+}
