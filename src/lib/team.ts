@@ -289,7 +289,6 @@ export async function deleteTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
     await db.query(`UPDATE customer_screenings SET run_by=NULL WHERE run_by=$1`, [userId]);
     await db.query(`UPDATE match_decisions SET decided_by=NULL WHERE decided_by=$1`, [userId]);
     await db.query(`UPDATE review_cases SET assigned_to=NULL WHERE assigned_to=$1 AND organization_id=$2`, [userId, actor.organizationId]);
-    await db.query(`UPDATE review_cases SET assigned_by=NULL WHERE assigned_by=$1 AND organization_id=$2`, [userId, actor.organizationId]);
     await db.query(`UPDATE audit_events SET actor_id=NULL WHERE actor_id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
 
     // Delete user searches and active sessions

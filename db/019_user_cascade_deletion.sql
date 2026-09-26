@@ -19,6 +19,18 @@ ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_created_by_fkey;
 ALTER TABLE customers ADD CONSTRAINT customers_created_by_fkey
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
 
+ALTER TABLE sessions DROP CONSTRAINT IF EXISTS sessions_user_id_fkey;
+ALTER TABLE sessions ADD CONSTRAINT sessions_user_id_fkey
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+ALTER TABLE search_events DROP CONSTRAINT IF EXISTS search_events_user_id_fkey;
+ALTER TABLE search_events ADD CONSTRAINT search_events_user_id_fkey
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+ALTER TABLE review_cases DROP CONSTRAINT IF EXISTS review_cases_assigned_to_fkey;
+ALTER TABLE review_cases ADD CONSTRAINT review_cases_assigned_to_fkey
+  FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL;
+
 GRANT UPDATE, DELETE ON audit_events TO mizan_app;
 GRANT UPDATE ON customer_screenings TO mizan_app;
 GRANT UPDATE ON match_decisions TO mizan_app;
