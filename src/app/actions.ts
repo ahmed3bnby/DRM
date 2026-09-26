@@ -10,9 +10,8 @@ import { createTeamUser, setUserQuota, consumeSearch, setUserRole, setUserDisabl
 import { getSourceRecord } from '@/lib/search';
 import { extractRecordCountry, extractRecordDob, extractRecordIdentifier } from '@/lib/record-details';
 import { customerSchema, teamUserSchema, canManageCustomers, uuidSchema } from '@/lib/validation';
-
 import { isPlatformOwner } from '@/lib/platform-access';
-import { setSystemLockdown } from '@/lib/platform';
+import { getSystemLockdown, setSystemLockdown } from '@/lib/platform';
 
 export type LoginState = {error?: string};
 export async function loginAction(_previous: LoginState, data: FormData): Promise<LoginState> {
@@ -25,8 +24,11 @@ export async function loginAction(_previous: LoginState, data: FormData): Promis
   const sessionRes = await createSession(email, password, remember);
   if (!sessionRes.success) {
     if (sessionRes.reason === 'maintenance') {
+      const lockdown = await getSystemLockdown();
+      const customMsg = lockdown.message_ar?.trim() || lockdown.message_en?.trim();
+      const baseMsg = '⚠️ النظام في وضع الصيانة والتحديث حالياً. يرجى المحاولة لاحقاً بعد اكتمال أعمال التحديث.';
       return {
-        error: '⚠️ النظام في وضع الصيانة والتحديث حالياً بقرار من إدارة المنصة. الدخول متاح فقط لحساب السوبر أدمن.',
+        error: customMsg ? `${baseMsg}\n\n📢 بيان الإدارة: "${customMsg}"` : baseMsg,
       };
     }
     if (sessionRes.reason === 'rate_limited') {

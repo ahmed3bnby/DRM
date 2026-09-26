@@ -63,8 +63,8 @@ export default function LoginForm() {
       </label>
 
       {state.error && (
-        <p className="form-error" role="alert">
-          {m.loginError}
+        <p className="form-error" role="alert" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.45' }}>
+          {state.error}
         </p>
       )}
 

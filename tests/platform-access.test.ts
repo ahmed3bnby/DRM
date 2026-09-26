@@ -26,3 +26,17 @@ test('super admin email detection correctly identifies root platform owners', ()
   assert.equal(isSuperAdminEmail(''), false);
 });
 
+test('super admin ID detection matches configured platform admin user IDs', () => {
+  const old = process.env.PLATFORM_ADMIN_USER_IDS;
+  try {
+    process.env.PLATFORM_ADMIN_USER_IDS = 'e5d93a91-f57f-49df-9b10-a9fdde72567d,other-uuid';
+    assert.equal(isSuperAdminId('e5d93a91-f57f-49df-9b10-a9fdde72567d'), true);
+    assert.equal(isSuperAdminId('other-uuid'), true);
+    assert.equal(isSuperAdminId('random-id'), false);
+    assert.equal(isSuperAdminId(undefined), false);
+  } finally {
+    if (old === undefined) delete process.env.PLATFORM_ADMIN_USER_IDS;
+    else process.env.PLATFORM_ADMIN_USER_IDS = old;
+  }
+});
+

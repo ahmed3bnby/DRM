@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Power, ShieldAlert, ShieldCheck, AlertTriangle, RefreshCw, MessageSquare } from 'lucide-react';
+import { Power, ShieldAlert, ShieldCheck, AlertTriangle, RefreshCw, MessageSquare, ExternalLink } from 'lucide-react';
 import type { SystemLockdown } from '@/lib/platform';
 import { toggleSystemLockdownAction } from '@/app/actions';
 
@@ -156,17 +156,29 @@ export default function SystemLockdownControl({
             </div>
           )}
 
-          <div className="lockdown-actions" style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '1rem' }}>
+          <div className="lockdown-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginTop: '1rem' }}>
             {isLocked ? (
-              <button
-                type="submit"
-                disabled={loading}
-                className="button primary"
-                style={{ background: 'var(--success, #10b981)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, padding: '0.6rem 1.2rem' }}
-              >
-                {loading ? <RefreshCw size={16} className="spin" /> : <Power size={16} />}
-                <span>{isAr ? 'تشغيل النظام واستئناف العمل للجميع' : 'Re-enable System & Resume Access'}</span>
-              </button>
+              <>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="button primary"
+                  style={{ background: 'var(--success, #10b981)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, padding: '0.6rem 1.2rem' }}
+                >
+                  {loading ? <RefreshCw size={16} className="spin" /> : <Power size={16} />}
+                  <span>{isAr ? 'تشغيل النظام واستئناف العمل للجميع' : 'Re-enable System & Resume Access'}</span>
+                </button>
+                <a
+                  href="/login?preview=1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 500, padding: '0.6rem 1rem', textDecoration: 'none' }}
+                >
+                  <ExternalLink size={15} />
+                  <span>{isAr ? 'معاينة شاشة الدخول في وضع الصيانة ↗' : 'Preview Lockdown Login Page ↗'}</span>
+                </a>
+              </>
             ) : (
               <button
                 type="submit"
