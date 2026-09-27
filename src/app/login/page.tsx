@@ -7,6 +7,7 @@ import { getMessages, getLocale } from '@/lib/i18n';
 import { getSystemLockdown } from '@/lib/platform';
 import LoginForm from '@/components/login-form';
 import LanguageToggle from '@/components/language-toggle';
+import { DeveloperCredit } from '@/components/developer-credit';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -489,19 +490,7 @@ export default async function Login({
               <span>{m.loginDisclaimer}</span>
             </div>
           </div>
-          <footer className="login-footer" dir="ltr">
-            <bdi dir="ltr">
-              Developed by{' '}
-              <a
-                href="https://linktr.ee/ahmedabdelnaby"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="developer-link"
-              >
-                Ahmed Abdelnaby
-              </a>
-            </bdi>
-          </footer>
+          <DeveloperCredit as="footer" className="login-footer" />
         </div>
       </section>
     </div>

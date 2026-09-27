@@ -6,12 +6,14 @@ import { verifyPassword } from './password';
 
 import { isSuperAdminEmail, isSuperAdminId } from './platform-access';
 import { getSystemLockdown } from './platform';
+import { assertDeveloperIntegrity } from './integrity';
 
 export type Actor = { id: string; organizationId: string; organizationName: string; displayName: string; email: string; role: string; plan?: string; features?: Record<string, boolean>; memberLimit?: number };
 const digest = (value: string) => createHash('sha256').update(value).digest('hex');
 const cookieName = 'mizan_session';
 
 export async function assertLocalRuntime() {
+  assertDeveloperIntegrity();
   try {
     const host = (await headers()).get('host');
     if (!host) {

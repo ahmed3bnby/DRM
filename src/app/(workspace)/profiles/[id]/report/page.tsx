@@ -16,6 +16,7 @@ import {
 import { countryName, DateText, DateTimeText, number, flag } from '@/components/ui';
 import { getMessages, getLocale } from '@/lib/i18n';
 import PrintButton from '@/components/print-button';
+import { DeveloperCredit } from '@/components/developer-credit';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -576,19 +577,7 @@ export default async function Report({ params }: { params: Promise<{ id: string 
             <span>{isEn ? 'Diligence Risk Management (DRM) · Risk Management & Pro Services' : 'دي آر إم لإدارة المخاطر والخدمات المهنية (DRM)'}</span>
             <span>{isEn ? 'Office 404, Sultan Group Investment Bldg, Deira, Dubai, UAE · www.drmuae.com' : 'مكتب 404، بناية سلطان للاستثمار، ديرة، دبي، الإمارات العربية المتحدة · www.drmuae.com'}</span>
           </div>
-          <div className="report-foot-dev no-print" dir="ltr">
-            <bdi dir="ltr">
-              Developed by{' '}
-              <a
-                href="https://linktr.ee/ahmedabdelnaby"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="developer-link"
-              >
-                Ahmed Abdelnaby
-              </a>
-            </bdi>
-          </div>
+          <DeveloperCredit as="div" className="report-foot-dev no-print" />
         </footer>
       </article>
     </div>

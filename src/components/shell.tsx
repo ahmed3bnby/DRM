@@ -9,6 +9,7 @@ import type { Actor } from '@/lib/auth';
 import { logoutAction, quickReenableSystemAction } from '@/app/actions';
 import { getMessages, getLocale } from '@/lib/i18n';
 import { getSystemLockdown } from '@/lib/platform';
+import { DeveloperCredit } from './developer-credit';
 
 export default async function Shell({ actor, children }: { actor: Actor; children: React.ReactNode }) {
   const isOwner = isPlatformOwner(actor);
@@ -78,19 +79,7 @@ export default async function Shell({ actor, children }: { actor: Actor; childre
       <main id="main" className="main">{children}</main>
       <footer className="footer">
         <span><a href="https://drmuae.com/" target="_blank" rel="noopener noreferrer" dir="ltr" translate="no" className="footer-brand-link">DRM</a> · {m.footerName}</span>
-        <span className="footer-developer" dir="ltr">
-          <bdi dir="ltr">
-            Developed by{' '}
-            <a
-              href="https://linktr.ee/ahmedabdelnaby"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="developer-link"
-            >
-              Ahmed Abdelnaby
-            </a>
-          </bdi>
-        </span>
+        <DeveloperCredit className="footer-developer" />
         <span>{m.footerData}</span>
       </footer>
     </div>

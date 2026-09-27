@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Compass, ArrowRight } from 'lucide-react';
 import { getMessages } from '@/lib/i18n';
+import { DeveloperCredit } from '@/components/developer-credit';
 
 export default async function NotFound() {
   const m = await getMessages();
@@ -12,16 +13,10 @@ export default async function NotFound() {
       <p>{m.nfBody}</p>
       <Link className="button primary" href="/"><ArrowRight size={17}/>{m.nfHome}</Link>
     </div>
-    <footer className="standalone-footer" style={{ marginTop: '28px', fontSize: '12px', color: '#688274' }}>
-      Developed by{' '}
-      <a
-        href="https://linktr.ee/ahmedabdelnaby"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="developer-link"
-      >
-        Ahmed Abdelnaby
-      </a>
-    </footer>
+    <DeveloperCredit
+      as="footer"
+      className="standalone-footer"
+      style={{ marginTop: '28px', fontSize: '12px', color: '#688274' }}
+    />
   </main>;
 }
