@@ -5,6 +5,7 @@ import { hashPassword } from './password';
 import { teamUserSchema } from './validation';
 import { platformOwnerIds, platformOwnerEmails, isSuperAdminEmail, isSuperAdminId } from './platform-access';
 import type { Actor } from './auth';
+import { recordQuotaChange } from './quota-history';
 
 export type TeamMember = { id: string; username: string; email: string; display_name: string; role: string; search_quota: number | null; used: number; quota_anchor: number; disabled_at: Date | null };
 export type TeamProfile = TeamMember & { searches: number; actions: number; customers: number };
@@ -131,11 +132,24 @@ export async function createTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
       if (!taken.rowCount) break;
       username = `${base}-${n}`;
     }
+    const newUserId = randomUUID();
     await db.query(`INSERT INTO users(id,organization_id,username,email,display_name,role,password_hash,search_quota)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [randomUUID(), actor.organizationId, username, input.email.toLowerCase(), input.displayName, input.role, hashPassword(input.password), quota]);
+      [newUserId, actor.organizationId, username, input.email.toLowerCase(), input.displayName, input.role, hashPassword(input.password), quota]);
     await db.query(`INSERT INTO audit_events(organization_id,actor_id,action,summary) VALUES ($1,$2,'user.created',$3)`,
       [actor.organizationId, actor.id, `أُنشئ مستخدم: ${input.displayName} · ${input.role} · حصة ${quota ?? '∞'}`]);
+    const creatorName = (actor as any).displayName || 'مسؤول المؤسسة';
+    await recordQuotaChange(db, {
+      organizationId: actor.organizationId,
+      userId: newUserId,
+      actorId: actor.id,
+      actorName: creatorName,
+      previousQuota: null,
+      newQuota: quota,
+      delta: quota,
+      actionType: 'user_created',
+      note: quota != null ? `الرصيد الافتتاحي عند إنشاء المستخدم (${quota} تشييكة)` : 'إنشاء حساب بصلاحيات حصة غير محدودة',
+    });
   });
 }
 
@@ -144,11 +158,28 @@ export async function setUserQuota(actor: Pick<Actor, 'id' | 'organizationId' | 
   const q = Math.max(0, Math.min(1000000, Math.floor(quota)));
   return withTenant(actor.organizationId, async db => {
     await assertNotSuperAdmin(db, userId);
+    const prev = await db.query(`SELECT search_quota, display_name FROM users WHERE id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
+    if (!prev.rowCount) throw new Error('NOT_FOUND');
+    const oldQuota = prev.rows[0].search_quota;
     const r = await db.query(`UPDATE users SET search_quota=$3,
       quota_anchor=(SELECT count(*)::int FROM search_events e WHERE e.user_id=users.id)
       WHERE id=$1 AND organization_id=$2 AND role<>'admin' RETURNING display_name`, [userId, actor.organizationId, q]);
-    if (r.rowCount) await db.query(`INSERT INTO audit_events(organization_id,actor_id,action,summary) VALUES ($1,$2,'user.quota',$3)`,
-      [actor.organizationId, actor.id, `تعديل حصة ${r.rows[0].display_name} إلى ${q}`]);
+    if (r.rowCount) {
+      await db.query(`INSERT INTO audit_events(organization_id,actor_id,action,summary) VALUES ($1,$2,'user.quota',$3)`,
+        [actor.organizationId, actor.id, `تعديل حصة ${r.rows[0].display_name} إلى ${q}`]);
+      const actorName = (actor as any).displayName || 'مسؤول المؤسسة';
+      await recordQuotaChange(db, {
+        organizationId: actor.organizationId,
+        userId,
+        actorId: actor.id,
+        actorName,
+        previousQuota: oldQuota,
+        newQuota: q,
+        delta: oldQuota != null ? q - oldQuota : q,
+        actionType: 'quota_updated',
+        note: `تعديل الحصة الشهرية من ${oldQuota ?? 'غير محدد'} إلى ${q}`,
+      });
+    }
   });
 }
 
@@ -173,14 +204,29 @@ export async function setUserRole(actor: Pick<Actor, 'id' | 'organizationId' | '
   const q = role === 'admin' ? null : Math.max(0, Math.min(1000000, Math.floor(quota)));
   return withTenant(actor.organizationId, async db => {
     await assertNotSuperAdmin(db, userId);
-    const current = await db.query(`SELECT role,display_name FROM users WHERE id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
+    const current = await db.query(`SELECT role,display_name,search_quota FROM users WHERE id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
     if (!current.rowCount) throw new Error('NOT_FOUND');
     if (current.rows[0].role === 'admin' && role !== 'admin') await assertNotLastAdmin(db, actor.organizationId, userId);
+    const oldQuota = current.rows[0].search_quota;
     await db.query(`UPDATE users SET role=$3, search_quota=$4,
       quota_anchor=CASE WHEN $4::int IS NULL THEN quota_anchor ELSE (SELECT count(*)::int FROM search_events e WHERE e.user_id=users.id) END
       WHERE id=$1 AND organization_id=$2`, [userId, actor.organizationId, role, q]);
     await db.query(`INSERT INTO audit_events(organization_id,actor_id,action,summary) VALUES ($1,$2,'user.role',$3)`,
       [actor.organizationId, actor.id, `تغيير دور ${current.rows[0].display_name} إلى ${role}`]);
+    if (oldQuota !== q) {
+      const actorName = (actor as any).displayName || 'مسؤول المؤسسة';
+      await recordQuotaChange(db, {
+        organizationId: actor.organizationId,
+        userId,
+        actorId: actor.id,
+        actorName,
+        previousQuota: oldQuota,
+        newQuota: q,
+        delta: q != null && oldQuota != null ? q - oldQuota : null,
+        actionType: 'role_changed',
+        note: `تغيير الدور إلى ${role} وتحديث الحصة`,
+      });
+    }
   });
 }
 

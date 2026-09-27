@@ -425,3 +425,29 @@ export async function updateOrgPlanAction(data: FormData) {
   revalidatePath('/platform');
   redirect('/platform?saved=1');
 }
+
+export async function superAdminCreditQuotaAction(data: FormData) {
+  const actor = await requireActor();
+  const { isPlatformOwner } = await import('@/lib/platform-access');
+  if (!isPlatformOwner(actor)) throw new Error('FORBIDDEN');
+
+  const { superAdminCreditUserQuota } = await import('@/lib/platform');
+  const userId = String(data.get('userId') || '');
+  if (!/^[0-9a-fA-F-]{36}$/.test(userId)) throw new Error('BAD_USER');
+
+  const mode = String(data.get('mode') || 'add') as 'add' | 'set' | 'unlimited';
+  const amountStr = data.get('amount');
+  const amount = amountStr ? Number(amountStr) : undefined;
+  const resetAnchor = data.get('resetAnchor') === 'true' || data.get('resetAnchor') === 'on';
+  const note = String(data.get('note') || '').trim();
+
+  await superAdminCreditUserQuota(actor, userId, {
+    mode,
+    amount,
+    resetAnchor,
+    note: note || undefined,
+  });
+
+  revalidatePath('/platform');
+  redirect('/platform?quota_updated=1');
+}

@@ -13,6 +13,13 @@ const testUserId = randomUUID();
 const testActor = { id: testUserId, organizationId: org, role: 'analyst' as const };
 
 before(async () => {
+  // Ensure adminActor exists for audit_events FK constraint
+  await dbAdmin.query(`
+    INSERT INTO users(id, organization_id, username, email, display_name, role, password_hash, search_quota, quota_anchor)
+    VALUES ($1, $2, 'admin-demo', 'demo@mizan.test', 'Admin User', 'admin', 'hash', null, 0)
+    ON CONFLICT (id) DO NOTHING
+  `, [adminActor.id, org]);
+
   // Create a dedicated test user with quota = 3
   await dbAdmin.query(`
     INSERT INTO users(id, organization_id, username, email, display_name, role, password_hash, search_quota, quota_anchor)

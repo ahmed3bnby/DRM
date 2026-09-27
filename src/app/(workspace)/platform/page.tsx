@@ -8,11 +8,18 @@ import {
 } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
 import { isPlatformOwner } from '@/lib/platform-access';
-import { listAllOrgs, getSystemLockdown } from '@/lib/platform';
+import {
+  listAllOrgs,
+  getSystemLockdown,
+  getPlatformChecksSummary,
+  listAllAccountsQuota,
+  listQuotaHistory,
+} from '@/lib/platform';
 import { getLocale, getMessages } from '@/lib/i18n';
 import { number } from '@/components/ui';
 import PlatformOrgForm from '@/components/platform-org-form';
 import SystemLockdownControl from '@/components/system-lockdown-control';
+import PlatformQuotaManager from '@/components/platform-quota-manager';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -20,12 +27,20 @@ export const revalidate = 0;
 export default async function PlatformPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; lockdown_saved?: string }>;
+  searchParams: Promise<{ saved?: string; lockdown_saved?: string; quota_updated?: string }>;
 }) {
   const actor = await requireActor();
   if (!isPlatformOwner(actor)) notFound();
 
-  const [sp, locale, orgs, lockdown] = await Promise.all([searchParams, getLocale(), listAllOrgs(), getSystemLockdown()]);
+  const [sp, locale, orgs, lockdown, checksSummary, accountsQuota, quotaHistory] = await Promise.all([
+    searchParams,
+    getLocale(),
+    listAllOrgs(),
+    getSystemLockdown(),
+    getPlatformChecksSummary(),
+    listAllAccountsQuota(),
+    listQuotaHistory(150),
+  ]);
   await getMessages();
   const en = locale === 'en';
 
@@ -84,6 +99,20 @@ export default async function PlatformPage({
               {lockdown.enabled
                 ? (en ? 'System lockdown is now active. Regular users cannot sign in.' : 'تم تفعيل وضع الصيانة وتعطيل وصول المستخدمين بنجاح.')
                 : (en ? 'System has been re-enabled. Regular user access is restored.' : 'تم تشغيل النظام واستئناف العمل لكافة المستخدمين بنجاح.')}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {sp.quota_updated && (
+        <div className="success-message platform-success-banner" role="status">
+          <CheckCircle2 size={18} />
+          <div>
+            <strong>{en ? 'Quota updated successfully' : 'تم شحن وتعديل رصيد الفحص بنجاح'}</strong>
+            <p>
+              {en
+                ? 'Account allowance has been updated and the change has been recorded in the credit audit trail.'
+                : 'تم تعديل رصيد الحساب وسرت التغييرات فورياً، وتم توثيق العملية بالكامل في سجل التدقيق التاريخي.'}
             </p>
           </div>
         </div>
@@ -154,6 +183,14 @@ export default async function PlatformPage({
           </div>
         </div>
       </div>
+
+      {/* Screening Checks, Accounts Quota & Credit Audit Log */}
+      <PlatformQuotaManager
+        summary={checksSummary}
+        accounts={accountsQuota}
+        history={quotaHistory}
+        locale={locale}
+      />
 
       {/* Organizations Grid */}
       <div className="platform-orgs">

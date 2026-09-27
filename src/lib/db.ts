@@ -57,3 +57,19 @@ export async function withTenant<T>(organizationId: string, fn: (db: PoolClient)
   } finally { db.release(); }
 }
 
+// Platform-owner (super admin) operations run with app.platform_owner = 'true'
+// allowing aggregate reads across all tenant records without hardcoding specific tenant IDs.
+export async function withPlatformOwner<T>(fn: (db: PoolClient) => Promise<T>): Promise<T> {
+  const db = await pool.connect();
+  try {
+    await db.query('BEGIN');
+    await db.query("SELECT set_config('app.platform_owner', 'true', true)");
+    const result = await fn(db);
+    await db.query('COMMIT');
+    return result;
+  } catch (error) {
+    try { await db.query('ROLLBACK'); } catch {}
+    throw error;
+  } finally { db.release(); }
+}
+
