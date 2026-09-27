@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
@@ -18,6 +19,22 @@ import PrintButton from '@/components/print-button';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  try {
+    const actor = await requireActor();
+    const { id } = await params;
+    if (!/^[\w-]{4,60}$/.test(id)) return { title: 'تقرير فحص الامتثال | DRM' };
+    const customer = await getCustomerByHandle(actor.organizationId, id);
+    if (!customer) return { title: 'تقرير فحص الامتثال | DRM' };
+
+    return {
+      title: customer.name,
+    };
+  } catch {
+    return { title: 'تقرير فحص الامتثال | DRM' };
+  }
+}
 
 export default async function Report({ params }: { params: Promise<{ id: string }> }) {
   const actor = await requireActor();
@@ -129,7 +146,7 @@ export default async function Report({ params }: { params: Promise<{ id: string 
           {locale === 'en' ? <ArrowLeft size={17} /> : <ArrowRight size={17} />}
           <span>{m.backToProfile}</span>
         </Link>
-        <PrintButton label={m.printPdf} />
+        <PrintButton label={m.printPdf} filename={customer.name} />
       </div>
 
       <article className="report-doc idenfo-doc">

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
@@ -24,6 +25,22 @@ import DeleteCustomerButton from '@/components/delete-customer-button';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  try {
+    const actor = await requireActor();
+    const { id } = await params;
+    if (!/^[\w-]{4,60}$/.test(id)) return { title: 'ملف العميل | DRM' };
+    const customer = await getCustomerByHandle(actor.organizationId, id);
+    if (!customer) return { title: 'ملف العميل | DRM' };
+
+    return {
+      title: customer.name,
+    };
+  } catch {
+    return { title: 'ملف العميل | DRM' };
+  }
+}
 
 export default async function Profile({
   params,

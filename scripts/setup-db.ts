@@ -40,6 +40,7 @@ try {
   await db.query(await readFile('db/019_user_cascade_deletion.sql', 'utf8'));
   await db.query(await readFile('db/020_system_lockdown.sql', 'utf8'));
   await db.query(await readFile('db/021_quota_history.sql', 'utf8'));
+  await db.query(await readFile('db/022_login_rate_limit.sql', 'utf8'));
   const organizations = [
     ['10000000-0000-4000-8000-000000000001', 'DRM — Diligence Risk Management', 'DRM']
   ];

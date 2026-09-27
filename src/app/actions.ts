@@ -18,28 +18,60 @@ export async function loginAction(_previous: LoginState, data: FormData): Promis
   const email = String(data.get('email') ?? '').trim();
   const password = String(data.get('password') ?? '');
   const remember = data.get('remember') === 'on';
+  const { getLocale } = await import('@/lib/i18n');
+  const locale = await getLocale().catch(() => 'ar');
+  const isAr = locale === 'ar';
+
   if (!email || !password) {
-    return { error: 'يرجى إدخال البريد الإلكتروني وكلمة المرور.' };
+    return {
+      error: isAr
+        ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور.'
+        : 'Please enter your email and password.',
+    };
   }
+
   const sessionRes = await createSession(email, password, remember);
   if (!sessionRes.success) {
     if (sessionRes.reason === 'maintenance') {
       const lockdown = await getSystemLockdown();
-      const customMsg = lockdown.message_ar?.trim() || lockdown.message_en?.trim();
-      const baseMsg = '⚠️ النظام في وضع الصيانة والتحديث حالياً. يرجى المحاولة لاحقاً بعد اكتمال أعمال التحديث.';
+      const customMsg = isAr
+        ? (lockdown.message_ar?.trim() || lockdown.message_en?.trim())
+        : (lockdown.message_en?.trim() || lockdown.message_ar?.trim());
+      const baseMsg = isAr
+        ? '⚠️ النظام في وضع الصيانة والتحديث حالياً. يرجى المحاولة لاحقاً بعد اكتمال أعمال التحديث.'
+        : '⚠️ System is currently under maintenance. Please try again later.';
       return {
-        error: customMsg ? `${baseMsg}\n\n📢 بيان الإدارة: "${customMsg}"` : baseMsg,
+        error: customMsg ? `${baseMsg}\n\n📢 ${isAr ? 'بيان الإدارة:' : 'Management Note:'} "${customMsg}"` : baseMsg,
       };
     }
+
     if (sessionRes.reason === 'rate_limited') {
+      const mins = sessionRes.retryAfterMinutes ?? 15;
+      const maxAtt = sessionRes.maxAttempts ?? 5;
       return {
-        error: 'تجاوزت الحد المسموح من المحاولات. يرجى الانتظار 15 دقيقة ثم المحاولة مجددًا.',
+        error: isAr
+          ? `تم حظر محاولات الدخول مؤقتاً لتكرار المحاولات الخاطئة (${maxAtt} محاولات).\nيرجى الانتظار ${mins} دقيقة قبل المحاولة مجدداً.`
+          : `Too many failed login attempts (${maxAtt} attempts).\nAccount access is temporarily locked. Please wait ${mins} minute(s) before trying again.`,
       };
     }
+
+    const rem = sessionRes.remainingAttempts;
+    if (rem !== undefined && rem > 0 && rem < (sessionRes.maxAttempts ?? 5)) {
+      const attemptsWord = rem === 1 ? 'محاولة واحدة' : rem === 2 ? 'محاولتان' : `${rem} محاولات`;
+      return {
+        error: isAr
+          ? `بيانات الدخول غير صحيحة. متبقي لك ${attemptsWord} قبل حظر الدخول مؤقتاً.`
+          : `Invalid credentials. You have ${rem} attempt${rem === 1 ? '' : 's'} remaining before temporary lockout.`,
+      };
+    }
+
     return {
-      error: 'تعذر تسجيل الدخول. راجع البيانات أو انتظر قليلًا إذا تكررت المحاولات.',
+      error: isAr
+        ? 'تعذر تسجيل الدخول. يرجى التحقق من صحة البريد الإلكتروني وكلمة المرور.'
+        : 'Invalid email or password. Please verify your credentials.',
     };
   }
+
   redirect('/');
 }
 export async function logoutAction() { await destroySession(); redirect('/login'); }
