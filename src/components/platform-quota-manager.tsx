@@ -29,11 +29,13 @@ export default function PlatformQuotaManager({
   accounts,
   history,
   locale,
+  isSingleOrg = true,
 }: {
   summary: PlatformChecksSummary;
   accounts: AccountQuotaItem[];
   history: PlatformQuotaHistoryItem[];
   locale: string;
+  isSingleOrg?: boolean;
 }) {
   const isAr = locale === 'ar';
   const [activeTab, setActiveTab] = useState<'accounts' | 'history'>('accounts');
@@ -95,24 +97,8 @@ export default function PlatformQuotaManager({
 
   return (
     <section className="panel platform-quota-section">
-      {/* Header with Title & Tabs */}
-      <div className="platform-quota-header">
-        <div className="platform-quota-title-wrap">
-          <div className="platform-quota-badge-icon">
-            <Activity size={20} />
-          </div>
-          <div>
-            <h2>
-              {isAr ? 'إحصائيات الفحص والحصص وسجل الشحن' : 'Platform Screening Checks & Quota Management'}
-            </h2>
-            <p>
-              {isAr
-                ? 'متابعة إجمالي الفحوصات المنفذة عبر المنظومة، تفاصيل استهلاك ورصيد كل حساب، وسجل تدقيق عمليات الشحن والتحديثات الدورية.'
-                : 'Monitor platform-wide screening checks, individual account allowances and consumption, and full credit audit history.'}
-            </p>
-          </div>
-        </div>
-
+      {/* ── Sub-header Toolbar: Tabs & Live Filter ── */}
+      <div className="platform-sub-toolbar">
         <div className="platform-quota-tabs" role="tablist">
           <button
             type="button"
@@ -121,7 +107,7 @@ export default function PlatformQuotaManager({
             onClick={() => setActiveTab('accounts')}
             className={`platform-tab-btn ${activeTab === 'accounts' ? 'active' : ''}`}
           >
-            <Users size={16} />
+            <Users size={15} />
             <span>{isAr ? 'حسابات المستخدمين والرصيد' : 'Accounts & Quota'}</span>
             <span className="platform-tab-counter">{accounts.length}</span>
           </button>
@@ -133,86 +119,23 @@ export default function PlatformQuotaManager({
             onClick={() => setActiveTab('history')}
             className={`platform-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
           >
-            <History size={16} />
+            <History size={15} />
             <span>{isAr ? 'سجل عمليات الشحن والتحديث' : 'Credit & Update Audit Log'}</span>
             <span className="platform-tab-counter">{history.length}</span>
           </button>
         </div>
-      </div>
 
-      {/* KPI Stats Overview Cards */}
-      <div className="platform-stats-grid platform-checks-summary-grid">
-        <div className="platform-stat-card">
-          <div className="platform-stat-icon tint-emerald">
-            <ShieldCheck size={22} />
-          </div>
-          <div className="platform-stat-content">
-            <span className="platform-stat-label">
-              {isAr ? 'إجمالي الفحوصات المنفذة في المنظومة' : 'Total Platform Checks Executed'}
-            </span>
-            <strong className="platform-stat-val text-emerald">
-              {number(summary.totalChecks)}
-            </strong>
-            <span className="platform-stat-sub">
-              {isAr
-                ? `اليوم: ${number(summary.todayChecks)} تشييكة · آخر 7 أيام: ${number(summary.weekChecks)}`
-                : `Today: ${number(summary.todayChecks)} · Last 7 days: ${number(summary.weekChecks)}`}
-            </span>
-          </div>
-        </div>
-
-        <div className="platform-stat-card">
-          <div className="platform-stat-icon">
-            <Users size={22} />
-          </div>
-          <div className="platform-stat-content">
-            <span className="platform-stat-label">
-              {isAr ? 'الحسابات النشطة بالفحص' : 'Active Screening Accounts'}
-            </span>
-            <strong className="platform-stat-val">
-              {number(summary.activeAccounts)}{' '}
-              <span className="platform-stat-val-sub">/ {number(accounts.length)}</span>
-            </strong>
-            <span className="platform-stat-sub">
-              {isAr
-                ? `${summary.unlimitedAccounts} حساب غير محدود · ${summary.totalAccountsWithQuota} بحصة محددة`
-                : `${summary.unlimitedAccounts} unlimited accounts · ${summary.totalAccountsWithQuota} with quota`}
-            </span>
-          </div>
-        </div>
-
-        <div className="platform-stat-card">
-          <div className="platform-stat-icon tint-gold">
-            <TrendingUp size={22} />
-          </div>
-          <div className="platform-stat-content">
-            <span className="platform-stat-label">
-              {isAr ? 'إجمالي الحصص المشحونة والمخصصة' : 'Total Quota Checks Allocated'}
-            </span>
-            <strong className="platform-stat-val text-gold">
-              {number(summary.totalAllocatedQuota)}
-            </strong>
-            <span className="platform-stat-sub">
-              {isAr
-                ? 'مجموع الحصص المخصصة لحسابات المحللين بالمنظومة'
-                : 'Sum of allocated checks across analyst accounts'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Filters Bar */}
-      <div className="platform-quota-toolbar">
+        {/* Live Filter Input */}
         <div className="platform-search-wrap">
-          <Search size={16} className="platform-search-icon" />
+          <Search size={15} className="platform-search-icon" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
               activeTab === 'accounts'
-                ? (isAr ? 'ابحث باسم الحساب، البريد، المؤسسة أو الدور...' : 'Filter accounts by name, email, org, or role...')
-                : (isAr ? 'ابحث في سجل الشحن بالمستخدم، المؤسسة، المسؤول أو الملاحظة...' : 'Filter history by user, organization, admin, or note...')
+                ? (isAr ? 'ابحث باسم الحساب، البريد، أو الدور...' : 'Filter accounts by name, email, or role...')
+                : (isAr ? 'ابحث في السجل بالمستخدم، المسؤول أو الملاحظة...' : 'Filter history by user, admin, or note...')
             }
             className="platform-search-input"
           />
@@ -223,7 +146,7 @@ export default function PlatformQuotaManager({
               className="platform-search-clear"
               aria-label={isAr ? 'مسح البحث' : 'Clear search'}
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           )}
         </div>
@@ -235,20 +158,20 @@ export default function PlatformQuotaManager({
           <table className="platform-quota-table">
             <thead>
               <tr>
-                <th>{isAr ? 'المستخدم والحساب' : 'User Account'}</th>
-                <th>{isAr ? 'المؤسسة' : 'Organization'}</th>
-                <th>{isAr ? 'الحصة المضافة (اتضافله كام)' : 'Allocated Quota'}</th>
-                <th>{isAr ? 'المستهلك حالياً (خلص كام)' : 'Current Used'}</th>
+                <th>{isAr ? 'المستخدم' : 'User Account'}</th>
+                {!isSingleOrg && <th>{isAr ? 'المؤسسة' : 'Organization'}</th>}
+                <th>{isAr ? 'الحصة المعتمدة' : 'Allocated Quota'}</th>
+                <th>{isAr ? 'الاستهلاك الحالي' : 'Current Used'}</th>
                 <th>{isAr ? 'الرصيد المتبقي' : 'Remaining Balance'}</th>
                 <th>{isAr ? 'إجمالي الفحوصات' : 'Lifetime Checks'}</th>
-                <th>{isAr ? 'آخر شحن / تعديل' : 'Last Top-Up / Credit'}</th>
-                <th style={{ textAlign: 'center' }}>{isAr ? 'إجراء المشرف العام' : 'Actions'}</th>
+                <th>{isAr ? 'آخر شحن وتعديل' : 'Last Top-Up'}</th>
+                <th style={{ textAlign: 'center' }}>{isAr ? 'الإجراء' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
               {filteredAccounts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="platform-table-empty">
+                  <td colSpan={isSingleOrg ? 7 : 8} className="platform-table-empty">
                     {isAr ? 'لا توجد حسابات مطابقة لبحثك' : 'No accounts found matching your query.'}
                   </td>
                 </tr>
@@ -274,12 +197,14 @@ export default function PlatformQuotaManager({
                         </div>
                       </td>
 
-                      <td>
-                        <div className="account-org-cell">
-                          <Building2 size={14} />
-                          <span>{acc.organizationName}</span>
-                        </div>
-                      </td>
+                      {!isSingleOrg && (
+                        <td>
+                          <div className="account-org-cell">
+                            <Building2 size={13} />
+                            <span>{acc.organizationName}</span>
+                          </div>
+                        </td>
+                      )}
 
                       <td>
                         {isUnlimited ? (
@@ -296,7 +221,7 @@ export default function PlatformQuotaManager({
                       <td>
                         <div className="usage-cell">
                           <strong>{number(acc.usedInCycle)}</strong> {isAr ? 'تشييكة' : 'checks'}
-                          {!isUnlimited && acc.searchQuota! > 0 && (
+                          {!isUnlimited && acc.searchQuota! > 0 && acc.usedInCycle > 0 && (
                             <div className="mini-progress-bar">
                               <div
                                 className={`mini-progress-fill ${isDepleted ? 'fill-red' : isLow ? 'fill-amber' : 'fill-green'}`}
@@ -376,20 +301,20 @@ export default function PlatformQuotaManager({
           <table className="platform-quota-table">
             <thead>
               <tr>
-                <th>{isAr ? 'تاريخ ووقت العملية (يوم كام وساعة كام)' : 'Date & Time'}</th>
+                <th>{isAr ? 'التاريخ والوقت' : 'Date & Time'}</th>
                 <th>{isAr ? 'المستخدم المستفيد' : 'Target Account'}</th>
-                <th>{isAr ? 'المؤسسة' : 'Organization'}</th>
-                <th>{isAr ? 'المقدار المضاف ("زود كام واحدة")' : 'Checks Added / Delta'}</th>
-                <th>{isAr ? 'تفاصيل الحصة (قبل ← بعد)' : 'Quota Shift'}</th>
+                {!isSingleOrg && <th>{isAr ? 'المؤسسة' : 'Organization'}</th>}
+                <th>{isAr ? 'الكمية المضافة / التعديل' : 'Checks Added / Delta'}</th>
+                <th>{isAr ? 'تدرج الحصة (قبل ← بعد)' : 'Quota Shift'}</th>
                 <th>{isAr ? 'نوع العملية' : 'Action Type'}</th>
-                <th>{isAr ? 'القائم بالعملية' : 'Executed By'}</th>
+                <th>{isAr ? 'المسؤول' : 'Executed By'}</th>
                 <th>{isAr ? 'البيان والملاحظة' : 'Note / Reason'}</th>
               </tr>
             </thead>
             <tbody>
               {filteredHistory.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="platform-table-empty">
+                  <td colSpan={isSingleOrg ? 7 : 8} className="platform-table-empty">
                     {isAr
                       ? 'لا توجد حركات شحن أو تعديل حصص مسجلة حتى الآن'
                       : 'No quota credit or adjustment events found.'}
@@ -404,7 +329,7 @@ export default function PlatformQuotaManager({
                     <tr key={item.id}>
                       <td className="history-date-cell">
                         <div className="history-date-wrap">
-                          <Calendar size={14} className="text-muted" />
+                          <Calendar size={13} className="text-muted" />
                           <DateTimeText value={item.createdAt} locale={isAr ? 'ar' : 'en'} />
                         </div>
                       </td>
@@ -416,12 +341,14 @@ export default function PlatformQuotaManager({
                         </div>
                       </td>
 
-                      <td>
-                        <div className="account-org-cell">
-                          <Building2 size={13} />
-                          <span>{item.organizationName}</span>
-                        </div>
-                      </td>
+                      {!isSingleOrg && (
+                        <td>
+                          <div className="account-org-cell">
+                            <Building2 size={13} />
+                            <span>{item.organizationName}</span>
+                          </div>
+                        </td>
+                      )}
 
                       <td>
                         {item.delta !== null ? (

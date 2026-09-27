@@ -6800,16 +6800,186 @@ html[dir="rtl"] .sources-search-input {
 }
 
 /* ==========================================================================
+   Platform Central Dashboard (Super Admin Layout & Organization)
+   ========================================================================== */
+.platform-hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+.platform-hero-info {
+  max-width: 680px;
+}
+.platform-hero-info h1 {
+  margin: 6px 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.platform-hero-info p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.platform-hero-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.platform-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+.platform-status-pill:hover {
+  transform: translateY(-1px);
+}
+.platform-status-pill.status-pill-ok {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+.platform-status-pill.status-pill-locked {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+  animation: pulse-locked 2s infinite;
+}
+@keyframes pulse-locked {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.platform-unified-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 1050px) {
+  .platform-unified-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .platform-unified-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.platform-stat-icon.tint-indigo {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4f46e5;
+}
+
+.platform-main-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  overflow-x: auto;
+}
+.platform-main-tab-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.platform-main-tab-item:hover {
+  color: #0f172a;
+  background: #f8fafc;
+}
+.platform-main-tab-item.active {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.15);
+}
+.platform-main-tab-item.active .tab-title {
+  color: #ffffff;
+}
+.platform-main-tab-item .tab-pill-badge {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  transition: all 0.15s ease;
+}
+.platform-main-tab-item.active .tab-pill-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+.tab-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+}
+.tab-status-dot.dot-ok {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+.tab-status-dot.dot-locked {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+}
+
+.platform-tab-content {
+  animation: platformTabFade 0.15s ease-out;
+}
+@keyframes platformTabFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.platform-sub-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+}
+
+/* ==========================================================================
    Platform Checks & Quota Management (Super Admin)
    ========================================================================== */
 .platform-quota-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 24px;
+  padding: 22px;
 }
 
 .platform-quota-header {
