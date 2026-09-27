@@ -65,7 +65,10 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
         </div>
       </div>
       {!cases.length ? <div className="review-empty"><ClipboardCheck size={30}/><h3>{m.reviewNone}</h3><p>{m.reviewNoneSub}</p></div> : <div className="review-case-list" dir={locale === 'en' ? 'ltr' : 'rtl'}>{cases.map(item => {
-        const age = dayAge(item.created_at); const categories = [...new Set((item.top_matches ?? []).map(match => match.categoryLabel || match.category).filter(Boolean))].slice(0, 3);
+        const age = dayAge(item.created_at);
+        const rawMatches = item.top_matches;
+        const topMatches = (Array.isArray(rawMatches) ? rawMatches : (typeof rawMatches === 'string' ? JSON.parse(rawMatches) : [])) as { categoryLabel?: string; category?: string }[];
+        const categories = [...new Set(topMatches.map(match => match.categoryLabel || match.category).filter(Boolean))].slice(0, 3);
         return <article className={`review-case priority-${item.priority}`} key={item.id}>
           <div className="review-case-priority"><span className={`review-priority ${item.priority}`}><AlertTriangle size={15}/>{priorityLabel(item.priority)}</span><small><Clock3 size={14}/>{m.reviewAge} {number(age)} {locale === 'en' ? (age === 1 ? 'day' : 'days') : 'يوم'}</small></div>
           <div className="review-case-customer"><Link href={`/profiles/${item.customer_reference}`} className="review-case-name"><strong dir="auto">{item.customer_name}</strong><ArrowUpLeft size={16}/></Link><span><span className="country-cell"><span className="flag">{flag(item.country) || '🌐'}</span>{countryName(item.country, locale)}</span><i>·</i>{item.entity_type === 'company' ? m.entityCompany : m.entityIndividual}<i>·</i><b dir="ltr">{item.customer_reference}</b></span><div className="review-evidence">{categories.map(category => <span key={category}>{category}</span>)}<small>{number(item.relevant_count)} {m.reviewMatches}</small></div></div>

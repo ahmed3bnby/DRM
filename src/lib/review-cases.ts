@@ -133,12 +133,27 @@ export async function refreshReviewCasesAfterDecision(organizationId: string, cu
       WHERE rc.customer_id=$1 AND rc.status<>'resolved'`, [customerId]);
     let closed = 0;
     for (const item of cases.rows) {
-      const records = ((item.top_matches ?? []) as { recordId?: string }[]).map(match => match.recordId).filter((id): id is string => !!id);
-      if (!records.length) continue;
+      const rawMatches = item.top_matches;
+      const topMatches = (Array.isArray(rawMatches)
+        ? rawMatches
+        : (typeof rawMatches === 'string' ? JSON.parse(rawMatches) : [])) as { recordId?: string; percent?: number }[];
+
+      // A case closes when every material match (>= 80%) has a final decision (confirmed or dismissed).
+      // Matches < 80% are auto-excluded noise and do not block case resolution.
+      const materialRecords = topMatches
+        .filter(match => (match.percent ?? 100) >= 80 && match.recordId)
+        .map(match => match.recordId as string);
+
+      if (!materialRecords.length) {
+        await db.query(`UPDATE review_cases SET status='resolved',updated_at=now() WHERE id=$1`, [item.id]);
+        closed++;
+        continue;
+      }
+
       const decisions = await db.query(`SELECT DISTINCT ON (record_id) record_id,decision FROM match_decisions
-        WHERE customer_id=$1 AND record_id = ANY($2::text[]) ORDER BY record_id,created_at DESC`, [customerId, records]);
+        WHERE customer_id=$1 AND record_id = ANY($2::text[]) ORDER BY record_id,created_at DESC`, [customerId, materialRecords]);
       const latest = new Map(decisions.rows.map(row => [row.record_id, row.decision]));
-      if (!records.every(id => latest.get(id) === 'confirmed' || latest.get(id) === 'dismissed')) continue;
+      if (!materialRecords.every(id => latest.get(id) === 'confirmed' || latest.get(id) === 'dismissed')) continue;
       await db.query(`UPDATE review_cases SET status='resolved',updated_at=now() WHERE id=$1`, [item.id]);
       closed++;
     }

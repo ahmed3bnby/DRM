@@ -151,6 +151,11 @@ export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizatio
       if (!reopened.rowCount) await db.query(`INSERT INTO review_cases
         (organization_id,customer_id,screening_id,priority) VALUES ($1,$2,$3,$4)`,
         [actor.organizationId, customerId, screening.rows[0].id, priority]);
+    } else {
+      // Re-screened with no relevant/material hits: automatically resolve any stale open review case
+      await db.query(`UPDATE review_cases SET status='resolved', screening_id=$3, updated_at=now()
+        WHERE organization_id=$1 AND customer_id=$2 AND status<>'resolved'`,
+        [actor.organizationId, customerId, screening.rows[0].id]);
     }
     await db.query('UPDATE customers SET screening_status=$2, updated_at=now() WHERE id=$1', [customerId, status]);
     await db.query(`INSERT INTO audit_events(organization_id,actor_id,customer_id,action,summary)

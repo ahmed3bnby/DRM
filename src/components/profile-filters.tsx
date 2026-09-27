@@ -17,7 +17,7 @@ export default function ProfileFilters({ q, type, sort, status, screening }: { q
     const params = new URLSearchParams();
     if (nextQ) params.set('q', nextQ);
     if (type) params.set('type', type);
-    if (nextSort && nextSort !== 'name') params.set('sort', nextSort);
+    if (nextSort && nextSort !== 'recent') params.set('sort', nextSort);
     if (nextStatus) params.set('status', nextStatus);
     if (nextScreening) params.set('screening', nextScreening);
     const qs = params.toString();
@@ -43,11 +43,11 @@ export default function ProfileFilters({ q, type, sort, status, screening }: { q
     <div className="registry-filters-group">
       <label className="registry-filter-field registry-sort-field">
         <span className="registry-filter-label"><ArrowDownUp size={14}/>{m.sortBy}</span>
-        <select value={sort} onChange={event => go(value.trim(), event.target.value)} aria-label={m.sortBy}>
-          <option value="name">{m.sortNameAsc}</option>
-          <option value="name_desc">{m.sortNameDesc}</option>
+        <select value={sort || 'recent'} onChange={event => go(value.trim(), event.target.value)} aria-label={m.sortBy}>
           <option value="recent">{m.sortNewest}</option>
           <option value="oldest">{m.sortOldest}</option>
+          <option value="name">{m.sortNameAsc}</option>
+          <option value="name_desc">{m.sortNameDesc}</option>
           <option value="type">{m.sortType}</option>
           <option value="status">{m.sortStatus}</option>
         </select>
@@ -71,6 +71,6 @@ export default function ProfileFilters({ q, type, sort, status, screening }: { q
         </select>
       </label>
     </div>
-    {(q || type || sort !== 'name' || status || screening) && <button type="button" className="registry-reset" onClick={reset}><X size={15}/>{m.resetFilters}</button>}
+    {(q || type || (sort && sort !== 'recent') || status || screening) && <button type="button" className="registry-reset" onClick={reset}><X size={15}/>{m.resetFilters}</button>}
   </form>;
 }

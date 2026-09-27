@@ -16,12 +16,12 @@ export type Customer = {
 };
 // Whitelisted sort orders (never interpolate user input into ORDER BY).
 export const CUSTOMER_SORTS: Record<string, string> = {
-  name: 'name ASC',
-  name_desc: 'name DESC',
-  recent: 'created_at DESC',
-  oldest: 'created_at ASC',
-  type: "entity_type ASC, name ASC",
-  status: "status ASC, name ASC",
+  recent: 'c.created_at DESC, c.id DESC',
+  oldest: 'c.created_at ASC, c.id ASC',
+  name: 'c.name ASC',
+  name_desc: 'c.name DESC',
+  type: "c.entity_type ASC, c.name ASC",
+  status: "c.status ASC, c.name ASC",
 };
 type CustomerListOptions = {
   limit?: number; offset?: number; sort?: string;
@@ -38,7 +38,7 @@ export async function listCustomers(organizationId: string, query = '', type = '
     const escaped = query.slice(0, 160).replace(/[\\%_]/g, '\\$&');
     const limit = Math.min(100, Math.max(1, opts?.limit ?? 100));
     const offset = Math.max(0, opts?.offset ?? 0);
-    const orderBy = CUSTOMER_SORTS[opts?.sort ?? ''] ?? CUSTOMER_SORTS.name;
+    const orderBy = CUSTOMER_SORTS[opts?.sort ?? ''] ?? CUSTOMER_SORTS.recent;
     const status = customerStatuses.has(opts?.status as Customer['status']) ? opts!.status! : '';
     const screening = screeningStatuses.has(opts?.screening as Customer['screening_status']) ? opts!.screening! : '';
     const creatorId = opts?.actorId ?? null;

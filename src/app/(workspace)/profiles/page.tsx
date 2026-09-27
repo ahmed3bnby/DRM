@@ -27,7 +27,7 @@ export default async function Profiles({
   const search = await searchParams;
   const q = typeof search.q === 'string' ? search.q : '';
   const type = typeof search.type === 'string' ? search.type : '';
-  const sort = typeof search.sort === 'string' && search.sort in CUSTOMER_SORTS ? search.sort : 'name';
+  const sort = typeof search.sort === 'string' && search.sort in CUSTOMER_SORTS ? search.sort : 'recent';
   const status = ['draft', 'awaiting_information'].includes(search.status ?? '') ? search.status! : '';
   const screening = ['not_run', 'no_match', 'screened', 'potential_match'].includes(search.screening ?? '') ? search.screening! : '';
   const actorId = actor.role === 'analyst' ? actor.id : undefined;
@@ -52,7 +52,7 @@ export default async function Profiles({
   const keep = {
     q: q || undefined,
     type: type || undefined,
-    sort: sort !== 'name' ? sort : undefined,
+    sort: sort !== 'recent' ? sort : undefined,
     status: status || undefined,
     screening: screening || undefined,
   };
