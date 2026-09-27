@@ -231,18 +231,18 @@ export default async function Profile({
 
     const materialCategoryMatches = categoryMatches.filter(match => (match.percent ?? 100) >= 80);
     if (materialCategoryMatches.length > 0 && materialCategoryMatches.every(match => decisions[match.recordId]?.decision === 'dismissed')) {
-      return { state: 'dismissed', label: m.checkDismissed, Icon: CheckCircle2 };
+      return { state: 'dismissed', label: m.checkDismissed, Icon: MinusCircle };
     }
 
     const hasAnyDismissed = categoryMatches.some(match => decisions[match.recordId]?.decision === 'dismissed');
     if (hasAnyDismissed) {
-      return { state: 'dismissed', label: m.checkDismissed, Icon: CheckCircle2 };
+      return { state: 'dismissed', label: m.checkDismissed, Icon: MinusCircle };
     }
 
     return {
-      state: 'dismissed',
+      state: 'neutral',
       label: m.checkAutoDismissed || (locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< ٨٠٪)'),
-      Icon: CheckCircle2,
+      Icon: MinusCircle,
     };
   };
 
