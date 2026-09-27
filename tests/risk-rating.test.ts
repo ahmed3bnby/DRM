@@ -117,3 +117,27 @@ test('High-risk DNFBP sector triggers 50,000 AED cash threshold alert and EDD ad
   assert.ok(advice.reports.some(r => r.type === 'EDD'));
 });
 
+test('Matches below 80% without strong ID are classified as low band and excluded from screening flags', async () => {
+  const { classifyMatch, assess } = await import('../src/lib/risk');
+  const catMap = { UN: { category: 'sanctions' as const, title: 'UN Sanctions' } };
+
+  // Sub-80% match (e.g. 72%) without strong ID
+  const sub80 = classifyMatch('UN', 'fuzzy', 0.72, catMap);
+  assert.equal(sub80.band, 'low');
+  assert.equal(sub80.percent, 72);
+
+  // 80% match gets moderate/medium
+  const hit80 = classifyMatch('UN', 'fuzzy', 0.80, catMap);
+  assert.equal(hit80.band, 'medium');
+
+  // Sub-80% with strong DOB match gets boosted to high
+  const boosted = classifyMatch('UN', 'fuzzy', 0.72, catMap, { strongId: true });
+  assert.equal(boosted.band, 'high');
+
+  // assess with only sub-80% matches results in low overall band and zero relevant flags
+  const assessment = assess([sub80]);
+  assert.equal(assessment.band, 'low');
+  assert.equal(assessment.relevant, 0);
+  assert.equal(assessment.flags.sanctions, false);
+});
+

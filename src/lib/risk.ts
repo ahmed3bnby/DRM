@@ -85,7 +85,7 @@ export function classifyMatch(code:string, matchKind:string, similarity:number, 
   // name match to a strong hit — unless a hard identifier (e.g. birth year) actively conflicts.
   const boosted=!!opts?.strongId && !opts?.demote;
   const strong=boosted||matchKind==='exact'||sim>=0.85;
-  const moderate=!strong&&sim>=0.62;
+  const moderate=!strong&&sim>=0.80;
   let band:RiskBand;
   if (category==='sanctions'||category==='debarment'||category==='crime')
     band = strong?'high':moderate?'medium':'low';           // enforcement severity scales with match strength

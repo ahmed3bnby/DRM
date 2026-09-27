@@ -150,7 +150,16 @@ export default async function Profile({
     [m.fUpdated, customer.updated_at],
   ];
 
-  const band = last?.overall_band ?? 'none';
+  const allScreeningMatches = last?.top_matches ?? [];
+  const materialMatches = allScreeningMatches.filter(
+    m => (m.percent ?? 100) >= 80 || decisions[m.recordId]?.decision === 'confirmed'
+  );
+  // If there are no material hits (>= 80% or confirmed), effective signal is 'none' (if empty) or 'low' (if only secondary noise < 80%)
+  const effectiveBand = materialMatches.length === 0
+    ? (allScreeningMatches.length === 0 ? 'none' : 'low')
+    : (last?.overall_band ?? 'none');
+  const band = effectiveBand;
+
   const adverseHit = !!last?.adverse_media && last.adverse_media.status === 'searched' && last.adverse_media.count > 0;
   const riskAssessment = evaluateRiskAssessment(customer, last?.top_matches ?? [], decisions, !!last, adverseHit);
   const rating = riskAssessment.rating;
@@ -198,12 +207,43 @@ export default async function Profile({
 
   const checkList = [[m.catSanctions, 'sanctions'], [m.catPep, 'pep'], [m.catCrime, 'crime'], [m.catDebarment, 'debarment'], [m.catRegulatory, 'regulatory']] as const;
   const checkState = (key: string) => {
-    const categoryMatches = last?.top_matches.filter(match => match.category === key) ?? [];
-    const categoryDecisions = categoryMatches.map(match => decisions[match.recordId]?.decision);
-    if (categoryDecisions.includes('confirmed')) return { state: 'confirmed', label: m.checkConfirmed, Icon: ShieldAlert };
-    if (last?.flags[key] && (categoryMatches.length === 0 || categoryDecisions.some(decision => !decision || decision === 'needs_info'))) return { state: 'pending', label: m.checkPending, Icon: Clock3 };
-    if (categoryMatches.length > 0 && categoryDecisions.every(decision => decision === 'dismissed')) return { state: 'dismissed', label: m.checkDismissed, Icon: CheckCircle2 };
-    return { state: 'neutral', label: m.checkNoSignal, Icon: MinusCircle };
+    const categoryMatches = (last?.top_matches ?? []).filter(match => match.category === key);
+    if (categoryMatches.length === 0) {
+      return { state: 'neutral', label: m.checkNoSignal, Icon: MinusCircle };
+    }
+
+    const hasConfirmed = categoryMatches.some(match => decisions[match.recordId]?.decision === 'confirmed');
+    if (hasConfirmed) {
+      return { state: 'confirmed', label: m.checkConfirmed, Icon: ShieldAlert };
+    }
+
+    // Matches requiring an analyst decision (>= 80% without decision, or marked needs_info)
+    const pendingMatches = categoryMatches.filter(match => {
+      const dec = decisions[match.recordId]?.decision;
+      if (dec === 'confirmed' || dec === 'dismissed') return false;
+      if (dec === 'needs_info') return true;
+      return (match.percent ?? 100) >= 80;
+    });
+
+    if (pendingMatches.length > 0) {
+      return { state: 'pending', label: m.checkPending, Icon: Clock3 };
+    }
+
+    const materialCategoryMatches = categoryMatches.filter(match => (match.percent ?? 100) >= 80);
+    if (materialCategoryMatches.length > 0 && materialCategoryMatches.every(match => decisions[match.recordId]?.decision === 'dismissed')) {
+      return { state: 'dismissed', label: m.checkDismissed, Icon: CheckCircle2 };
+    }
+
+    const hasAnyDismissed = categoryMatches.some(match => decisions[match.recordId]?.decision === 'dismissed');
+    if (hasAnyDismissed) {
+      return { state: 'dismissed', label: m.checkDismissed, Icon: CheckCircle2 };
+    }
+
+    return {
+      state: 'dismissed',
+      label: m.checkAutoDismissed || (locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< ٨٠٪)'),
+      Icon: CheckCircle2,
+    };
   };
 
   const screenButton = canManage && (
@@ -433,7 +473,7 @@ export default async function Profile({
                     <div className={`panel assessment screen-result band-${band}`}>
                       <div className="screen-result-top">
                         <span className="screen-result-icon">
-                          {band === 'none' ? <ShieldQuestion size={25} /> : <ShieldAlert size={25} />}
+                          {band === 'none' ? <ShieldQuestion size={25} /> : band === 'low' ? <ShieldCheck size={25} /> : <ShieldAlert size={25} />}
                         </span>
                         <div>
                           <span className="assess-eyebrow">{m.matchSeverity}</span>
