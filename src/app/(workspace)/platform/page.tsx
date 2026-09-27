@@ -28,15 +28,38 @@ export default async function PlatformPage({
   if (!isPlatformOwner(actor)) notFound();
 
   const [sp, locale, orgs, lockdown, checksSummary, accountsQuota, quotaHistory] = await Promise.all([
-    searchParams,
-    getLocale(),
-    listAllOrgs(),
-    getSystemLockdown(),
-    getPlatformChecksSummary(),
-    listAllAccountsQuota(),
-    listQuotaHistory(150),
+    searchParams.catch(() => ({} as { tab?: string; saved?: string; lockdown_saved?: string; quota_updated?: string })),
+    getLocale().catch(() => 'ar'),
+    listAllOrgs().catch(err => {
+      console.error('PlatformPage: listAllOrgs error:', err);
+      return [];
+    }),
+    getSystemLockdown().catch(err => {
+      console.error('PlatformPage: getSystemLockdown error:', err);
+      return { enabled: false };
+    }),
+    getPlatformChecksSummary().catch(err => {
+      console.error('PlatformPage: getPlatformChecksSummary error:', err);
+      return {
+        totalChecks: 0,
+        todayChecks: 0,
+        weekChecks: 0,
+        activeAccounts: 0,
+        totalAllocatedQuota: 0,
+        totalAccountsWithQuota: 0,
+        unlimitedAccounts: 0,
+      };
+    }),
+    listAllAccountsQuota().catch(err => {
+      console.error('PlatformPage: listAllAccountsQuota error:', err);
+      return [];
+    }),
+    listQuotaHistory(150).catch(err => {
+      console.error('PlatformPage: listQuotaHistory error:', err);
+      return [];
+    }),
   ]);
-  await getMessages();
+  await getMessages().catch(() => ({}));
 
   return (
     <PlatformView

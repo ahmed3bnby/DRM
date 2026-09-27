@@ -27,12 +27,20 @@ import SystemLockdownControl from '@/components/system-lockdown-control';
 
 export default function PlatformView({
   initialTab = 'quota',
-  locale,
-  orgs,
-  lockdown,
-  summary,
-  accounts,
-  history,
+  locale = 'ar',
+  orgs = [],
+  lockdown = { enabled: false },
+  summary = {
+    totalChecks: 0,
+    todayChecks: 0,
+    weekChecks: 0,
+    activeAccounts: 0,
+    totalAllocatedQuota: 0,
+    totalAccountsWithQuota: 0,
+    unlimitedAccounts: 0,
+  },
+  accounts = [],
+  history = [],
   saved,
   lockdownSaved,
   quotaUpdated,
@@ -57,10 +65,24 @@ export default function PlatformView({
     defaultTab === 'plan' || defaultTab === 'lockdown' ? defaultTab : 'quota'
   );
 
-  const totalUsers = orgs.reduce((acc, o) => acc + (o.users || 0), 0);
-  const totalLimit = orgs.reduce((acc, o) => acc + (o.member_limit || 0), 0);
-  const isSingleOrg = orgs.length === 1;
-  const singleOrg = isSingleOrg ? orgs[0] : null;
+  const safeOrgs = orgs || [];
+  const safeAccounts = accounts || [];
+  const safeHistory = history || [];
+  const safeLockdown = lockdown || { enabled: false };
+  const safeSummary = summary || {
+    totalChecks: 0,
+    todayChecks: 0,
+    weekChecks: 0,
+    activeAccounts: 0,
+    totalAllocatedQuota: 0,
+    totalAccountsWithQuota: 0,
+    unlimitedAccounts: 0,
+  };
+
+  const totalUsers = safeOrgs.reduce((acc, o) => acc + (o.users || 0), 0);
+  const totalLimit = safeOrgs.reduce((acc, o) => acc + (o.member_limit || 0), 0);
+  const isSingleOrg = safeOrgs.length === 1;
+  const singleOrg = isSingleOrg ? safeOrgs[0] : null;
 
   const handleTabChange = (tab: 'quota' | 'plan' | 'lockdown') => {
     setActiveTab(tab);
@@ -99,12 +121,12 @@ export default function PlatformView({
           <button
             type="button"
             onClick={() => handleTabChange('lockdown')}
-            className={`platform-status-pill ${lockdown.enabled ? 'status-pill-locked' : 'status-pill-ok'}`}
+            className={`platform-status-pill ${safeLockdown.enabled ? 'status-pill-locked' : 'status-pill-ok'}`}
             title={isAr ? 'اضغط لإدارة حالة تشغيل النظام' : 'Click to manage operational status'}
           >
             <span className="status-ping-dot" />
             <span>
-              {lockdown.enabled
+              {safeLockdown.enabled
                 ? (isAr ? 'وضع الصيانة مفعّل (الوصول معطّل)' : 'System Locked Down')
                 : (isAr ? 'المنظومة تعمل بصورة طبيعية' : 'System Operational')}
             </span>
@@ -133,7 +155,7 @@ export default function PlatformView({
           <div>
             <strong>{en ? 'Operational status updated' : 'تم تحديث حالة تشغيل المنظومة بنجاح'}</strong>
             <p>
-              {lockdown.enabled
+              {safeLockdown.enabled
                 ? (en ? 'System lockdown is now active. Regular users cannot sign in.' : 'تم تفعيل وضع الصيانة وتعطيل وصول المستخدمين بنجاح.')
                 : (en ? 'System has been re-enabled. Regular user access is restored.' : 'تم تشغيل النظام واستئناف العمل لكافة المستخدمين بنجاح.')}
             </p>
@@ -167,12 +189,12 @@ export default function PlatformView({
               {isAr ? 'إجمالي الفحوصات المنفذة' : 'Total Platform Checks'}
             </span>
             <strong className="platform-stat-val text-emerald">
-              {number(summary.totalChecks)}
+              {number(safeSummary.totalChecks)}
             </strong>
             <span className="platform-stat-sub">
               {isAr
-                ? `اليوم: ${number(summary.todayChecks)} · آخر 7 أيام: ${number(summary.weekChecks)}`
-                : `Today: ${number(summary.todayChecks)} · 7d: ${number(summary.weekChecks)}`}
+                ? `اليوم: ${number(safeSummary.todayChecks)} · آخر 7 أيام: ${number(safeSummary.weekChecks)}`
+                : `Today: ${number(safeSummary.todayChecks)} · 7d: ${number(safeSummary.weekChecks)}`}
             </span>
           </div>
         </div>
@@ -192,8 +214,8 @@ export default function PlatformView({
             </strong>
             <span className="platform-stat-sub">
               {isAr
-                ? `${summary.activeAccounts} حساب أجرى عمليات فحص`
-                : `${summary.activeAccounts} accounts performed screenings`}
+                ? `${safeSummary.activeAccounts} حساب أجرى عمليات فحص`
+                : `${safeSummary.activeAccounts} accounts performed screenings`}
             </span>
           </div>
         </div>
@@ -208,12 +230,12 @@ export default function PlatformView({
               {isAr ? 'إجمالي الحصص المشحونة' : 'Allocated Quota Checks'}
             </span>
             <strong className="platform-stat-val text-gold">
-              {number(summary.totalAllocatedQuota)}
+              {number(safeSummary.totalAllocatedQuota)}
             </strong>
             <span className="platform-stat-sub">
               {isAr
-                ? `${summary.totalAccountsWithQuota} بحصة محددة · ${summary.unlimitedAccounts} غير محدود`
-                : `${summary.totalAccountsWithQuota} capped · ${summary.unlimitedAccounts} unlimited`}
+                ? `${safeSummary.totalAccountsWithQuota} بحصة محددة · ${safeSummary.unlimitedAccounts} غير محدود`
+                : `${safeSummary.totalAccountsWithQuota} capped · ${safeSummary.unlimitedAccounts} unlimited`}
             </span>
           </div>
         </div>
@@ -231,7 +253,7 @@ export default function PlatformView({
               {singleOrg?.plan?.toUpperCase() || 'ENTERPRISE'}
             </strong>
             <span className="platform-stat-sub">
-              {lockdown.enabled
+              {safeLockdown.enabled
                 ? (isAr ? 'وضع الصيانة معطّل للمستخدمين' : 'Maintenance active')
                 : (isAr ? 'كافة الوحدات والخدمات نشطة' : 'All modules operational')}
             </span>
@@ -252,7 +274,7 @@ export default function PlatformView({
           <span className="tab-title">
             {isAr ? 'إدارة الفحوصات والحصص وسجل الشحن' : 'Screening Checks & Quotas'}
           </span>
-          <span className="tab-pill-badge">{accounts.length}</span>
+          <span className="tab-pill-badge">{safeAccounts.length}</span>
         </button>
 
         <button
@@ -282,16 +304,16 @@ export default function PlatformView({
           <span className="tab-title">
             {isAr ? 'حالة التشغيل والأمان' : 'System Lockdown & Status'}
           </span>
-          <span className={`tab-status-dot ${lockdown.enabled ? 'dot-locked' : 'dot-ok'}`} />
+          <span className={`tab-status-dot ${safeLockdown.enabled ? 'dot-locked' : 'dot-ok'}`} />
         </button>
       </div>
 
       {/* ── TAB 1: SCREENING CHECKS & QUOTA MANAGEMENT ── */}
       {activeTab === 'quota' && (
         <PlatformQuotaManager
-          summary={summary}
-          accounts={accounts}
-          history={history}
+          summary={safeSummary}
+          accounts={safeAccounts}
+          history={safeHistory}
           locale={locale}
           isSingleOrg={isSingleOrg}
         />
@@ -301,7 +323,7 @@ export default function PlatformView({
       {activeTab === 'plan' && (
         <div className="platform-tab-content">
           <div className="platform-orgs">
-            {orgs.map((o) => (
+            {safeOrgs.map((o) => (
               <PlatformOrgForm key={o.id} org={o} locale={locale} />
             ))}
           </div>
@@ -311,7 +333,7 @@ export default function PlatformView({
       {/* ── TAB 3: SYSTEM LOCKDOWN & MAINTENANCE ── */}
       {activeTab === 'lockdown' && (
         <div className="platform-tab-content">
-          <SystemLockdownControl lockdown={lockdown} locale={locale} />
+          <SystemLockdownControl lockdown={safeLockdown} locale={locale} />
         </div>
       )}
     </div>

@@ -52,28 +52,30 @@ export default function PlatformQuotaManager({
 
   // Filter accounts
   const filteredAccounts = useMemo(() => {
+    const list = accounts || [];
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return accounts;
-    return accounts.filter((a) =>
-      a.displayName.toLowerCase().includes(q) ||
-      a.email.toLowerCase().includes(q) ||
-      a.organizationName.toLowerCase().includes(q) ||
-      a.username.toLowerCase().includes(q) ||
-      a.role.toLowerCase().includes(q)
+    if (!q) return list;
+    return list.filter((a) =>
+      (a.displayName || '').toLowerCase().includes(q) ||
+      (a.email || '').toLowerCase().includes(q) ||
+      (a.organizationName || '').toLowerCase().includes(q) ||
+      (a.username || '').toLowerCase().includes(q) ||
+      (a.role || '').toLowerCase().includes(q)
     );
   }, [accounts, searchQuery]);
 
   // Filter history
   const filteredHistory = useMemo(() => {
+    const list = history || [];
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return history;
-    return history.filter((h) =>
-      h.userDisplayName.toLowerCase().includes(q) ||
-      h.userEmail.toLowerCase().includes(q) ||
-      h.organizationName.toLowerCase().includes(q) ||
-      h.actorName.toLowerCase().includes(q) ||
+    if (!q) return list;
+    return list.filter((h) =>
+      (h.userDisplayName || '').toLowerCase().includes(q) ||
+      (h.userEmail || '').toLowerCase().includes(q) ||
+      (h.organizationName || '').toLowerCase().includes(q) ||
+      (h.actorName || '').toLowerCase().includes(q) ||
       (h.note && h.note.toLowerCase().includes(q)) ||
-      h.actionType.toLowerCase().includes(q)
+      (h.actionType || '').toLowerCase().includes(q)
     );
   }, [history, searchQuery]);
 

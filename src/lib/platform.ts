@@ -13,16 +13,21 @@ export type PlatformOrg = {
 };
 
 export async function listAllOrgs(): Promise<PlatformOrg[]> {
-  const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
-  const hiddenIds = platformOwnerIds();
-  const r = await pool.query(`SELECT o.id,o.name,o.reference,o.plan,o.features,o.member_limit,
-    (SELECT count(*)::int FROM users u 
-     WHERE u.organization_id=o.id 
-       AND u.disabled_at IS NULL 
-       AND NOT (lower(u.email) = ANY($1::text[])) 
-       AND NOT (u.id = ANY($2::uuid[]))) AS users
-    FROM organizations o ORDER BY o.name`, [hiddenEmails, hiddenIds]);
-  return r.rows as PlatformOrg[];
+  try {
+    const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
+    const hiddenIds = platformOwnerIds();
+    const r = await pool.query(`SELECT o.id,o.name,o.reference,o.plan,o.features,o.member_limit,
+      (SELECT count(*)::int FROM users u 
+       WHERE u.organization_id=o.id 
+         AND u.disabled_at IS NULL 
+         AND NOT (lower(u.email) = ANY($1::text[])) 
+         AND NOT (u.id = ANY($2::uuid[]))) AS users
+      FROM organizations o ORDER BY o.name`, [hiddenEmails, hiddenIds]);
+    return r.rows as PlatformOrg[];
+  } catch (err) {
+    console.error('listAllOrgs error:', err);
+    return [];
+  }
 }
 
 export async function updateOrgPlan(orgId: string, patch: { features: Record<string, boolean>; member_limit: number; plan: string }) {
@@ -97,44 +102,59 @@ export type PlatformChecksSummary = {
 };
 
 export async function getPlatformChecksSummary(): Promise<PlatformChecksSummary> {
-  const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
-  const hiddenIds = platformOwnerIds();
+  const fallback: PlatformChecksSummary = {
+    totalChecks: 0,
+    todayChecks: 0,
+    weekChecks: 0,
+    activeAccounts: 0,
+    totalAllocatedQuota: 0,
+    totalAccountsWithQuota: 0,
+    unlimitedAccounts: 0,
+  };
 
-  return withPlatformOwner(async db => {
-    const [statsRes, quotaRes] = await Promise.all([
-      db.query(`
-        SELECT 
-          count(*)::int AS total_checks,
-          count(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS today_checks,
-          count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS week_checks,
-          count(DISTINCT user_id)::int AS active_accounts
-        FROM search_events
-      `),
-      db.query(`
-        SELECT 
-          COALESCE(sum(search_quota), 0)::int AS total_allocated,
-          count(*) FILTER (WHERE search_quota IS NOT NULL)::int AS accounts_with_quota,
-          count(*) FILTER (WHERE search_quota IS NULL)::int AS unlimited_accounts
-        FROM users
-        WHERE disabled_at IS NULL
-          AND NOT (lower(email) = ANY($1::text[]))
-          AND NOT (id = ANY($2::uuid[]))
-      `, [hiddenEmails, hiddenIds])
-    ]);
+  try {
+    const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
+    const hiddenIds = platformOwnerIds();
 
-    const s = statsRes.rows[0] || {};
-    const q = quotaRes.rows[0] || {};
+    return await withPlatformOwner(async db => {
+      const [statsRes, quotaRes] = await Promise.all([
+        db.query(`
+          SELECT 
+            count(*)::int AS total_checks,
+            count(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS today_checks,
+            count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS week_checks,
+            count(DISTINCT user_id)::int AS active_accounts
+          FROM search_events
+        `),
+        db.query(`
+          SELECT 
+            COALESCE(sum(search_quota), 0)::int AS total_allocated,
+            count(*) FILTER (WHERE search_quota IS NOT NULL)::int AS accounts_with_quota,
+            count(*) FILTER (WHERE search_quota IS NULL)::int AS unlimited_accounts
+          FROM users
+          WHERE disabled_at IS NULL
+            AND NOT (lower(email) = ANY($1::text[]))
+            AND NOT (id = ANY($2::uuid[]))
+        `, [hiddenEmails, hiddenIds])
+      ]);
 
-    return {
-      totalChecks: Number(s.total_checks ?? 0),
-      todayChecks: Number(s.today_checks ?? 0),
-      weekChecks: Number(s.week_checks ?? 0),
-      activeAccounts: Number(s.active_accounts ?? 0),
-      totalAllocatedQuota: Number(q.total_allocated ?? 0),
-      totalAccountsWithQuota: Number(q.accounts_with_quota ?? 0),
-      unlimitedAccounts: Number(q.unlimited_accounts ?? 0),
-    };
-  });
+      const s = statsRes.rows[0] || {};
+      const q = quotaRes.rows[0] || {};
+
+      return {
+        totalChecks: Number(s.total_checks ?? 0),
+        todayChecks: Number(s.today_checks ?? 0),
+        weekChecks: Number(s.week_checks ?? 0),
+        activeAccounts: Number(s.active_accounts ?? 0),
+        totalAllocatedQuota: Number(q.total_allocated ?? 0),
+        totalAccountsWithQuota: Number(q.accounts_with_quota ?? 0),
+        unlimitedAccounts: Number(q.unlimited_accounts ?? 0),
+      };
+    });
+  } catch (err) {
+    console.error('getPlatformChecksSummary error:', err);
+    return fallback;
+  }
 }
 
 export type AccountQuotaItem = {
@@ -157,37 +177,9 @@ export type AccountQuotaItem = {
   lastCreditAction: string | null;
 };
 
-export async function listAllAccountsQuota(): Promise<AccountQuotaItem[]> {
-  const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
-  const hiddenIds = platformOwnerIds();
-
-  return withPlatformOwner(async db => {
-    const res = await db.query(`
-      SELECT 
-        u.id,
-        COALESCE(NULLIF(u.username, ''), split_part(u.email, '@', 1), u.id::text) AS username,
-        u.email,
-        u.display_name,
-        u.role,
-        u.search_quota,
-        u.quota_anchor,
-        u.disabled_at,
-        o.id AS organization_id,
-        o.name AS organization_name,
-        (SELECT count(*)::int FROM search_events e WHERE e.user_id = u.id) AS lifetime_checks,
-        (SELECT max(e.created_at) FROM search_events e WHERE e.user_id = u.id) AS last_check_at,
-        (SELECT qh.created_at FROM quota_history qh WHERE qh.user_id = u.id ORDER BY qh.created_at DESC LIMIT 1) AS last_credit_at,
-        (SELECT qh.delta FROM quota_history qh WHERE qh.user_id = u.id ORDER BY qh.created_at DESC LIMIT 1) AS last_credit_delta,
-        (SELECT qh.action_type FROM quota_history qh WHERE qh.user_id = u.id ORDER BY qh.created_at DESC LIMIT 1) AS last_credit_action
-      FROM users u
-      JOIN organizations o ON o.id = u.organization_id
-      WHERE NOT (lower(u.email) = ANY($1::text[]))
-        AND NOT (u.id = ANY($2::uuid[]))
-      ORDER BY (u.disabled_at IS NOT NULL), o.name, u.role, u.display_name
-    `, [hiddenEmails, hiddenIds]);
-
-  return res.rows.map(row => {
-    const quota = row.search_quota !== null ? Number(row.search_quota) : null;
+function mapAccountsQuotaRows(rows: any[]): AccountQuotaItem[] {
+  return rows.map(row => {
+    const quota = row.search_quota !== null && row.search_quota !== undefined ? Number(row.search_quota) : null;
     const anchor = Number(row.quota_anchor ?? 0);
     const lifetime = Number(row.lifetime_checks ?? 0);
     const usedInCycle = Math.max(0, lifetime - anchor);
@@ -209,11 +201,77 @@ export async function listAllAccountsQuota(): Promise<AccountQuotaItem[]> {
       disabledAt: row.disabled_at ? new Date(row.disabled_at).toISOString() : null,
       lastCheckAt: row.last_check_at ? new Date(row.last_check_at).toISOString() : null,
       lastCreditAt: row.last_credit_at ? new Date(row.last_credit_at).toISOString() : null,
-      lastCreditDelta: row.last_credit_delta !== null ? Number(row.last_credit_delta) : null,
+      lastCreditDelta: row.last_credit_delta !== null && row.last_credit_delta !== undefined ? Number(row.last_credit_delta) : null,
       lastCreditAction: row.last_credit_action || null,
     };
   });
-  });
+}
+
+export async function listAllAccountsQuota(): Promise<AccountQuotaItem[]> {
+  try {
+    const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
+    const hiddenIds = platformOwnerIds();
+
+    return await withPlatformOwner(async db => {
+      try {
+        const res = await db.query(`
+          SELECT 
+            u.id,
+            COALESCE(NULLIF(u.username, ''), split_part(u.email, '@', 1), u.id::text) AS username,
+            u.email,
+            u.display_name,
+            u.role,
+            u.search_quota,
+            u.quota_anchor,
+            u.disabled_at,
+            o.id AS organization_id,
+            o.name AS organization_name,
+            (SELECT count(*)::int FROM search_events e WHERE e.user_id = u.id) AS lifetime_checks,
+            (SELECT max(e.created_at) FROM search_events e WHERE e.user_id = u.id) AS last_check_at,
+            (SELECT qh.created_at FROM quota_history qh WHERE qh.user_id = u.id ORDER BY qh.created_at DESC LIMIT 1) AS last_credit_at,
+            (SELECT qh.delta FROM quota_history qh WHERE qh.user_id = u.id ORDER BY qh.created_at DESC LIMIT 1) AS last_credit_delta,
+            (SELECT qh.action_type FROM quota_history qh WHERE qh.user_id = u.id ORDER BY qh.created_at DESC LIMIT 1) AS last_credit_action
+          FROM users u
+          JOIN organizations o ON o.id = u.organization_id
+          WHERE NOT (lower(u.email) = ANY($1::text[]))
+            AND NOT (u.id = ANY($2::uuid[]))
+          ORDER BY (u.disabled_at IS NOT NULL), o.name, u.role, u.display_name
+        `, [hiddenEmails, hiddenIds]);
+
+        return mapAccountsQuotaRows(res.rows);
+      } catch (innerErr) {
+        console.warn('listAllAccountsQuota: primary query failed, retrying without quota_history join:', innerErr);
+        const res = await db.query(`
+          SELECT 
+            u.id,
+            COALESCE(NULLIF(u.username, ''), split_part(u.email, '@', 1), u.id::text) AS username,
+            u.email,
+            u.display_name,
+            u.role,
+            u.search_quota,
+            u.quota_anchor,
+            u.disabled_at,
+            o.id AS organization_id,
+            o.name AS organization_name,
+            (SELECT count(*)::int FROM search_events e WHERE e.user_id = u.id) AS lifetime_checks,
+            (SELECT max(e.created_at) FROM search_events e WHERE e.user_id = u.id) AS last_check_at,
+            NULL::timestamptz AS last_credit_at,
+            NULL::int AS last_credit_delta,
+            NULL::text AS last_credit_action
+          FROM users u
+          JOIN organizations o ON o.id = u.organization_id
+          WHERE NOT (lower(u.email) = ANY($1::text[]))
+            AND NOT (u.id = ANY($2::uuid[]))
+          ORDER BY (u.disabled_at IS NOT NULL), o.name, u.role, u.display_name
+        `, [hiddenEmails, hiddenIds]);
+
+        return mapAccountsQuotaRows(res.rows);
+      }
+    });
+  } catch (err) {
+    console.error('listAllAccountsQuota fatal error:', err);
+    return [];
+  }
 }
 
 export type PlatformQuotaHistoryItem = {
