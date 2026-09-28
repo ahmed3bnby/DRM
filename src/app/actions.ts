@@ -183,7 +183,7 @@ export async function createUserAction(_previous: FormState, data: FormData): Pr
   const parsed = teamUserSchema.safeParse(values);
   if (!parsed.success) return {error: 'راجع الحقول الموضحة أدناه.', fields: parsed.error.flatten().fieldErrors, values};
   try { await createTeamUser(actor, parsed.data); }
-  catch (e) { const msg = String((e as Error).message ?? ''); return {error: /MEMBER_LIMIT/.test(msg) ? 'وصلت للحد الأقصى لعدد المستخدمين في باقتك. تواصل مع مزوّد الخدمة لرفع الحد.' : /duplicate|unique/i.test(msg) ? 'هذا البريد مستخدم بالفعل.' : 'تعذر إنشاء المستخدم؛ أعد المحاولة.', values}; }
+  catch (e) { const msg = String((e as Error).message ?? ''); return {error: /MEMBER_LIMIT/.test(msg) ? 'وصلت للحد الأقصى لعدد المستخدمين في باقتك. تواصل مع مزوّد الخدمة لرفع الحد.' : /duplicate|unique|EMAIL_TAKEN/i.test(msg) ? 'هذا البريد مستخدم بالفعل أو غير متاح.' : 'تعذر إنشاء المستخدم؛ أعد المحاولة.', values}; }
   revalidatePath('/team');
   return {};
 }

@@ -76,7 +76,7 @@ export async function getMatchDecisions(organizationId: string, customerId: stri
       `SELECT DISTINCT ON (md.record_id) md.id, md.record_id, md.decision, md.reason, md.created_at, md.decided_by, u.display_name AS decided_by_name
        FROM match_decisions md
        LEFT JOIN users u ON u.id = md.decided_by
-       WHERE md.customer_id=$1 ORDER BY md.record_id, md.created_at DESC`, [customerId]);
+       WHERE md.organization_id=$1 AND md.customer_id=$2 ORDER BY md.record_id, md.created_at DESC`, [organizationId, customerId]);
     return Object.fromEntries(r.rows.map(row => [row.record_id, row as DecisionRow]));
   });
 }
@@ -88,7 +88,7 @@ export async function getMatchDecisionHistory(organizationId: string, customerId
       `SELECT md.id, md.record_id, md.decision, md.reason, md.created_at, md.decided_by, u.display_name AS decided_by_name
        FROM match_decisions md
        LEFT JOIN users u ON u.id = md.decided_by
-       WHERE md.customer_id=$1 ORDER BY md.created_at DESC`, [customerId]);
+       WHERE md.organization_id=$1 AND md.customer_id=$2 ORDER BY md.created_at DESC`, [organizationId, customerId]);
     return r.rows as DecisionRow[];
   });
 }

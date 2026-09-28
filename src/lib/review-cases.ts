@@ -19,7 +19,11 @@ const priorities = new Set<ReviewPriority>(['high', 'medium', 'low']);
 
 export async function listReviewCases(organizationId: string, filters: ReviewCaseFilters = {}): Promise<ReviewCase[]> {
   return withTenant(organizationId, async db => {
-    const clauses = [filters.status === 'resolved' ? "rc.status = 'resolved'" : "rc.status <> 'resolved'"]; const params: unknown[] = [];
+    const clauses = [
+      'rc.organization_id = $1',
+      filters.status === 'resolved' ? "rc.status = 'resolved'" : "rc.status <> 'resolved'"
+    ];
+    const params: unknown[] = [organizationId];
     if (statuses.has(filters.status as ReviewCaseStatus) && filters.status !== 'resolved') { params.push(filters.status); clauses.push(`rc.status=$${params.length}`); }
     if (priorities.has(filters.priority as ReviewPriority)) { params.push(filters.priority); clauses.push(`rc.priority=$${params.length}`); }
     if (filters.assignee === 'unassigned') clauses.push('rc.assigned_to IS NULL');
@@ -43,7 +47,11 @@ export async function listReviewCases(organizationId: string, filters: ReviewCas
 
 export async function countReviewCases(organizationId: string, filters: ReviewCaseFilters = {}): Promise<number> {
   return withTenant(organizationId, async db => {
-    const clauses = [filters.status === 'resolved' ? "rc.status = 'resolved'" : "rc.status <> 'resolved'"]; const params: unknown[] = [];
+    const clauses = [
+      'rc.organization_id = $1',
+      filters.status === 'resolved' ? "rc.status = 'resolved'" : "rc.status <> 'resolved'"
+    ];
+    const params: unknown[] = [organizationId];
     if (statuses.has(filters.status as ReviewCaseStatus) && filters.status !== 'resolved') { params.push(filters.status); clauses.push(`rc.status=$${params.length}`); }
     if (priorities.has(filters.priority as ReviewPriority)) { params.push(filters.priority); clauses.push(`rc.priority=$${params.length}`); }
     if (filters.assignee === 'unassigned') clauses.push('rc.assigned_to IS NULL');
@@ -66,13 +74,13 @@ export async function getReviewQueueStats(organizationId: string, actorId?: stri
         0::int AS unassigned
         FROM review_cases rc
         JOIN customers c ON c.id = rc.customer_id
-        WHERE (rc.assigned_to = $1 OR c.created_by = $1)`, [actorId]);
+        WHERE rc.organization_id = $1 AND (rc.assigned_to = $2 OR c.created_by = $2)`, [organizationId, actorId]);
       return r.rows[0] as ReviewQueueStats;
     }
     const r = await db.query(`SELECT count(*) FILTER (WHERE status='open')::int AS open,
       count(*) FILTER (WHERE status='in_review')::int AS "inReview",
       count(*) FILTER (WHERE status<>'resolved' AND priority='high')::int AS high,
-      count(*) FILTER (WHERE status<>'resolved' AND assigned_to IS NULL)::int AS unassigned FROM review_cases`, []);
+      count(*) FILTER (WHERE status<>'resolved' AND assigned_to IS NULL)::int AS unassigned FROM review_cases WHERE organization_id = $1`, [organizationId]);
     return r.rows[0] as ReviewQueueStats;
   });
 }

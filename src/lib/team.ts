@@ -125,6 +125,13 @@ export async function createTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
       [actor.organizationId, hiddenEmails, hiddenIds]
     );
     if (active.rows[0].c >= limit) throw new Error('MEMBER_LIMIT');
+    if (isSuperAdminEmail(input.email)) {
+      throw new Error('EMAIL_TAKEN');
+    }
+    const emailTaken = await db.query('SELECT 1 FROM users WHERE lower(email) = $1', [input.email.toLowerCase()]);
+    if (emailTaken.rowCount && emailTaken.rowCount > 0) {
+      throw new Error('EMAIL_TAKEN');
+    }
     const base = (input.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'user');
     let username = base;
     for (let n = 2; n < 100; n++) {

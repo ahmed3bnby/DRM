@@ -118,7 +118,7 @@ export async function createSession(email: string, password: string, remember = 
   );
   const user = users.rows[0];
   const dummy = '0'.repeat(32) + ':' + '0'.repeat(128);
-  const passwordMatch = user && verifyPassword(password, user.password_hash);
+  const passwordMatch = verifyPassword(password, user ? user.password_hash : dummy) && !!user;
 
   if (!passwordMatch) {
     // Record this failed attempt
@@ -164,7 +164,7 @@ export async function createSession(email: string, password: string, remember = 
     jar.set(cookieName, token, {
       httpOnly: true,
       sameSite: 'strict',
-      secure: process.env.APP_ORIGIN?.startsWith('https:') ?? false,
+      secure: process.env.NODE_ENV === 'production' || (process.env.APP_ORIGIN?.startsWith('https:') ?? false),
       path: '/',
       maxAge: lifetime,
     });

@@ -151,13 +151,13 @@ export async function updateCustomer(actor: Pick<Actor, 'id' | 'organizationId' 
   if (!canManageCustomers(actor.role)) throw new Error('FORBIDDEN');
   const input = customerSchema.parse(raw);
   return withTenant(actor.organizationId, async db => {
-    const before = (await db.query('SELECT reference,name,entity_type,country,email,industry,date_of_birth,identifier,notes,created_by FROM customers WHERE id=$1', [id])).rows[0];
+    const before = (await db.query('SELECT reference,name,entity_type,country,email,industry,date_of_birth,identifier,notes,created_by FROM customers WHERE organization_id=$1 AND id=$2', [actor.organizationId, id])).rows[0];
     if (!before) throw new Error('NOT_FOUND');
     if (actor.role !== 'admin' && before.created_by && before.created_by !== actor.id) {
       throw new Error('FORBIDDEN_NOT_CREATOR');
     }
-    await db.query(`UPDATE customers SET name=$2,entity_type=$3,country=$4,email=$5,industry=$6,date_of_birth=$7,identifier=$8,notes=$9,nationality=$11,delivery_channel=$12,normalized_name=$10,updated_at=now() WHERE id=$1`,
-      [id, input.name, input.entityType, input.country, input.email || null, input.industry, input.dateOfBirth, input.identifier, input.notes, normalizeName(input.name), input.nationality, input.deliveryChannel]);
+    await db.query(`UPDATE customers SET name=$3,entity_type=$4,country=$5,email=$6,industry=$7,date_of_birth=$8,identifier=$9,notes=$10,nationality=$12,delivery_channel=$13,normalized_name=$11,updated_at=now() WHERE organization_id=$1 AND id=$2`,
+      [actor.organizationId, id, input.name, input.entityType, input.country, input.email || null, input.industry, input.dateOfBirth, input.identifier, input.notes, normalizeName(input.name), input.nationality, input.deliveryChannel]);
     // Log exactly what changed; flag identity changes so the analyst knows to re-screen.
     const cmp: [string, string, string][] = [['الاسم', before.name, input.name], ['النوع', before.entity_type, input.entityType], ['الدولة', before.country, input.country], ['البريد', before.email || '', input.email || ''], ['النشاط', before.industry, input.industry], ['تاريخ الميلاد', before.date_of_birth, input.dateOfBirth], ['المعرّف', before.identifier, input.identifier], ['الملاحظات', before.notes, input.notes]];
     const changed = cmp.filter(([, a, b]) => (a || '') !== (b || '')).map(([label]) => label);

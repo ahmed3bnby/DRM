@@ -157,7 +157,7 @@ export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizatio
         WHERE organization_id=$1 AND customer_id=$2 AND status<>'resolved'`,
         [actor.organizationId, customerId, screening.rows[0].id]);
     }
-    await db.query('UPDATE customers SET screening_status=$2, updated_at=now() WHERE id=$1', [customerId, status]);
+    await db.query('UPDATE customers SET screening_status=$2, updated_at=now() WHERE organization_id=$3 AND id=$1', [customerId, status, actor.organizationId]);
     await db.query(`INSERT INTO audit_events(organization_id,actor_id,customer_id,action,summary)
       VALUES ($1,$2,$3,'customer.screened',$4)`,
       [actor.organizationId, actor.id, customerId, `فُحص العميل — ${overall.determination}`]);
@@ -198,7 +198,7 @@ export type ScreeningRow = {
 };
 export async function getLastScreening(organizationId: string, customerId: string): Promise<ScreeningRow | null> {
   return withTenant(organizationId, async db => {
-    const r = await db.query('SELECT * FROM customer_screenings WHERE customer_id=$1 ORDER BY created_at DESC LIMIT 1', [customerId]);
+    const r = await db.query('SELECT * FROM customer_screenings WHERE organization_id=$1 AND customer_id=$2 ORDER BY created_at DESC LIMIT 1', [organizationId, customerId]);
     return r.rows[0] ?? null;
   });
 }
