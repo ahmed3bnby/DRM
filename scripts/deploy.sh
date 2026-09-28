@@ -81,8 +81,8 @@ step "Install dependencies & build"
 npm ci || npm install
 npm run build
 
-step "Database schema + seed (all migrations incl. audit immutability)"
-node --env-file=.env.production.local --import tsx scripts/setup-db.ts
+step "Database schema + seed (all migrations; clean start — no demo customers)"
+SEED_DEMO_CUSTOMERS=0 node --env-file=.env.production.local --import tsx scripts/setup-db.ts
 
 if [ "$IMPORT_ALL_LISTS" = "yes" ]; then
   step "Fetch + import watchlists (this can take several minutes)"

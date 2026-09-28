@@ -59,24 +59,28 @@ try {
     await db.query(`INSERT INTO users(id,organization_id,email,display_name,role,password_hash) VALUES ($1,$2,$3,$4,$5,$6)
       ON CONFLICT (id) DO UPDATE SET password_hash=EXCLUDED.password_hash`, [id,org,email,name,role,hashPassword(process.env.DEMO_PASSWORD)]);
   }
-  const rows = [
-    ['شركة المدار للتوريدات', 'company', 'AE', 'التجارة العامة'], ['ريم سالم الكتبي', 'individual', 'AE', 'خدمات مهنية'],
-    ['شركة النخبة للاستشارات', 'company', 'AE', 'الاستشارات'], ['يوسف حسن مراد', 'individual', 'EG', 'تقنية المعلومات'],
-    ['شركة السواحل اللوجستية', 'company', 'AE', 'النقل والخدمات اللوجستية'], ['شركة واحة التقنية', 'company', 'SA', 'تقنية المعلومات'],
-    ['ليلى مروان ناصر', 'individual', 'AE', 'خدمات مهنية'], ['شركة آفاق التصميم', 'company', 'AE', 'التصميم'],
-    ['شركة ركن الإنشاءات', 'company', 'AE', 'المقاولات'], ['أحمد سامي حمدان', 'individual', 'GB', 'الاستشارات'],
-    ['شركة نواة الأعمال', 'company', 'AE', 'خدمات الشركات'], ['منى عادل إبراهيم', 'individual', 'EG', 'خدمات مهنية']
-  ];
-  for (let i=0; i<rows.length; i++) {
-    const [name,type,country,industry] = rows[i];
-    const ref = `KYC-${String(1048-i).padStart(5,'0')}`;
-    const inserted = await db.query(`INSERT INTO customers(id,organization_id,reference,name,entity_type,country,industry,status,notes,created_by,created_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'ملف اصطناعي مخصص لتجربة النظام؛ لا يمثل عميلًا حقيقيًا',$9,now()-($10::int * interval '5 hours'))
-      ON CONFLICT (organization_id,reference) DO NOTHING RETURNING id`,
-      [randomUUID(), organizations[0][0],ref,name,type,country,industry,i<4?'awaiting_information':'draft',actors[0][0],i]);
-    if (inserted.rowCount) await db.query(`INSERT INTO audit_events(organization_id,actor_id,customer_id,action,summary,created_at)
-      VALUES ($1,$2,$3,'customer.created',$4,now()-($5::int * interval '5 hours'))`,
-      [organizations[0][0],actors[0][0],inserted.rows[0].id,`أُضيف ملف تجريبي: ${name}`,i]);
+  // Synthetic demo customers are for local evaluation only. In production set
+  // SEED_DEMO_CUSTOMERS=0 so the system starts clean — org + admin user, no customers.
+  if (process.env.SEED_DEMO_CUSTOMERS !== '0') {
+    const rows = [
+      ['شركة المدار للتوريدات', 'company', 'AE', 'التجارة العامة'], ['ريم سالم الكتبي', 'individual', 'AE', 'خدمات مهنية'],
+      ['شركة النخبة للاستشارات', 'company', 'AE', 'الاستشارات'], ['يوسف حسن مراد', 'individual', 'EG', 'تقنية المعلومات'],
+      ['شركة السواحل اللوجستية', 'company', 'AE', 'النقل والخدمات اللوجستية'], ['شركة واحة التقنية', 'company', 'SA', 'تقنية المعلومات'],
+      ['ليلى مروان ناصر', 'individual', 'AE', 'خدمات مهنية'], ['شركة آفاق التصميم', 'company', 'AE', 'التصميم'],
+      ['شركة ركن الإنشاءات', 'company', 'AE', 'المقاولات'], ['أحمد سامي حمدان', 'individual', 'GB', 'الاستشارات'],
+      ['شركة نواة الأعمال', 'company', 'AE', 'خدمات الشركات'], ['منى عادل إبراهيم', 'individual', 'EG', 'خدمات مهنية']
+    ];
+    for (let i=0; i<rows.length; i++) {
+      const [name,type,country,industry] = rows[i];
+      const ref = `KYC-${String(1048-i).padStart(5,'0')}`;
+      const inserted = await db.query(`INSERT INTO customers(id,organization_id,reference,name,entity_type,country,industry,status,notes,created_by,created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'ملف اصطناعي مخصص لتجربة النظام؛ لا يمثل عميلًا حقيقيًا',$9,now()-($10::int * interval '5 hours'))
+        ON CONFLICT (organization_id,reference) DO NOTHING RETURNING id`,
+        [randomUUID(), organizations[0][0],ref,name,type,country,industry,i<4?'awaiting_information':'draft',actors[0][0],i]);
+      if (inserted.rowCount) await db.query(`INSERT INTO audit_events(organization_id,actor_id,customer_id,action,summary,created_at)
+        VALUES ($1,$2,$3,'customer.created',$4,now()-($5::int * interval '5 hours'))`,
+        [organizations[0][0],actors[0][0],inserted.rows[0].id,`أُضيف ملف تجريبي: ${name}`,i]);
+    }
   }
-  console.log('Schema and synthetic fixtures ready for DRM. No real customer identities.');
+  console.log(process.env.SEED_DEMO_CUSTOMERS === '0' ? 'Clean start ready: organization + admin user, no customers.' : 'Schema and synthetic fixtures ready for DRM. No real customer identities.');
 } finally { await db.end(); }
