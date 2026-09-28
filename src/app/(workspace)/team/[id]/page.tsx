@@ -18,6 +18,31 @@ function searchLabel(key: string, customerName: string | null, search: string, s
   return { kind: search, text: key };
 }
 
+// Fallback description from the event type, used when a stored summary is missing
+// or generic (older events logged a placeholder). Newer events carry full detail.
+const ACTION_LABELS: Record<string, { ar: string; en: string }> = {
+  'customer.created': { ar: 'أنشأ ملف عميل', en: 'Created a customer profile' },
+  'customer.updated': { ar: 'عدّل ملف عميل', en: 'Updated a customer profile' },
+  'customer.screened': { ar: 'أجرى فحص عميل', en: 'Ran a customer screening' },
+  'customer.deleted': { ar: 'حذف ملف عميل', en: 'Deleted a customer profile' },
+  'match.decided': { ar: 'سجّل قرار مطابقة', en: 'Recorded a match decision' },
+  'review.assigned': { ar: 'أسند حالة مراجعة', en: 'Assigned a review case' },
+  'review.resolved': { ar: 'أغلق حالة مراجعة', en: 'Resolved a review case' },
+  'user.created': { ar: 'أنشأ مستخدمًا', en: 'Created a user' },
+  'user.updated': { ar: 'عدّل بيانات مستخدم', en: 'Updated a user' },
+  'user.role': { ar: 'غيّر دور مستخدم', en: 'Changed a user role' },
+  'user.quota': { ar: 'عدّل حصة مستخدم', en: 'Updated a user quota' },
+  'user.access': { ar: 'غيّر حالة تفعيل حساب', en: 'Changed account access' },
+  'user.password': { ar: 'أعاد ضبط كلمة سر', en: 'Reset a password' },
+  'user.deleted': { ar: 'حذف مستخدمًا', en: 'Deleted a user' },
+  'user.searches_cleared': { ar: 'مسح سجل بحث مستخدم', en: 'Cleared a user’s search history' },
+  'user.search_deleted': { ar: 'حذف عملية بحث', en: 'Deleted a search event' },
+};
+const describeAction = (action: string, summary: string, en: boolean) =>
+  (summary && summary.trim() && summary.trim().toLowerCase() !== 'changed')
+    ? summary
+    : (ACTION_LABELS[action]?.[en ? 'en' : 'ar'] ?? (en ? 'Activity' : 'إجراء'));
+
 export default async function TeamMemberPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ use?: string; log?: string }> }) {
   const actor = await requireActor();
   const m = await getMessages();
@@ -155,7 +180,7 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
           <td data-label={m.teamWhat}>
             <div className="team-activity-cell">
               <span className="team-activity-desc">
-                {row.customer_id ? <Link href={`/profiles/${row.customer_ref || row.customer_id}`} dir="auto">{row.summary}</Link> : <span dir="auto">{row.summary}</span>}
+                {row.customer_id ? <Link href={`/profiles/${row.customer_ref || row.customer_id}`} dir="auto">{describeAction(row.action, row.summary, locale === 'en')}</Link> : <span dir="auto">{describeAction(row.action, row.summary, locale === 'en')}</span>}
               </span>
             </div>
           </td>

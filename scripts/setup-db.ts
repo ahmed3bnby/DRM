@@ -36,6 +36,7 @@ try {
   await db.query(await readFile('db/015_phonetic.sql', 'utf8'));
   await db.query(await readFile('db/016_search_history.sql', 'utf8'));
   await db.query(await readFile('db/017_org_plans.sql', 'utf8'));
+  await db.query(await readFile('db/018_audit_immutable.sql', 'utf8'));
   await db.query(await readFile('db/018_ensure_usernames.sql', 'utf8'));
   await db.query(await readFile('db/019_user_cascade_deletion.sql', 'utf8'));
   await db.query(await readFile('db/020_system_lockdown.sql', 'utf8'));

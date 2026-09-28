@@ -338,11 +338,12 @@ export async function deleteTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
     // Reassign customer records created by this member to the current admin
     await db.query(`UPDATE customers SET created_by=$1 WHERE created_by=$2 AND organization_id=$3`, [actor.id, userId, actor.organizationId]);
 
-    // Unlink / clean up references in screenings, decisions, reviews, and audits
+    // Unlink operational references in screenings, decisions, and reviews.
+    // audit_events is intentionally NOT touched — it is an append-only log and
+    // keeps the original actor id as an immutable snapshot (no FK; see 018).
     await db.query(`UPDATE customer_screenings SET run_by=NULL WHERE run_by=$1`, [userId]);
     await db.query(`UPDATE match_decisions SET decided_by=NULL WHERE decided_by=$1`, [userId]);
     await db.query(`UPDATE review_cases SET assigned_to=NULL WHERE assigned_to=$1 AND organization_id=$2`, [userId, actor.organizationId]);
-    await db.query(`UPDATE audit_events SET actor_id=NULL WHERE actor_id=$1 AND organization_id=$2`, [userId, actor.organizationId]);
 
     // Delete user searches and active sessions
     await db.query('DELETE FROM search_events WHERE user_id=$1', [userId]);

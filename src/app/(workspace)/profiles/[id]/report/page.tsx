@@ -484,8 +484,8 @@ export default async function Report({ params }: { params: Promise<{ id: string 
           </table>
         </section>
 
-        {/* 6. Audit Trail Table */}
-        <section className="idenfo-section">
+        {/* 6. Audit Trail Table — on screen only, hidden when printing/exporting */}
+        <section className="idenfo-section no-print">
           <h2 className="idenfo-section-title">{isEn ? 'Audit' : 'سجل التدقيق والإجراءات (Audit Trail)'}</h2>
           <table className="idenfo-data-table idenfo-audit-table">
             <thead>
@@ -527,17 +527,18 @@ export default async function Report({ params }: { params: Promise<{ id: string 
 
         {/* 7. Watchlists Glossary & Definitions (Idenfo Standard) */}
         <section className="idenfo-section idenfo-glossary-section">
+          {/* Only the source families actually included in this organization's plan
+              are listed, so the report never implies coverage it did not perform. */}
           <div className="idenfo-glossary-grid">
-            <div><strong>HMT</strong> – {isEn ? 'His Majesty’s Treasury, UK, Financial sanctions targets: list of all asset freeze targets' : 'الخزانة البريطانية (HMT): القائمة الموحدة لتجميد الأصول والعقوبات المالية'}</div>
-            <div><strong>EU</strong> – {isEn ? 'Consolidated list of persons, groups and entities subject to European Union financial sanctions' : 'الاتحاد الأوروبي (EU): القائمة الموحدة للأشخاص والكيانات الخاضعة للعقوبات'}</div>
             <div><strong>OFAC</strong> – {isEn ? 'US Treasury, Office of Foreign Assets Control, Specially Designated Nationals And Blocked Persons List (SDN)' : 'مكتب مراقبة الأصول الأجنبية الأمريكي (OFAC - SDN)'}</div>
             <div><strong>UN</strong> – {isEn ? 'United Nations Security Council Consolidated Sanction list' : 'الأمم المتحدة (UN): قائمة عقوبات مجلس الأمن الدولي الموحدة'}</div>
-            <div><strong>MOI</strong> – {isEn ? 'Qatari unified record of persons and entities designated on Sanction List' : 'وزارة الداخلية القطرية (MOI): السجل الموحد لقرارات العقوبات'}</div>
-            <div><strong>NACTA</strong> – {isEn ? 'Pakistani National Counter Terrorism Authority Sanction List' : 'الهيئة الوطنية الباكستانية لمكافحة الإرهاب (NACTA)'}</div>
+            <div><strong>EU</strong> – {isEn ? 'Consolidated list of persons, groups and entities subject to European Union financial sanctions' : 'الاتحاد الأوروبي (EU): القائمة الموحدة للأشخاص والكيانات الخاضعة للعقوبات'}</div>
+            <div><strong>HMT</strong> – {isEn ? 'His Majesty’s Treasury, UK, Financial sanctions targets: list of all asset freeze targets' : 'الخزانة البريطانية (HMT): القائمة الموحدة لتجميد الأصول والعقوبات المالية'}</div>
             <div><strong>UAE Local Terrorist</strong> – {isEn ? 'List produced by UAE Executive Office for Control & Non-Proliferation' : 'قائمة الإرهاب المحلية المعتمدة الصادرة عن المكتب التنفيذي لدولة الإمارات'}</div>
-            <div><strong>PEP</strong> – {isEn ? 'A hit from any key global PEP list or checking for politicians and their relatives or close associates' : 'الأشخاص المعرضون سياسياً (PEP): النواب والسياسيون وأقاربهم ومساعدوهم'}</div>
-            <div><strong>Special Interest</strong> – {isEn ? 'A hit from a key global enforcement list' : 'شخص ذو اهتمام خاص: ملاحق من الإنتربول والجهات الأمنية وإنفاذ القانون'}</div>
-            <div><strong>Adverse Media</strong> – {isEn ? 'A hit from an adverse media public search checking for financial crime' : 'الإعلام السلبي: مسح للتحقيقات والأخبار الموثوقة عن الجرائم المالية وغسل الأموال'}</div>
+            {hasFeature(actor, 'regional_sources') && <div><strong>Regional</strong> – {isEn ? 'Regional & Arab watchlists (e.g. Saudi Arabia, Egypt, Pakistan NACTA, GCC)' : 'القوائم الإقليمية والعربية (السعودية، مصر، باكستان NACTA، دول الخليج)'}</div>}
+            {hasFeature(actor, 'enforcement_debarment') && <div><strong>Special Interest</strong> – {isEn ? 'International enforcement & debarment (Interpol, World Bank, law-enforcement lists)' : 'الاهتمام الخاص: الإنفاذ الدولي والحظر (الإنتربول، البنك الدولي، جهات إنفاذ القانون)'}</div>}
+            {hasFeature(actor, 'pep_screening') && <div><strong>PEP</strong> – {isEn ? 'A hit from any key global PEP list or checking for politicians and their relatives or close associates' : 'الأشخاص المعرضون سياسياً (PEP): النواب والسياسيون وأقاربهم ومساعدوهم'}</div>}
+            {hasFeature(actor, 'adverse_media') && <div><strong>Adverse Media</strong> – {isEn ? 'A hit from an adverse media public search checking for financial crime' : 'الإعلام السلبي: مسح للتحقيقات والأخبار الموثوقة عن الجرائم المالية وغسل الأموال'}</div>}
           </div>
         </section>
 
