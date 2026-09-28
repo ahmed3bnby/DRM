@@ -2,9 +2,10 @@
 // Useful on Linux VPS environments where users prefer running a PM2 service instead of system crontab.
 import { readFile, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-for(const p of ['.env.production.local', '.env.local', '.env']){try{process.loadEnvFile(p);if(process.env.DATABASE_ADMIN_URL)break;}catch{}}
+for(const p of ['.env.production.local', '.env.local', '.env']){if(existsSync(p)){try{process.loadEnvFile(p);}catch{}if(process.env.DATABASE_ADMIN_URL)break;}}
 
 const CONFIG_FILE = path.join(process.cwd(), '.local', 'schedule-config.json');
 let isRunning = false;
