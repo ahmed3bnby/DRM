@@ -58,7 +58,8 @@ export default async function Sources({
   if (actor.role !== 'admin') redirect('/');
   const search = await searchParams;
 
-  const [catalog, watch, changes, history, activeVersions, syncStatus, runs, scheduleConfig, m, locale] =
+  const runs = await syncRuns();
+  const [catalog, watch, changes, history, activeVersions, syncStatus, scheduleConfig, m, locale] =
     await Promise.all([
       sourceCatalog(),
       watchlistCodes(),
@@ -66,8 +67,7 @@ export default async function Sources({
       importHistory(),
       searchCoverage(),
       sourceSyncStatus(),
-      syncRuns(),
-      getScheduleConfig(),
+      getScheduleConfig(runs[0]?.startedAt),
       getMessages(),
       getLocale(),
     ]);

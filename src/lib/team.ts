@@ -10,7 +10,7 @@ import { recordQuotaChange } from './quota-history';
 export type TeamMember = { id: string; username: string; email: string; display_name: string; role: string; search_quota: number | null; used: number; quota_anchor: number; disabled_at: Date | null };
 export type TeamProfile = TeamMember & { searches: number; actions: number; customers: number };
 export type UsageEvent = { id: string; query_key: string; created_at: Date; customer_id: string | null; customer_name: string | null; customer_ref: string | null };
-export type ActionEvent = { id: string; action: string; summary: string; created_at: Date; customer_id: string | null; customer_ref: string | null };
+export type ActionEvent = { id: string; action: string; summary: string; created_at: Date; customer_id: string | null; customer_ref: string | null; customer_name?: string | null };
 
 function getPlatformOwnerFilters() {
   const hiddenEmails = platformOwnerEmails().map(e => e.toLowerCase());
@@ -18,7 +18,8 @@ function getPlatformOwnerFilters() {
   return { hiddenEmails, hiddenIds };
 }
 
-async function assertNotSuperAdmin(db: PoolClient, userId: string) {
+async function assertNotSuperAdmin(db: PoolClient, userId: string, actorId?: string) {
+  if (actorId && actorId === userId) return;
   const { hiddenEmails, hiddenIds } = getPlatformOwnerFilters();
   if (hiddenIds.includes(userId)) throw new Error('FORBIDDEN');
   const res = await db.query('SELECT email FROM users WHERE id=$1', [userId]);
@@ -99,7 +100,7 @@ export async function listUserSearches(organizationId: string, userId: string, l
 
 export async function listUserActions(organizationId: string, userId: string, limit: number, offset: number): Promise<ActionEvent[]> {
   return withTenant(organizationId, async db => {
-    const r = await db.query(`SELECT a.id,a.action,a.summary,a.created_at,a.customer_id,c.reference AS customer_ref
+    const r = await db.query(`SELECT a.id,a.action,a.summary,a.created_at,a.customer_id,c.reference AS customer_ref,c.name AS customer_name
       FROM audit_events a LEFT JOIN customers c ON c.id=a.customer_id
       WHERE a.actor_id=$1 ORDER BY a.created_at DESC LIMIT $2 OFFSET $3`, [userId, limit, offset]);
     return r.rows as ActionEvent[];
@@ -126,7 +127,10 @@ export async function createTeamUser(actor: Pick<Actor, 'id' | 'organizationId' 
     );
     if (active.rows[0].c >= limit) throw new Error('MEMBER_LIMIT');
     if (isSuperAdminEmail(input.email)) {
-      throw new Error('EMAIL_TAKEN');
+      const superAdminTaken = await db.query('SELECT 1 FROM users WHERE lower(email) = $1', [input.email.toLowerCase()]);
+      if (superAdminTaken.rowCount && superAdminTaken.rowCount > 0) {
+        throw new Error('EMAIL_TAKEN');
+      }
     }
     const emailTaken = await db.query('SELECT 1 FROM users WHERE lower(email) = $1', [input.email.toLowerCase()]);
     if (emailTaken.rowCount && emailTaken.rowCount > 0) {
@@ -277,9 +281,15 @@ export async function updateUserProfile(
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('INVALID_EMAIL');
 
   return withTenant(actor.organizationId, async db => {
-    await assertNotSuperAdmin(db, userId);
+    await assertNotSuperAdmin(db, userId, actor.id);
     if (isSuperAdminEmail(email)) {
-      throw new Error('EMAIL_TAKEN');
+      const superAdminTaken = await db.query(
+        'SELECT id FROM users WHERE lower(email) = $1 AND id <> $2',
+        [email, userId]
+      );
+      if (superAdminTaken.rowCount && superAdminTaken.rowCount > 0) {
+        throw new Error('EMAIL_TAKEN');
+      }
     }
     const existing = await db.query(
       'SELECT id FROM users WHERE lower(email) = $1 AND id <> $2',

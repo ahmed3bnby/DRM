@@ -18,6 +18,26 @@ function searchLabel(key: string, customerName: string | null, search: string, s
   return { kind: search, text: key };
 }
 
+const ACTION_KIND_LABELS: Record<string, { ar: string; en: string }> = {
+  'customer.created': { ar: 'إنشاء ملف', en: 'Create Profile' },
+  'customer.updated': { ar: 'تعديل ملف', en: 'Update Profile' },
+  'customer.screened': { ar: 'فحص أمني', en: 'Screening' },
+  'customer.deleted': { ar: 'حذف ملف', en: 'Delete Profile' },
+  'match.decided': { ar: 'قرار مطابقة', en: 'Match Decision' },
+  'review.assigned': { ar: 'إسناد مراجعة', en: 'Assign Review' },
+  'review.resolved': { ar: 'إغلاق مراجعة', en: 'Resolve Review' },
+  'user.created': { ar: 'إنشاء حساب', en: 'Create User' },
+  'user.updated': { ar: 'تعديل حساب', en: 'Update User' },
+  'user.role': { ar: 'تغيير الدور', en: 'Change Role' },
+  'user.quota': { ar: 'تعديل الحصة', en: 'Update Quota' },
+  'user.access': { ar: 'حالة الحساب', en: 'Account Access' },
+  'user.password': { ar: 'إعادة ضبط كلمة السر', en: 'Reset Password' },
+  'user.deleted': { ar: 'حذف مستخدم', en: 'Delete User' },
+  'user.searches_cleared': { ar: 'مسح السجل', en: 'Clear History' },
+  'user.search_deleted': { ar: 'حذف بحث', en: 'Delete Search' },
+  'schedule.configured': { ar: 'جدولة السحب', en: 'Schedule' },
+};
+
 // Fallback description from the event type, used when a stored summary is missing
 // or generic (older events logged a placeholder). Newer events carry full detail.
 const ACTION_LABELS: Record<string, { ar: string; en: string }> = {
@@ -179,8 +199,19 @@ export default async function TeamMemberPage({ params, searchParams }: { params:
           <td data-label={m.teamWhen}><DateTimeText value={row.created_at} locale={locale}/></td>
           <td data-label={m.teamWhat}>
             <div className="team-activity-cell">
+              <span className="status neutral">
+                {ACTION_KIND_LABELS[row.action]?.[locale === 'en' ? 'en' : 'ar'] || (locale === 'en' ? 'Activity' : 'نشاط')}
+              </span>
               <span className="team-activity-desc">
-                {row.customer_id ? <Link href={`/profiles/${row.customer_ref || row.customer_id}`} dir="auto">{describeAction(row.action, row.summary, locale === 'en')}</Link> : <span dir="auto">{describeAction(row.action, row.summary, locale === 'en')}</span>}
+                <span dir="auto">{describeAction(row.action, row.summary, locale === 'en')}</span>
+                {(row.customer_name || row.customer_ref) && (
+                  <span style={{ marginInlineStart: '0.5rem' }}>
+                    <Link href={`/profiles/${row.customer_ref || row.customer_id}`} dir="auto" style={{ textDecoration: 'underline', color: 'var(--primary)' }}>
+                      {row.customer_name || row.customer_ref}
+                    </Link>
+                    {row.customer_ref && row.customer_name && <small dir="ltr"> ({row.customer_ref})</small>}
+                  </span>
+                )}
               </span>
             </div>
           </td>

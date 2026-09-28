@@ -2,7 +2,14 @@
 import {readFile,writeFile,rename} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {Pool} from 'pg';
-process.loadEnvFile('.env.local');
+import {existsSync} from 'node:fs';
+let envFile = '.env.local';
+for(const p of ['.env.production.local', '.env.local', '.env']){
+  if(existsSync(p)){
+    envFile = p;
+    try{process.loadEnvFile(p);if(process.env.DATABASE_ADMIN_URL)break;}catch{}
+  }
+}
 if(process.env.APP_ENV!=='local')throw Error('Local sync only');
 const run=(cmd,args)=>new Promise((res,rej)=>{
  const p=spawn(cmd,args,{stdio:'inherit'});p.on('error',rej);
@@ -21,7 +28,7 @@ let failed=0;
 for(const code of targets){
  try{
   await run('python3',['scripts/connectors/opensanctions.py',code]);
-  await run(process.execPath,['--env-file=.env.local','--import','tsx','scripts/import-sources.ts',code]);
+  await run(process.execPath,[`--env-file=${envFile}`,'--import','tsx','scripts/import-sources.ts',code]);
   status[code]={status:'success',checkedAt:new Date().toISOString()};
  }catch{failed++;status[code]={status:'failed',checkedAt:new Date().toISOString()};console.error(`${code}: failed; previous searchable version preserved`);}
  await writeFile('.local/sources/_sync-status.tmp',JSON.stringify(status));

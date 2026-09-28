@@ -45,12 +45,31 @@ export function computeNextRun(config: { enabled: boolean; frequency: ScheduleFr
 
   // Interval-based (6h, 12h, 48h)
   const hours = FREQUENCY_DETAILS[config.frequency]?.hours || 24;
-  const baseTime = lastRunTime ? new Date(lastRunTime).getTime() : now.getTime();
-  let nextMs = baseTime + hours * 3600 * 1000;
-  while (nextMs <= now.getTime()) {
-    nextMs += hours * 3600 * 1000;
+  if (lastRunTime) {
+    const baseTime = new Date(lastRunTime).getTime();
+    let nextMs = baseTime + hours * 3600 * 1000;
+    while (nextMs <= now.getTime()) {
+      nextMs += hours * 3600 * 1000;
+    }
+    return new Date(nextMs).toISOString();
   }
-  return new Date(nextMs).toISOString();
+
+  // If no previous run recorded, align to standard cron intervals (e.g. 00:00, 06:00, 12:00, 18:00)
+  if (hours <= 24) {
+    const currentHour = now.getHours();
+    const nextSlotHour = Math.floor(currentHour / hours) * hours + hours;
+    const candidate = new Date(now);
+    candidate.setMinutes(0, 0, 0);
+    candidate.setHours(nextSlotHour);
+    return candidate.toISOString();
+  }
+
+  const candidate = new Date(now);
+  candidate.setHours(targetHour, targetMin, 0, 0);
+  if (candidate.getTime() <= now.getTime()) {
+    candidate.setDate(candidate.getDate() + 2);
+  }
+  return candidate.toISOString();
 }
 
 export async function getScheduleConfig(lastRunTime?: string | null): Promise<ScheduleConfig> {

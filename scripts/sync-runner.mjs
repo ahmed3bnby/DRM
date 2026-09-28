@@ -3,7 +3,7 @@ import {mkdir,readFile,writeFile,rename,rm,open} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {Pool} from 'pg';
-process.loadEnvFile('.env.local');
+for(const p of['.env.production.local','.env.local','.env']){try{process.loadEnvFile(p);if(process.env.DATABASE_ADMIN_URL)break;}catch{}}
 if(process.env.APP_ENV!=='local')throw Error('Local runner only');
 await mkdir('.local',{recursive:true});
 // PostgreSQL releases this lock automatically even after a process crash.
