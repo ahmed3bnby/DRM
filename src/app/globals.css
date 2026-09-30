@@ -4716,6 +4716,141 @@ html[dir='ltr'] .match-case>details.decide .decision-submit{flex-direction:row}
   line-height: 1.6;
 }
 
+/* FATF Jurisdiction Risk Section */
+.fatf-risk-box {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-top: 8px;
+}
+.fatf-risk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #e5e7eb;
+}
+.fatf-country-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+.fatf-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.fatf-badge.fatf-blacklist {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.fatf-badge.fatf-greylist {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+.fatf-badge.fatf-standard {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+.fatf-details-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.fatf-details-row {
+  display: flex;
+  gap: 12px;
+}
+.fatf-details-label {
+  font-weight: 600;
+  color: #4b5563;
+  min-width: 170px;
+}
+.fatf-details-val {
+  color: #111827;
+}
+
+/* Media / Google Search Results */
+.media-results-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.media-article-item {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s ease;
+}
+.media-article-item:last-child {
+  border-bottom: none;
+}
+.media-article-item:hover {
+  background: #f8fafc;
+}
+.media-article-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+.media-source-pill {
+  font-weight: 600;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.media-category-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.media-cat-sanctions { background: #fef2f2; color: #991b1b; }
+.media-cat-laundering { background: #fff1f2; color: #be123c; }
+.media-cat-fraud { background: #fff7ed; color: #c2410c; }
+.media-cat-crime { background: #fefce8; color: #a16207; }
+.media-cat-corruption { background: #faf5ff; color: #7e22ce; }
+.media-cat-regulatory { background: #f0fdfa; color: #0f766e; }
+.media-cat-other { background: #f1f5f9; color: #475569; }
+
+.media-article-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1d4ed8;
+  line-height: 1.45;
+  text-decoration: none;
+}
+.media-article-title:hover {
+  text-decoration: underline;
+}
+.media-article-snippet {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
 /* ==========================================================================
    Profile Inner Pages Mobile Polish & Responsiveness (Overhaul)
    ========================================================================== */

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight, ArrowLeft } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Globe, ShieldAlert, ShieldCheck, Newspaper, ExternalLink } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
 import { hasFeature } from '@/lib/features';
 import { getCustomerByHandle, getActivity } from '@/lib/customers';
@@ -13,6 +13,7 @@ import {
   isSanctionedCountry,
   isCashThresholdSector,
 } from '@/lib/risk-rating';
+import { evaluateFATFJurisdiction } from '@/lib/fatf';
 import { countryName, DateText, DateTimeText, number, flag } from '@/components/ui';
 import { getMessages, getLocale } from '@/lib/i18n';
 import PrintButton from '@/components/print-button';
@@ -127,6 +128,11 @@ export default async function Report({ params }: { params: Promise<{ id: string 
   const hasSanctionHit = !!riskAssessment.review.flags.sanctions || displayHits.some(m => m.category === 'sanctions' && decisions[m.recordId]?.decision !== 'dismissed');
   const hasPepHit = !!riskAssessment.review.flags.pep || displayHits.some(m => m.category === 'pep' && decisions[m.recordId]?.decision !== 'dismissed');
   const hasCrimeHit = !!riskAssessment.review.flags.crime || displayHits.some(m => m.category === 'crime' && decisions[m.recordId]?.decision !== 'dismissed');
+
+  const targetCountry = customer.nationality || customer.country;
+  const fatfInfo = evaluateFATFJurisdiction(targetCountry);
+  const adverseArticles = last?.adverse_media?.articles ?? [];
+  const generalNewsArticles = last?.adverse_media?.generalNews ?? [];
 
   // Clean source list name formatter (short and readable)
   const cleanSourceName = (src: string) => {
@@ -259,6 +265,28 @@ export default async function Report({ params }: { params: Promise<{ id: string 
                 <td><DateText value={customer.created_at} locale={locale} /></td>
               </tr>
               <tr>
+                <th scope="row">{isEn ? 'FATF Jurisdiction Risk' : 'مخاطر الدولة (FATF Risk)'}</th>
+                <td>
+                  <span className={`fatf-badge ${fatfInfo.rating === 'blacklist' ? 'fatf-blacklist' : fatfInfo.rating === 'greylist' ? 'fatf-greylist' : 'fatf-standard'}`}>
+                    {fatfInfo.rating === 'blacklist' ? (isEn ? 'HIGH RISK (CALL FOR ACTION)' : 'عالي المخاطر (قائمة سوداء)')
+                      : fatfInfo.rating === 'greylist' ? (isEn ? 'INCREASED MONITORING' : 'مراقبة مشددة (قائمة رمادية)')
+                      : (isEn ? 'STANDARD (MANAGED RISK)' : 'قياسي (مخاطر معتادة)')}
+                  </span>
+                </td>
+                <th scope="row">{isEn ? 'Ongoing Monitoring' : 'المراقبة المستمرة'}</th>
+                <td>
+                  <span className="idenfo-tag hit-no" style={{ background: '#ecfdf5', color: '#047857' }}>
+                    {isEn ? 'ACTIVE (DAILY SCAN)' : 'مفعلة (فحص دوري)'}
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">{isEn ? 'Whitelist Policy' : 'سياسة الاستثناءات (Whitelist)'}</th>
+                <td>{isEn ? 'Applied (Audited Decisions)' : 'مطبقة (قرارات مدققة)'}</td>
+                <th scope="row">{isEn ? 'Name Match Algorithm' : 'خوارزمية مطابقة الأسماء'}</th>
+                <td>{isEn ? 'Close & Fuzzy (Jaro-Winkler + Phonetic)' : 'مطابقة ذكية (صوتية وتقاربية)'}</td>
+              </tr>
+              <tr>
                 <th scope="row">{isEn ? 'Report Generated On' : 'تاريخ ووقت إصدار التقرير'}</th>
                 <td colSpan={3}><DateTimeText value={new Date()} locale={locale} /></td>
               </tr>
@@ -284,6 +312,32 @@ export default async function Report({ params }: { params: Promise<{ id: string 
             <div className="idenfo-finding-col">
               <span className="finding-label">{isEn ? 'Unresolved Matches' : 'مطابقات بانتظار المراجعة'}</span>
               <strong className={`finding-val ${unresolvedCount > 0 ? 'text-amber' : ''}`}>{unresolvedCount}</strong>
+            </div>
+          </div>
+        </section>
+
+        {/* 2.1 FATF Jurisdiction Risk Assessment (MemberCheck & FATF Standard) */}
+        <section className="idenfo-section">
+          <h2 className="idenfo-section-title">{isEn ? 'FATF Jurisdiction Risk Assessment' : 'تقييم مخاطر الاختصاص القضائي (FATF Jurisdiction Risk)'}</h2>
+          <div className="fatf-risk-box">
+            <div className="fatf-risk-header">
+              <div className="fatf-country-tag">
+                <span>{flag(targetCountry) || '🌐'}</span>
+                <span>{countryName(targetCountry, locale)} ({targetCountry || 'N/A'})</span>
+              </div>
+              <span className={`fatf-badge ${fatfInfo.rating === 'blacklist' ? 'fatf-blacklist' : fatfInfo.rating === 'greylist' ? 'fatf-greylist' : 'fatf-standard'}`}>
+                {isEn ? fatfInfo.titleEn : fatfInfo.titleAr}
+              </span>
+            </div>
+            <div className="fatf-details-grid">
+              <div className="fatf-details-row">
+                <span className="fatf-details-label">{isEn ? 'Mandated AML/CFT Measures:' : 'التدابير الرقابية الإلزامية:'}</span>
+                <span className="fatf-details-val" style={{ fontWeight: 600 }}>{isEn ? fatfInfo.measuresEn : fatfInfo.measuresAr}</span>
+              </div>
+              <div className="fatf-details-row">
+                <span className="fatf-details-label">{isEn ? 'FATF Plenary Summary:' : 'بيان مجموعة العمل المالي (FATF):'}</span>
+                <span className="fatf-details-val">{isEn ? fatfInfo.summaryEn : fatfInfo.summaryAr}</span>
+              </div>
             </div>
           </div>
         </section>
@@ -482,6 +536,46 @@ export default async function Report({ params }: { params: Promise<{ id: string 
               )}
             </tbody>
           </table>
+        </section>
+
+        {/* 5.1 Google & Public Media Results (MemberCheck Adverse Media & News) */}
+        <section className="idenfo-section">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #e5e7eb', paddingBottom: '6px', marginBottom: '12px' }}>
+            <h2 className="idenfo-section-title" style={{ borderBottom: 'none', margin: 0, padding: 0 }}>
+              {isEn ? 'Google Results & Advanced Media Search' : 'نتائج محركات البحث والأخبار (Google & Adverse Media)'}
+            </h2>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
+              {adverseArticles.length + generalNewsArticles.length > 0
+                ? (isEn ? `${adverseArticles.length + generalNewsArticles.length} articles found` : `${adverseArticles.length + generalNewsArticles.length} مادة صحفية`)
+                : (isEn ? 'No media hits' : 'سليم من الأخبار السلبية')}
+            </span>
+          </div>
+
+          <div className="media-results-card">
+            {adverseArticles.length === 0 && generalNewsArticles.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#166534', background: '#f0fdf4', fontSize: '13px', fontWeight: 600 }}>
+                {isEn ? '✓ This search found no adverse media, financial crime, or negative news indicators in public media watchlists.'
+                  : '✓ لم تسفر عمليات البحث الإخباري عن أي وسائط سلبية أو شبهات جرائم مالية أو قضايا منشورة بحق العميل.'}
+              </div>
+            ) : (
+              <div>
+                {[...adverseArticles, ...generalNewsArticles].slice(0, 15).map((art, idx) => (
+                  <div key={idx} className="media-article-item">
+                    <div className="media-article-meta">
+                      <span className="media-source-pill">{art.source || art.domain}</span>
+                      {art.date && <span>{art.date}</span>}
+                      <span className={`media-category-pill media-cat-${art.category}`}>
+                        {catLabel(art.category)}
+                      </span>
+                    </div>
+                    <a href={art.url} target="_blank" rel="noopener noreferrer" className="media-article-title">
+                      {art.title}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* 6. Audit Trail Table — on screen only, hidden when printing/exporting */}

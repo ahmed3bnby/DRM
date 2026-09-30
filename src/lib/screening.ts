@@ -118,9 +118,15 @@ export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizatio
   // Capture an adverse-media scan at screening time (stored with the run). Never fails the screening.
   const allowAdverse = !actor.features || actor.features.adverse_media !== false;
   const adverse = allowAdverse
-    ? await adverseMediaSearch(customer.name).catch(() => ({ status: 'failed' as const, articles: [] as never[], retrievedAt: undefined }))
-    : { status: 'disabled' as const, articles: [] as never[], retrievedAt: undefined };
-  const adverseStore = { status: adverse.status, count: adverse.articles.length, articles: adverse.articles.slice(0, 10), retrievedAt: adverse.retrievedAt };
+    ? await adverseMediaSearch(customer.name).catch(() => ({ status: 'failed' as const, articles: [] as never[], generalNews: [] as never[], retrievedAt: undefined }))
+    : { status: 'disabled' as const, articles: [] as never[], generalNews: [] as never[], retrievedAt: undefined };
+  const adverseStore = {
+    status: adverse.status,
+    count: adverse.articles.length,
+    articles: adverse.articles.slice(0, 15),
+    generalNews: (adverse.generalNews || []).slice(0, 20),
+    retrievedAt: adverse.retrievedAt
+  };
   const status = STATUS_BY_BAND[overall.band] ?? 'screened';
   const top = matches.slice(0, 100).map(({ r, c, dobMatch, idMatch, dobConflict, sources }) => ({
     name: r.name, code: r.code, source: c.sourceTitle, category: c.category,
@@ -193,7 +199,7 @@ export type ScreeningRow = {
   match_count: number; relevant_count: number; used_dob: boolean; used_identifier: boolean;
   top_matches: ScreeningMatchItem[];
   source_versions: { code: string; sha256: string; retrieved_at: Date; record_count: number }[];
-  adverse_media: { status: string; count: number; articles: AdverseArticle[]; retrievedAt?: string } | null;
+  adverse_media: { status: string; count: number; articles: AdverseArticle[]; generalNews?: AdverseArticle[]; retrievedAt?: string } | null;
   created_at: Date;
 };
 export async function getLastScreening(organizationId: string, customerId: string): Promise<ScreeningRow | null> {
