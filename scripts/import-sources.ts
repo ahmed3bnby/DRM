@@ -37,6 +37,8 @@ for(const code of (process.argv.slice(2).length?process.argv.slice(2):['UN','UK'
  added=Number(d.rows[0].added);removed=Number(d.rows[0].removed);}
  await c.query('UPDATE source_versions SET active=false WHERE code=$1',[code]);await c.query('UPDATE source_versions SET active=true WHERE id=$1',[newId]);
  await c.query(`INSERT INTO source_imports(code,version_id,outcome,record_count,added,removed,sha256,prev_sha256,upstream_version,upstream_last_change) VALUES($1,$2,'imported',$3,$4,$5,$6,$7,$8,$9)`,[code,newId,data.records.length,added,removed,data.sha256,priorSha,data.upstreamVersion??null,data.upstreamLastChange??null]);
+ await c.query(`DELETE FROM source_names WHERE record_id IN (SELECT r.id FROM source_records r JOIN source_versions sv ON sv.id=r.version_id WHERE sv.code=$1 AND sv.id<>$2 AND NOT sv.active)`,[code,newId]);
+ await c.query(`DELETE FROM source_records WHERE version_id IN (SELECT sv.id FROM source_versions sv WHERE sv.code=$1 AND sv.id<>$2 AND NOT sv.active)`,[code,newId]);
  await c.query('COMMIT');console.log(code,data.records.length,'searchable',`(+${added} / -${removed}${reused?' · reactivated':''})`);
  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
 }

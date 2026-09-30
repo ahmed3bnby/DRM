@@ -228,6 +228,13 @@ def sync_dataset(code):
     sha = hashlib.sha256(payload).hexdigest()
     out = ROOT / code
     out.mkdir(parents=True, exist_ok=True)
+    # Clean up older raw snapshots for this source to prevent disk accumulation
+    for old_file in out.glob("*.ndjson"):
+        if old_file.name != f"{sha}.ndjson":
+            try:
+                old_file.unlink()
+            except Exception:
+                pass
     raw = out / f"{sha}.ndjson"
     if not raw.exists():
         raw.write_bytes(payload)
