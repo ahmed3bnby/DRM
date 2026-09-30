@@ -467,6 +467,11 @@ export async function updateOrgPlanAction(data: FormData) {
     plan: String(data.get('plan') || 'base'),
   });
   revalidatePath('/platform');
+  revalidatePath('/sources');
+  revalidatePath('/search');
+  revalidatePath('/search/bulk');
+  revalidatePath('/profiles');
+  revalidatePath('/');
   redirect('/platform?saved=1');
 }
 
@@ -495,3 +500,28 @@ export async function superAdminCreditQuotaAction(data: FormData) {
   revalidatePath('/platform');
   redirect('/platform?quota_updated=1');
 }
+
+export async function toggleCustomerMonitoringAction(formData: FormData) {
+  const actor = await requireActor();
+  const customerId = String(formData.get('customerId') || '');
+  const enabled = formData.get('enabled') === 'true';
+  const handle = String(formData.get('handle') || '');
+
+  const { toggleCustomerMonitoring } = await import('@/lib/ongoing-monitoring');
+  await toggleCustomerMonitoring(actor.organizationId, customerId, enabled);
+
+  if (handle) revalidatePath(`/profiles/${handle}`);
+  revalidatePath('/profiles');
+  revalidatePath('/reviews');
+}
+
+export async function triggerMonitoringCycleAction() {
+  const actor = await requireActor();
+  const { executeMonitoringCycle } = await import('@/lib/ongoing-monitoring');
+  const res = await executeMonitoringCycle(actor);
+
+  revalidatePath('/reviews');
+  revalidatePath('/profiles');
+  return res;
+}
+

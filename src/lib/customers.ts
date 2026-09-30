@@ -13,6 +13,10 @@ export type Customer = {
   created_at: Date; updated_at: Date;
   created_by?: string | null;
   creator_name?: string | null;
+  monitoring_enabled?: boolean;
+  last_monitored_at?: string | null;
+  monitoring_status?: 'clear' | 'flagged' | 'pending_review';
+  monitoring_hit_count?: number;
 };
 // Whitelisted sort orders (never interpolate user input into ORDER BY).
 export const CUSTOMER_SORTS: Record<string, string> = {

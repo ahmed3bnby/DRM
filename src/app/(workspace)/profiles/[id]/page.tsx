@@ -22,6 +22,7 @@ import { getMessages, getLocale } from '@/lib/i18n';
 import MatchesView from '@/components/matches-view';
 import ProfileTabsView from '@/components/profile-tabs-view';
 import DeleteCustomerButton from '@/components/delete-customer-button';
+import MonitoringToggle from '@/components/monitoring-toggle';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -410,6 +411,15 @@ export default async function Profile({
           )}
         </div>
         <div className="profile-head-actions">
+          <MonitoringToggle
+            customerId={customer.id}
+            handle={customer.reference}
+            initialEnabled={customer.monitoring_enabled !== false}
+            status={customer.monitoring_status}
+            lastMonitoredAt={customer.last_monitored_at}
+            hitCount={customer.monitoring_hit_count}
+            locale={locale}
+          />
           {canEdit && (
             <Link href={`/profiles/${customer.reference}/edit`} className="button secondary">
               <Pencil size={16} />
