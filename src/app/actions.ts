@@ -426,6 +426,7 @@ export async function createCustomerFromSourceRecordAction(data: FormData) {
     redirect(`/search/${r.code}/${encodeURIComponent(r.source_record_id)}?error=quota`);
   }
 
+  const notes = `تم إنشاء هذا الملف تلقائياً من سجل المصادر (${r.code} - ${r.source_record_id})`;
   const { id: customerId, reference } = await createCustomer(actor, {
     name: r.name,
     entityType: isCompany ? 'company' : 'individual',
