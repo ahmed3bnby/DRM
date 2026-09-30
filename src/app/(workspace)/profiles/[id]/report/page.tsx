@@ -66,21 +66,29 @@ export default async function Report({ params }: { params: Promise<{ id: string 
   const catLabel = (c: string) => {
     if (isEn) {
       return ({
-        sanctions: 'Sanction',
+        sanctions: 'Sanctions',
+        laundering: 'Money Laundering',
+        fraud: 'Fraud / Financial Crime',
+        corruption: 'Bribery / Corruption',
+        terrorism: 'Terrorism',
         pep: 'Politically Exposed Person',
         crime: 'Special Interest Person',
         debarment: 'Debarment / Exclusion',
         regulatory: 'Regulatory Enforcement',
-        other: 'Other Watchlist'
+        other: 'Public Media'
       } as Record<string, string>)[c] ?? c;
     }
     return ({
       sanctions: m.catSanctions,
+      laundering: 'غسل أموال',
+      fraud: 'احتيال / جرائم مالية',
+      corruption: 'رشوة / فساد',
+      terrorism: 'إرهاب',
       pep: m.catPep,
       crime: m.catCrime,
       debarment: m.catDebarment,
       regulatory: m.catRegulatory,
-      other: m.catOther
+      other: 'أخبار عامة'
     } as Record<string, string>)[c] ?? c;
   };
 
