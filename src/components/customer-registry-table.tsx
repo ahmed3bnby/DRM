@@ -177,12 +177,24 @@ export default function CustomerRegistryTable({
         <table className="data-table customers-table" dir={locale === 'en' ? 'ltr' : 'rtl'}>
           <thead>
             <tr>
-              <th scope="col" style={{ width: '40px', textAlign: 'center', padding: '10px' }}>
+              <th scope="col" className="th-select">
                 <button
                   type="button"
                   onClick={toggleSelectAll}
                   aria-label={isEn ? 'Select all' : 'تحديد الكل'}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'grid', placeItems: 'center', color: '#64748b' }}
+                  style={{
+                    background: allSelected ? '#eff6ff' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    display: 'grid',
+                    placeItems: 'center',
+                    margin: '0 auto',
+                    color: allSelected ? '#2563eb' : '#94a3b8',
+                    transition: 'all 0.15s ease',
+                  }}
                 >
                   {allSelected ? <CheckSquare size={18} style={{ color: '#2563eb' }} /> : <Square size={18} />}
                 </button>
@@ -203,12 +215,24 @@ export default function CustomerRegistryTable({
                   key={c.id}
                   style={{ background: isSelected ? 'rgba(37, 99, 235, 0.04)' : undefined }}
                 >
-                  <td style={{ textAlign: 'center', padding: '10px' }}>
+                  <td className="td-select">
                     <button
                       type="button"
                       onClick={e => toggleSelectOne(c.id, e)}
                       aria-label={`${isEn ? 'Select' : 'تحديد'} ${c.name}`}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'grid', placeItems: 'center', color: '#64748b' }}
+                      style={{
+                        background: isSelected ? '#eff6ff' : 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        display: 'grid',
+                        placeItems: 'center',
+                        margin: '0 auto',
+                        color: isSelected ? '#2563eb' : '#94a3b8',
+                        transition: 'all 0.15s ease',
+                      }}
                     >
                       {isSelected ? <CheckSquare size={18} style={{ color: '#2563eb' }} /> : <Square size={18} />}
                     </button>

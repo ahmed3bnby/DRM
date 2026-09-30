@@ -23,6 +23,7 @@ import MatchesView from '@/components/matches-view';
 import ProfileTabsView from '@/components/profile-tabs-view';
 import DeleteCustomerButton from '@/components/delete-customer-button';
 import MonitoringToggle from '@/components/monitoring-toggle';
+import { LastScreenedBadge } from '@/components/last-screened-badge';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -374,6 +375,9 @@ export default async function Profile({
           </div>
         </div>
         <div className="id-chips">
+          {last?.created_at && (
+            <LastScreenedBadge date={last.created_at} locale={locale} variant="header" />
+          )}
           <span className="id-chip">
             {customer.entity_type === 'company' ? m.entityCompany : m.entityIndividual}
           </span>
@@ -547,7 +551,7 @@ export default async function Profile({
                         <ShieldAlert size={14} />
                         <span>{goAml.requiresImmediateAction ? m.goAmlImmediateAction : goAml.requiresEdd ? m.goAmlEddRequired : m.goAmlStandardCdd}</span>
                       </div>
-                      <small className="muted">{m.lastScreen} <DateText value={last.created_at} locale={locale} /></small>
+                      <LastScreenedBadge date={last.created_at} locale={locale} variant="side-card" />
                       {screenButton}
                       <Link href={`/profiles/${customer.reference}/report`} className="text-link">
                         {m.viewReport} <ArrowUpLeft size={14} />
