@@ -164,6 +164,22 @@ export async function executeMonitoringCycle(
 
           newAlertsCount++;
           flaggedCount++;
+
+          // Dispatch real-time compliance alert notification
+          const { dispatchComplianceNotification } = await import('@/lib/notifications');
+          dispatchComplianceNotification({
+            organizationId: actor.organizationId,
+            eventType: 'new_watchlist_hit',
+            customerName: cust.name,
+            customerReference: cust.reference,
+            severity,
+            details: {
+              source: topHit.r.code,
+              matchedName: topHit.r.name,
+              similarity: topHit.c.percent,
+              category: topHit.c.category
+            }
+          }).catch(e => console.error('Notification dispatch error:', e));
         } else {
           await db.query(
             `UPDATE customers

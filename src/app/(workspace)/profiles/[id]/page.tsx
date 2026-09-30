@@ -552,6 +552,13 @@ export default async function Profile({
                       <Link href={`/profiles/${customer.reference}/report`} className="text-link">
                         {m.viewReport} <ArrowUpLeft size={14} />
                       </Link>
+                      {customer.monitoring_enabled !== false && (
+                        <Link href={`/profiles/${customer.reference}/monitoring-audit`} className="text-link" style={{ marginTop: '8px', color: '#15803d', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                          <ShieldCheck size={14} />
+                          <span>{locale === 'en' ? 'Monitoring Audit Certificate' : 'شهادة الامتثال والمراقبة المستمرة'}</span>
+                          <ArrowUpLeft size={13} />
+                        </Link>
+                      )}
                     </div>
                   ) : (
                     <div className="panel assessment">
