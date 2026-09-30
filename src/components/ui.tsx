@@ -1,4 +1,4 @@
-import { Building2, UserRound, ArrowUpLeft, ArrowDown, ArrowUp, ArrowRightLeft, Clock3 } from 'lucide-react';
+import { Building2, UserRound, ArrowUpLeft, ArrowDown, ArrowUp, ArrowRightLeft, Clock3, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import type { Customer } from '@/lib/customers';
 import type { Locale, Messages } from '@/lib/i18n';
@@ -107,7 +107,7 @@ export function CustomerTable({customers,m,locale}:{customers:Customer[];m:Messa
   if(!customers.length) return <div className="empty"><UserRound size={32}/><h3>{m.emptyTitle}</h3><p>{m.emptyBody}</p></div>;
   return <>
     <div className="table-scroll desktop-only-table"><table className="data-table customers-table" dir={locale==='en'?'ltr':'rtl'}><thead><tr><th scope="col" className="th-client">{m.thClient}</th><th scope="col" className="th-type">{m.thType}</th><th scope="col" className="th-country">{m.thCountry}</th><th scope="col" className="th-status">{m.thStatus}</th><th scope="col" className="th-screening">{m.thScreening}</th><th scope="col" className="th-open"><span className="sr-only">{m.open}</span></th></tr></thead><tbody>{customers.map(c=><tr key={c.id}>
-      <td className="customer-name-cell" data-label={m.thClient}><Link className="customer-cell" href={`/profiles/${c.reference}`}><EntityIcon type={c.entity_type}/><span className="customer-cell-text"><strong dir="auto"><bdi>{c.name}</bdi></strong><small dir="ltr"><bdi>{c.reference}</bdi></small></span></Link></td>
+      <td className="customer-name-cell" data-label={m.thClient}><Link className="customer-cell" href={`/profiles/${c.reference}`}><EntityIcon type={c.entity_type}/><span className="customer-cell-text"><strong dir="auto"><bdi>{c.name}</bdi></strong><small dir="ltr" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><bdi>{c.reference}</bdi>{c.monitoring_enabled && <span title={locale === 'en' ? 'Ongoing Monitoring: Active' : 'المراقبة المستمرة: مفعّلة'} style={{ display: 'inline-flex', alignItems: 'center' }}><ShieldCheck size={12} style={{ color: '#16a34a' }}/></span>}</small></span></Link></td>
       <td className="customer-type-cell" data-label={m.thType}><span className={`entity-type ${c.entity_type==='company'?'company':'individual'}`}>{c.entity_type==='company'?m.entityCompany:m.entityIndividual}</span></td><td className="customer-country-cell" data-label={m.thCountry}><span className="country-cell"><span className="flag" aria-hidden>{flag(c.country)||'🌐'}</span><bdi className="country-name">{countryName(c.country,locale)}</bdi></span></td><td className="customer-status-cell" data-label={m.thStatus}><Status status={c.status} m={m}/></td><td className="customer-screening-cell" data-label={m.thScreening}><ScreeningTag status={c.screening_status} m={m}/></td><td className="row-open-cell"><Link className="row-open" href={`/profiles/${c.reference}`} aria-label={`${m.open} ${c.name}`}><ArrowUpLeft size={18}/></Link></td>
     </tr>)}</tbody></table></div>
 
@@ -118,7 +118,14 @@ export function CustomerTable({customers,m,locale}:{customers:Customer[];m:Messa
             <EntityIcon type={c.entity_type}/>
             <div className="m-card-info">
               <strong className="m-card-name" dir="auto"><bdi>{c.name}</bdi></strong>
-              <small className="m-card-ref" dir="ltr"><bdi>{c.reference}</bdi></small>
+              <small className="m-card-ref" dir="ltr" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <bdi>{c.reference}</bdi>
+                {c.monitoring_enabled && (
+                  <span title={locale === 'en' ? 'Ongoing Monitoring: Active' : 'المراقبة المستمرة: مفعّلة'} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <ShieldCheck size={12} style={{ color: '#16a34a' }}/>
+                  </span>
+                )}
+              </small>
             </div>
             <div className="m-card-screening">
               <ScreeningTag status={c.screening_status} m={m}/>
