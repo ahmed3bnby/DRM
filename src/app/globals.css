@@ -305,6 +305,8 @@ time{display:inline-block;font-variant-numeric:tabular-nums}
 .user-controls .field input,.user-controls .field select{min-height:40px}
 .button.danger{background:white;border:1px solid #e7c4c8;color:#a23a49}
 .button.danger:hover{background:#fdecee}
+.profile-head-actions form{display:inline-flex;margin:0}
+.delete-customer-btn:hover{background:#fef2f2!important;border-color:#ef4444!important;color:#991b1b!important}
 .user-log{margin-top:22px}
 @media screen and (max-width:800px){
   .user-metrics{

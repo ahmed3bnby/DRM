@@ -421,9 +421,26 @@ export default async function Profile({
             locale={locale}
           />
           {canEdit && (
-            <Link href={`/profiles/${customer.reference}/edit`} className="button secondary">
-              <Pencil size={16} />
-              {m.edit}
+            <Link
+              href={`/profiles/${customer.reference}/edit`}
+              className="button secondary sm"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                minHeight: '38px',
+                height: '38px',
+                padding: '0 12px',
+                fontSize: '12px',
+                fontWeight: 500,
+                borderRadius: '7px',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+                lineHeight: 1
+              }}
+            >
+              <Pencil size={15} style={{ flexShrink: 0 }} />
+              <span>{m.edit}</span>
             </Link>
           )}
           {actor.role === 'admin' && (
