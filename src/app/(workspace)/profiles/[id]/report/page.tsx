@@ -601,8 +601,8 @@ export default async function Report({ params }: { params: Promise<{ id: string 
                   <td className="audit-actor">{isEn ? 'Screening Engine' : 'محرك الفحص الآلي'}</td>
                   <td className="audit-action">
                     {isEn
-                      ? `Automated screening executed across ${last.source_versions.length} watchlists (${displayHits.length} potential hits identified).`
-                      : `تنفيذ الفحص الأمني عبر ${last.source_versions.length} قائمة رسمية (${displayHits.length} مطابقة محتملة).`}
+                      ? `Automated screening executed across official watchlists (${displayHits.length} potential hits identified).`
+                      : `تنفيذ الفحص الأمني عبر القوائم الرسمية (${displayHits.length} مطابقة محتملة).`}
                   </td>
                 </tr>
               )}

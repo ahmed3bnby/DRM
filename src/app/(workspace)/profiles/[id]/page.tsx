@@ -532,9 +532,9 @@ export default async function Profile({
                         {last.used_identifier ? m.plusId : ''}.
                       </p>
                       <p className="muted coverage-line">
-                        {last.source_versions.length > 0
-                          ? `${m.coverageLineA} ${number(last.source_versions.length)} ${m.coverageLineB}`
-                          : m.coverageLineNoV} · {m.coverageLineC}
+                        {locale === 'en'
+                          ? 'Screened against official watchlists (dates in report)'
+                          : 'فُحص عبر القوائم الرسمية (تواريخها في التقرير)'} · {m.coverageLineC}
                       </p>
                       <div className="profile-side-risk-pill">
                         <span className={`status ${riskAssessment.isPending ? 'amber' : 'neutral'}`}>
