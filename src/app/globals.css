@@ -4852,6 +4852,62 @@ html[dir='ltr'] .match-case>details.decide .decision-submit{flex-direction:row}
 }
 
 /* ==========================================================================
+   Bulk Screening UI Styling & Polish
+   ========================================================================== */
+.bulk-dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 38px 24px;
+  text-align: center;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.bulk-dropzone:hover,
+.bulk-dropzone.has-file {
+  border-color: #007527;
+  background: #f0fdf4;
+}
+.bulk-dropzone-icon {
+  width: 48px;
+  height: 48px;
+  color: #64748b;
+  margin-bottom: 12px;
+  transition: color 0.2s ease;
+}
+.bulk-dropzone:hover .bulk-dropzone-icon,
+.bulk-dropzone.has-file .bulk-dropzone-icon {
+  color: #007527;
+}
+.bulk-dropzone h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+.bulk-dropzone p {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0;
+}
+.bulk-actions-wrap {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+.button.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ==========================================================================
    Profile Inner Pages Mobile Polish & Responsiveness (Overhaul)
    ========================================================================== */
 .profile-main-meta {

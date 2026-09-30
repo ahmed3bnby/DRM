@@ -7,13 +7,10 @@ import {
   FileSpreadsheet,
   Download,
   AlertTriangle,
-  CheckCircle2,
   Search,
-  Filter,
-  ArrowRight,
-  ShieldCheck,
-  ShieldAlert,
-  Loader2
+  Loader2,
+  CheckCircle,
+  FileText
 } from 'lucide-react';
 import type { BulkScreeningResult } from '@/lib/bulk-screening';
 
@@ -100,7 +97,7 @@ export default function BulkScreeningPage() {
   }) ?? [];
 
   return (
-    <div className="workspace-container">
+    <>
       {/* Header */}
       <div className="page-heading">
         <div>
@@ -108,32 +105,23 @@ export default function BulkScreeningPage() {
           <h1>الفحص الجماعي بالدفعات (Bulk Screening)</h1>
           <p>فحص مئات الأسماء والشركات دفعة واحدة عبر ملف Excel / CSV مع كشف مطابقات العقوبات ومخاطر FATF فوراً.</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Link href="/search" className="btn btn-secondary">
-            <Search className="w-4 h-4 mr-2" />
-            البحث الفردي
+        <div className="heading-actions">
+          <Link href="/search" className="button secondary">
+            <Search size={15} />
+            <span>البحث الفردي</span>
           </Link>
-          <a href="/api/bulk-screen?action=template" download="DRM_Screening_Template.xlsx" className="btn btn-secondary">
-            <Download className="w-4 h-4 mr-2" />
-            تحميل نموذج Excel الجاهز
+          <a href="/api/bulk-screen?action=template" download="DRM_Screening_Template.xlsx" className="button secondary">
+            <Download size={15} />
+            <span>تحميل نموذج Excel الجاهز</span>
           </a>
         </div>
       </div>
 
       {/* Upload Panel */}
-      <section className="panel" style={{ marginBottom: '24px' }}>
+      <section className="panel" style={{ marginBottom: '24px', padding: '24px' }}>
         <form onSubmit={handleSubmit}>
           <div
-            style={{
-              border: '2px dashed #cbd5e1',
-              borderRadius: '12px',
-              padding: '36px 20px',
-              textAlign: 'center',
-              background: '#f8fafc',
-              cursor: 'pointer',
-              transition: 'border-color 0.2s ease',
-              marginBottom: '16px'
-            }}
+            className={`bulk-dropzone ${file ? 'has-file' : ''}`}
             onClick={() => document.getElementById('bulk-file-input')?.click()}
           >
             <input
@@ -143,12 +131,20 @@ export default function BulkScreeningPage() {
               style={{ display: 'none' }}
               onChange={handleFileChange}
             />
-            <UploadCloud className="w-12 h-12 text-slate-400" style={{ margin: '0 auto 12px' }} />
-            <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b', marginBottom: '6px' }}>
-              {file ? file.name : 'اضغط لاختيار ملف Excel أو CSV أو اسحبه هنا'}
+            {file ? (
+              <FileSpreadsheet className="bulk-dropzone-icon" />
+            ) : (
+              <UploadCloud className="bulk-dropzone-icon" />
+            )}
+            <h3>
+              {file ? (
+                <span style={{ color: '#007527' }}>تم اختيار: {file.name}</span>
+              ) : (
+                'اضغط لاختيار ملف Excel أو CSV أو اسحبه هنا'
+              )}
             </h3>
-            <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-              يدعم ملفات (.xlsx, .xls, .csv) حتى 500 اسم لكل دفعة.
+            <p>
+              {file ? `${(file.size / 1024).toFixed(1)} KB` : 'يدعم ملفات (.xlsx, .xls, .csv) حتى 500 اسم لكل دفعة.'}
             </p>
           </div>
 
@@ -157,26 +153,26 @@ export default function BulkScreeningPage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '10px',
                 padding: '12px 16px',
                 background: '#fef2f2',
                 border: '1px solid #fecaca',
                 borderRadius: '8px',
                 color: '#b91c1c',
                 fontSize: '13.5px',
-                marginBottom: '16px'
+                marginBottom: '18px'
               }}
             >
-              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+              <AlertTriangle size={18} style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+          <div className="bulk-actions-wrap">
             {file && (
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="button secondary"
                 onClick={() => setFile(null)}
                 disabled={isPending}
               >
@@ -185,14 +181,14 @@ export default function BulkScreeningPage() {
             )}
             <button
               type="submit"
-              className="btn btn-primary"
+              className="button primary"
               disabled={!file || isPending}
-              style={{ minWidth: '150px' }}
+              style={{ minWidth: '180px' }}
             >
               {isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  جاري الفحص الآلي...
+                  <Loader2 size={16} className="spin" />
+                  <span>جاري الفحص الآلي...</span>
                 </>
               ) : (
                 'بدء فحص الدفعة الآن'
@@ -204,7 +200,7 @@ export default function BulkScreeningPage() {
 
       {/* Results Dashboard */}
       {data && (
-        <section className="panel">
+        <section className="panel" style={{ padding: '24px' }}>
           {/* Summary Metrics */}
           <div
             style={{
@@ -214,21 +210,21 @@ export default function BulkScreeningPage() {
               marginBottom: '24px'
             }}
           >
-            <div style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>إجمالي الأسماء المفحوصة</span>
               <div style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
                 {data.total}
               </div>
             </div>
 
-            <div style={{ background: '#f0fdf4', padding: '16px 20px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+            <div style={{ background: '#f0fdf4', padding: '16px 20px', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#166534' }}>سليم بدون مطابقات (Clear)</span>
               <div style={{ fontSize: '28px', fontWeight: 800, color: '#166534', marginTop: '4px' }}>
                 {data.clear}
               </div>
             </div>
 
-            <div style={{ background: '#fffbeb', padding: '16px 20px', borderRadius: '8px', border: '1px solid #fde68a' }}>
+            <div style={{ background: '#fffbeb', padding: '16px 20px', borderRadius: '10px', border: '1px solid #fde68a' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#b45309' }}>مطابقات محتملة / تنبيهات (Flagged)</span>
               <div style={{ fontSize: '28px', fontWeight: 800, color: '#b45309', marginTop: '4px' }}>
                 {data.flagged}
@@ -250,21 +246,21 @@ export default function BulkScreeningPage() {
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 type="button"
-                className={`btn btn-sm ${filter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                className={`button sm ${filter === 'all' ? 'primary' : 'secondary'}`}
                 onClick={() => setFilter('all')}
               >
                 الكل ({data.total})
               </button>
               <button
                 type="button"
-                className={`btn btn-sm ${filter === 'flagged' ? 'btn-primary' : 'btn-secondary'}`}
+                className={`button sm ${filter === 'flagged' ? 'primary' : 'secondary'}`}
                 onClick={() => setFilter('flagged')}
               >
                 المطابقات فقط ({data.flagged})
               </button>
               <button
                 type="button"
-                className={`btn btn-sm ${filter === 'clear' ? 'btn-primary' : 'btn-secondary'}`}
+                className={`button sm ${filter === 'clear' ? 'primary' : 'secondary'}`}
                 onClick={() => setFilter('clear')}
               >
                 السليم فقط ({data.clear})
@@ -273,18 +269,18 @@ export default function BulkScreeningPage() {
 
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="button secondary sm"
               onClick={handleExport}
               disabled={isExporting}
             >
-              <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600" />
-              {isExporting ? 'جاري إنشاء التقرير...' : 'تصدير تقرير النتائج إلى Excel'}
+              <FileSpreadsheet size={15} style={{ color: '#007527' }} />
+              <span>{isExporting ? 'جاري إنشاء التقرير...' : 'تصدير تقرير النتائج إلى Excel'}</span>
             </button>
           </div>
 
           {/* Results Table */}
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ width: '100%', fontSize: '13px' }}>
+          <div className="table-scroll">
+            <table style={{ width: '100%', fontSize: '13px' }}>
               <thead>
                 <tr>
                   <th style={{ width: '50px' }}>#</th>
@@ -342,8 +338,8 @@ export default function BulkScreeningPage() {
                       <Link
                         href={`/search?q=${encodeURIComponent(r.name)}`}
                         target="_blank"
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '3px 8px', fontSize: '11.5px' }}
+                        className="button secondary sm"
+                        style={{ minHeight: '32px', padding: '4px 10px', fontSize: '11px' }}
                       >
                         فحص تفصيلي
                       </Link>
@@ -355,6 +351,6 @@ export default function BulkScreeningPage() {
           </div>
         </section>
       )}
-    </div>
+    </>
   );
 }
