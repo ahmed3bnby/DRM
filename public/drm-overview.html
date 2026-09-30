@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منظومة DRM — الدليل التعريفي الشامل للامتثال وفحص المخاطر</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0e291e;
+      --primary-dark: #061710;
+      --primary-light: #164030;
+      --accent: #007527;
+      --accent-hover: #005c1f;
+      --accent-light: #eaf5ee;
+      --accent-border: #a3d9b4;
+      --ink: #14281f;
+      --muted: #5e7468;
+      --slate-800: #1e293b;
+      --slate-600: #475569;
+      --slate-200: #d4e5da;
+      --slate-100: #edf4ef;
+      --slate-50: #f6f9f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--slate-100);
+      color: var(--ink);
+      line-height: 1.55;
+      font-size: 13.5px;
+      padding: 24px 12px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 10px 35px rgba(14, 41, 30, 0.08);
+      overflow: hidden;
+      border: 1px solid var(--slate-200);
+    }
+    .action-bar {
+      background: var(--primary-dark);
+      color: #fff;
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .print-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 65%, var(--primary-light) 100%);
+      color: #ffffff;
+      padding: 30px 35px 24px;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-box {
+      width: 58px;
+      height: 58px;
+      background: #ffffff;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .brand-text h1 {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+    .brand-text p {
+      color: #9bbda9;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 117, 39, 0.4);
+      border: 1px solid rgba(163, 217, 180, 0.5);
+      color: #bbf7d0;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .live-badge span.dot {
+      width: 8px;
+      height: 8px;
+      background: #4ade80;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #4ade80;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      padding-top: 14px;
+      margin-top: 14px;
+    }
+    .meta-item { display: flex; flex-direction: column; }
+    .meta-lbl { font-size: 0.68rem; color: #8bb39c; text-transform: uppercase; font-weight: 700; }
+    .meta-val { font-size: 0.82rem; font-weight: 700; color: #ffffff; }
+    .content { padding: 28px 35px; }
+    .section { margin-bottom: 26px; }
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid var(--slate-100);
+      padding-bottom: 6px;
+    }
+    .badge-icon {
+      width: 24px;
+      height: 24px;
+      background: var(--accent-light);
+      color: var(--accent);
+      border-radius: 5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.8rem;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .card {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .card-title { font-weight: 700; font-size: 0.88rem; color: var(--primary); margin-bottom: 4px; }
+    .card-body { font-size: 0.8rem; color: var(--slate-600); }
+    .highlight-card {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-right: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      font-size: 0.86rem;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+    .table th, .table td {
+      padding: 8px 10px;
+      border: 1px solid var(--slate-200);
+      text-align: right;
+    }
+    .table th { background: var(--slate-50); color: var(--primary); font-weight: 700; }
+    .table tr:nth-child(even) td { background: #fafcfa; }
+    .role-card { border-top: 3px solid var(--accent); }
+    .role-list { list-style: none; margin-top: 6px; }
+    .role-list li {
+      position: relative;
+      padding-right: 14px;
+      margin-bottom: 4px;
+      font-size: 0.78rem;
+      color: var(--ink);
+    }
+    .role-list li::before {
+      content: '✓';
+      position: absolute;
+      right: 0;
+      color: var(--accent);
+      font-weight: 800;
+    }
+    .sla-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+    }
+    .sla-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .sla-row:last-child { border-bottom: none; }
+    .sla-badge {
+      display: inline-block;
+      min-width: 110px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .sla-badge.free { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .sla-badge.custom { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .sla-badge.annual { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .footer {
+      background: var(--slate-50);
+      border-top: 1px solid var(--slate-200);
+      padding: 12px 35px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    @media print {
+      body { background: #fff !important; padding: 0 !important; }
+      .container { box-shadow: none !important; border: none !important; max-width: 100% !important; }
+      .action-bar { display: none !important; }
+      .section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="action-bar">
+    <span>نظام DRM — الدليل التعريفي الشامل للامتثال وفحص المخاطر</span>
+    <button class="print-btn" onclick="window.print()">طباعة / حفظ كـ PDF</button>
+  </div>
+
+  <header class="header">
+    <div class="header-top">
+      <div class="brand-wrap">
+        <div class="logo-box">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAACHCAYAAACs0WTsAAAaoUlEQVR42u3dd7hVxbk/8M8cDiCoEFvUaIwluYkmJmKJRo29t8SCvYNdyZPce3PvTX755eb+cvPE9Gg0BSkSsKBIsWABEXsDsaWYxK6xoiDSOev3xywVlYMHOHv22pv5Ps9+gM3aa2a9M+s777zzlmD7PmMEJYL3/o4Q3v16if9e/PoOX7Mc91zSPTpyTfyjDS8LYQYKwTN4gzBd8ApeErxq1G1tOhNnHrQFzhJsiCC0I6uPkt9HXduR3y9JZh39bkXv2Vm//9B3y/JMZgnh+fK7V/Gq4DXCK4IX8ZLjh3bu+Dc7Hv5GwE6Cc9Bj6WPdaXP6mlZ8bSUU9xzMxGvl51mH7/4I7hM8hTcFb7tqUrECbfwDN+Ob2And8iyvDBZiBl7HK3jSiJOnCR4gPCGYibmOGZIl1T5Ww1HlJyRq86/B9n2KJtewOtJOG2GO4G08L7gTkwkP4xlX3bpwucR71kGt+BS+LYSjBb2yhlUXDasdub57bZtgjmA24THBbbhDMM3RQ97I3LREDWs7jBRs/NFj3Wlz+ieZsNq/59vlavsQxgqmEl7BfFdOXLbBPfvgXjhK8O/4tFC2kAmrKoS1pN+/LJgmGIebCM8L5jlycCaraQO6EH4sGCCUO4dEhNWSpd8uVkUfnIghuBLnoI+j9+y6THe6+NqZuLT8/X1YlMVbeayLfXA+rhGch82MPDVk0dislE1yM0fWsJbtnovwpGACrhA8TJjp8gkds3Wdc3ALPiP4DvoKoUfWsCqrYX3w9wvwsGBouRV63RGDVz5D/bQB3XA24XxBt46Nddaw6oUu+Az6Yzjhp9jDMXt179CvL7q2DU/gO/hDafjNaAx0xTb4UTl2O7q6X5eVVPM8XJ0OkbKGtWL3LES3iLEYgalCmG3ELR8t+XMP7i2EEwTfwzrvs2tlDauKGtYHf/93wm8Fwx0+6JWVhq4eGtBf8AvC6u+XT9awGgEB66Mf/iiEaFQ/bu+Plmv0CxuKb+PpLMqGw6fx//BDo/pt7Jp+zW/bemhALxwmujTU6YXLGlbn3TPaOabhAsF4TDf8lqXbtwYc0opDBD/GpkLokjWshtCw3vluPu4S/JfgfocOKpqUrFpwMAYL1nxXTlnDang7x7b4NX6OLzh+749aeRdiHM7Ew1mEDYdugl3K8d7B6Ka1a/XC17FGPTuRCas228Q1cQKGEI51wj69nLDPkq++YBwXjFuI2/AtPCS7PTQaumBHXELY05j+zbc9LGwjujLU9dkyYdVWtlvjV/h3rLfUq389rg134F/xSBZfQy5Un8P38IWmIq2pA7riUKxThZcqo7aTeO1ScxroxH22ceK+LR9BWpMF/4a/oMgibLhF6iv4iWiUb3xMGQBfKLWrrlUQcEbt0RMHiP47ezlx39Z2r/zV2Dbcjv/GM1l0Dbk93AP/Zmz/Xk3wPKtgP2xSlRUhI52s+2Cg4Ggn7btKu1f+cuxCjBb8QMwokNFY6IZjcIKx/bs3+LNsoHAEWjNhrZxbxI3wM5y4VNKKx+UjxRPHWVl0DYfVxdRC2zT2YxRfx2ertOpnpMe6+F9BPyfvt0o7Wha/GDsbvxMdTOdnsTUcNhZ807j+vRuy91POWx+HiCaNTFgrOdbG93FCu6QV8aoQfoa7kLNiNha6YG8cZNxpjeWf9eB5LaKrxtbq7MqQCas6WAf/i35OaYe0fjEWnhWN8H/LIms49Mbp+GSD9XstMZvoalXqVCasapDW93GoU/ZbsmHz52MKwb2iPevtLLJGQ9hWcFCDdXobhd2r1qlMWNXStA506n5LVr9/NmY+rsBoLMgiayj0wFGuPe0TDdHbB87rKZ5yfiwTVkZ72Bj/gy2dun9717xRallPZnE1loqFL+Krrj2t2u/cA+fBlthdRVwZMmFVd1J/Hj/UnpPez8YQPIpBmJdF1lDoJZ64fazi/ewpBjlvUMXOZcKqFroQ9sd5Tt1/yUb4n46ZV24N75NDdxoNu4h+eFXGJmIamUpyQyas6qFVLHxxuH77t6eSvyD6Zr2ZxdVQWFOwV2V7d/95LaV2tUlVu5gJq5pYC/8hBp0uSctqE8INuDeLqqHQAzu77rTqhevcf65S+/uaCjmKZsJqFASb4zz99m/PD+a1cmuYbVmNNKoxi0MVNZhW7IovVVmAmbCqvTU8HF/T/4APbw1/MnoRJstZShsNG2JT159WtX59jOI4daqGsywvRa0wt2Krf9cqq7rtoLdYfPUBsTzYB/G8mIrmS+ieuaAhsLpYKq6ravnT7SpmE6n8Kl4bFK4WjKmQKt5DtA1tJIZJbF6q5q3l5KlmhsgQtsZJ+h/wPZfc0PYhLes/Dh1RTvyemQs6hF7ltuzz5YKQOsavRcxM2qMyhHXfub1xrJjaeyUlLB416f5RlXraQ3dVvtg9y5VuEzFD5K74l1Jdr1qQanf0xRj9D3jQJTcUH5Jz1L5yCfWOz/nVStI6VjwVWyep/IJNxcR4MytAVkEMcN5RA5iIWleqqTp6MswuP6/hKdzq8N1+KZ7I7Vd++pREURUS2EwMlfgL3nrf/5w/elH5PBkdxwy8YPjJ9+ImfBdbJXxhP1USVhXQU8zXvl4jDFw2usOo22YbNel+nI/j8J+iy8CcCo3T18ttTEZn4fih8zCuzKH/iHTpe9ZQ53JZi+Gz2L9RhiwT1uK4etI8V096ChcQ+oopXR4RawfWGxsKTnLaAd3yQHUqaS103NBJ0lbg7qYKrg33ntsVR2qg1DeZsJaEqyYVrrr1hUhcTsEIvFrnXnUVk8Ft5bQDsr2qsxHcKRYJSaFVt6IKmRs2LbWrhjlhzoS1VOK6da6Rt04VnEMYIBY5refJzjtxXj3y4HQyjh06Rwx3mpZo8alvcHHUrvYST8sbBpmwOoIrb30bo3CGWFZ+Th3H6+viaWZG5+MV3Kz2+fNb8fE6P+va4kFO10YaoExYHSatiQvwoOBcXCjmpqoHNhbC3k4/MI9J52tZhWCS6PRcS3TB2q4/vT7Pec85QWF/DXiIkwlr2UircMXEl/BTwS/Vx49mVRwoOj1mdD5elCYLRg/1c/ZdozQtNNwcyoS1PLhi4mv4lVhfcHri1oPoJ9Yna1k1wfxEY7qqehR4uOecd6rh7KEBnY0zYS0vLp/4Fi4WTxLfStz6x0UP/VXyQGQsI3qKKWR6NWLnM2GtEGlNeL3UtP6o9naPD47bwWJsZEZttNjmRGFr7Nuo3c+EteKkNaPUsiZLm7J4MzH+MaNz0a1pF4K7z1kFh2mQMJxMWLXD3/AjMTYxFXphT2ccmJ1IOxdrNep2aam46xzlAneABnNlyITV2bhsQhvuwTDpcoB1F6PsV88D0Klbps9ozqQAXcut4KaN/BCZsDqPtBZgCO5I1GIoV8zNsvA7awxPbsEO0mTdXKD2DqqLY32Fo1QvfVImrDrihZK03kzU3iewSd4WduJLzXaJNKyZUvnx3XVOEGsiNrzNMxNWZ2LELYvE0J3bpUlV0qPcFmb3hhXXrlrFXGhbJGitDTMc+IdU6WzWF+sDNLz5IBNW55PWLFwlXbzhNnJ65M7AZjhJdOhMsR18LslT3XlOKOfI9s0wSK15ntYAwR1iNZsdE7T2OTEX9+tZ8MuB4ScHwQYK/0ewQ6JW5+EfidpaTeEUoTkyfGQNqzZ4CddLk/hvNcJnssiXi6xaS83jRzhCuuP++WK66wQotm8W7SprWDV7EW6Z5/i9J+J0MX93LdFTLPN1Q6ff+Yd9Y0WhEN7RHN/7M5R/ef93rYSuQvntu//X7u9bhDJ5XHv3fOf3oVxgF7/+w+1/8LtVBOujyxL68EmFbQV7KmwsJF28n8eztd8Onr26WGhj3UxYGR+Fx0q1fyO1DfXobnlcG75/+JcI27z7oi7phY8OlGsugya+uuh42dHre5YvU1iGZ12WxHdB+8f4reX90r8DhWmCt2vaxh1nE+sf7qXBXRkyYaXRst52/N6T8dUabzW6YCNnHPQxv7/uzWX43QH4nzwHkmMR7sesmr/bhcOFxsnX3hFkG1ZNEe4pJ2itsaYGKIKZgWjffFTt7ZsbiwHyTYVMWLXFk4JnErSzjpy5oRFQ4E943IEDa9fK7Wd3EVNpN10URCas2mJGuZrWGr01Y8Bu82EuJqh9JMSGYvmupvPPy4RVW7wllpGvddqZXljDmQflEJ1q4wWF8Q4aWLv5cPvZAbuKWWmbDpmwaot5eFLtMzgEMa4wG9CrizaMUfsURKuI1XCaci5kwqolht8cV9U0KZTX1ETH102IJzGSGrozTD47iMV2t2lWIWbCqj1erekkfQ/rauDEbE2OBWK9w2kOHlhL80Av0Xa1diasjOXFa0kIK1g9j2dl8YzCpQ4eWOuq4V8SM06ktGUW0rjuZMJKhNcxO5GGlW1Y1cNcioF4JAF39JXeveU1MUV4JqymwB9vniVNZslsv6oe2nAnhjlkYG2rKk0+a0vpq+G04UrRPpcJq7lW2ZpjraxhVQ4vKvxU9G6vHW47q5vo1b5R4uf7h8IoCVM9Z8JKg3+qfQbSXnk8K4VZ+Dlud8gltW5rI9HY3j3h8y3AeMHfpcmumwkrIRZlEaxUWIhrMLjm2vWks2AfhS8kfsbncZmYlz5Z8si8hUiD1TVzNeGMxdGGifiRr12SosjEGmLOq9Q2zLEKj5azelaqRrOGlQbLkvNpeTE9a3J1R4Gp+I4YklVbTDqrBQeSXLt6jWKUdHULMmElwwn7dEkk5zcyYdWdrP5O8W085OuXFAnaXFPMypAy8H0RbsIjtvp1kVrImbBqj7XkqjYrA1k9iQG4IxFZEUNw9klsbngFQ211wcx6CDoTVhobQ4qKJXPVPitExofRpvAIvoUJDh20MEmrt57VHUdLU5Zscdyu8GC9hJ2N7rXHBlIUsCw8L1iQxZ2YrHgQZ2OqQwelWTBuPZMYhrN7YqVjhvdOBuuCrGHVHutJU3F3ftawkm8E78ZZmOqwQSll3xOHWbaCHJ1BzrfjHn0uaKuXyDNh1RLH79OKTbFagtZeJGtYifFPPOPwQakXik3FOoopd0gzcLU+F7xaT4FnwqotVsUmidrKp4Tpsb9YFSk1DqFIXQ1nmsKEegs8E1Zt0QufT7I54WW/u25hFnlCBKvidKP6rZaszYlnboCvSZv7bI7otf9KJqzmxtoKn07QzvRSw8pITVlsh71d06/279LEM7uI+a4+L60rw1RMtvUFdV8QM2HVVvHpI43BPRNWPRclTpYmy+e6YpBzSleGWRgnpvquOzJh1QrH792CXaQxjL6eCauuetbu2CnBxn8H7JD46f5MMdrW7Z4Mtql9kZV3kf2waof1sFWiReHVUsuqpJopZlxNuZ1oFY/+U22bVsMZRveb7NBBtRmHCWeuihOkOXFenIxGsNRiwPPwciasxseXpPGTWYjnpEnDvDyYQfFDwp8StrkZvlsuGml0rKj5HGR0vxEOHdS5p7UTzgzYtvyk3BU9gVstLUHfF39deOQbyRajTFi12Q72xG7S5Neei7/4/XVVdRqdj3t96/K7krU4+MSeYpzd8QnneG+cgknlAtLZGtwR0jqKzsVo/Nk2F1ZmMrWoQ4qIlWQ7uHeiLcmcaGfIeBenDpuNsXXYJm9H2KsG9/0XHCDtyeALGGmbCyvlKtMiekhndCYKu2HzRK29SfGPLPQPbdImi4n0UofMnGxM/3U77Y63nNGicAxSOoq2KYyVsBrOshDWW3l2dyKO23s1MUdRt0Qt/kkMm8h4P2bg8kjoCWky2i73NaZ/Z2UA3RR7Suso+hxGqaBdtKWKLNrAZBXE4+0vS2McLXCfNJWlGwunDGvDHaLROGWwbm/RL2vDTtCuuoqOopsn7P9CTMAU215YObtoCx7Ps7vT0EuMol8nUXuz8ZiEZZYaUMsaXQcN9Ms4vBPus5701XBewyjbXTivigPagocSq83NjB3EOK9UR8/P4B9+f31OK7NkLasotYV7ErfcE8ca23/j5b7DzWcEhT2xdcJ+FwrjcXdVh7RFtIH8Pc/uFcSxe/XGGQm1q6Lczj+dhb9UvE64LPG2OWALHGRs/+W1PfVGX2my1S4mKyPVMUFfRwjr6ZJR87Zi+cmqVTS075FQu5qDe/z++tl5AJaCk4ctxC24S9oTwx6iLetTy/zLm84I2Fk6WyjRznc37rXdhZXV2Fvc99BCjJGwGGIT4rNimtzeCducKRqVMz4ar+Jq6U/ENxccshy/61WaFtZK2NcZuELFT5zfYe+phOulPU1pDhyz1+r4JvokbnmafMLbQS3r0kIsTfVw4pZ74Bjj+m9m3GnL8rs+CvtJ6ShalH5rX76w0vbQlsVW62EqkkKigciqu1h19zBp/WTeqQ2X/a86jpdwpYSZBUrC+aJ40rdKB7eDraV29fGE/VzRyIA5EpmUImHd+1CB+zFE9unpIFnt2YKD8J9iKa+UeA53+cP12e7YUZx06XxcF3cTSW1Z3QjHi+E1S8eNZ8CWYjXnVI7HBR7Ajb78m+UNw3lDIifT9wx6906dJxiK2/LW8CNw9J4t4nHzdy2PUXXF0IYpsv/c8hJ9PTy4NxUc4drTPsqA3h17YePE2tUVEqaI6RzCingGPyhXoUxa7ZPVTgoXiPmuQuIezMQ4f8ing8uhZbWJB0ypg8VXKc0GW7h2qbasTyj0TWxeeBw32v43DeHL937CumdqW0lW38UjeYZ/AEft2SpmEf2ZeOQc6tCLxxXFpDwYy40XBNdIm1BQuSU82FJtWcXB+FzCPs1TuFIsV9YQ+LCKes/URbhVCN8Qq9rm0lFH7REctefq6Kfw+5KsutShJwvF4/mXZSwfTrx0bqll/Slxy13F/FyfXeL/3nj6ujhUuoyihRjWNcb2v5nXKMO35D31PVMX4k58UzDRyl6gM1a++b/4ET5Tx548gZtlJ98VxV9FA/zcxO1uJjjBdae9f8s3/vQW0VF064Ra+4JyLj3dSAPXvhHw7inveL72x/l4dqXStvru0UXfPTZ05B6nYgTFeVizTttA5ct1Df5q4A2ZclYEJ1zaRhghfUha91KL6uP60xafR2uKYTi9EvblSYUr7PCbhrJVL/3U4u4pbe6a8lypWZwsnrA0f3WWvruvT3GM6ObxKzGXdvc69+pphZEG3pC36J0lz2Cc9IdLG4sG+J6LfbdVmfQxFRZRXKUBHY87lu/6rilzMMnO2z4snowdIRqf1xPDURozN/xhuxG0xpUtrC7YQszFvke59etdkZ7OFSvvZs/2zsMcMfXMkSQpdvuekhAcWbZ9nxtO7yE6H6cMw3kKo33lNw2XHn3ZiObOB6fbedtJYiDpumI6lS3FE5D1ylVjzVIbiXFbu2+/hmBTdI2bqVITfkchDh/4t7DY/7X3XQevWXI7AWsQeuBjCusLNhej6zcTwymqRsCPicb2uZlnOmtbOLQw/OSHxYiBT0nrSrABjnP96VPLebdbwjm3UCyU8VgjDtuyC+nOBwsxvOHZ8jPSLtv1Eiscdy1Jq9V7R6XbiDawtSv03D3LvvaQzqN4efEmBuJpl2TbVafi+KELDD95mJjVc7OELXcTvdlHi8VKUjof/1PhUjte1JAHaZ3D6rc/MFP7OXR6iOliP57fkOVAUUwQwmiX3JCT9NUGfxZcjwGJ291E8K/4vLS1Bsfj0UYdrFyqvsJUJdqsfiWn/qklZpWaTurA/4B9E2tXL4kHZ52dZifZwUUmrOpiPgbhbpfckMOkarctLHCvGEOb+gS2VTo3mXeKctxhx4s6W1ufIVF900xY1cQihVEYZtD4vBWsNY4bOlcwWEz016yYicF2vKgWxPK2pOllMqqGJ8SDin9mUSTDFNH7vVlxpxgn3NDIhFU9/FMMA3rUoPFZGmk1kDFimatmw3QxQWfDP1smrGphFsXPcZ3BeSuYFMcOLXC7GI7WTDbDQizld5OdLmr458qEVR3MFY3sAw0enx1E60Nab+FSzVWncy6utNNFM5vhYTJhVQPzcDl+bPCNM7M46ojgdrG8fbNgCkXT2BYyYdUfi0TfmO/Iea6qgOm4qkm0rNkYoYkObzJh1V+zuhY/MOTGlwy5Mdut6o1jhrRhomj3afTx+CvG2/nipsnwkQmrfpgvJv8/V/q8TBlLJ63XMVz6YhWdiQVi2flnm2loWvPsrAtmYbjCD1x640tZHBVEMF70gN+zIftf+JvgGjtf3FRae9aw0mO6WMQi26yqjVdE+89bDdj3BWJ85LPNNiiZsNKhDX/BAIXzXXrTGy69KdusqoqjhyzCjWKxikYbpycxwlcvbjr3mExYaTBHNOSejpGG3ZT9rBoDL4l2oEYq+lFgnBjelQqLJHK2zYRVe63qVTEu8BTDbr7DsJsWZLE0jJZVYAzh4Qaiq5dwlV2SngxOFwOga45sdK8d5onpPC4Wyym9nUXSkHgOl+EL3l84oopYhLGl6SEl5kuUmidrWJ2PheWE+W+cRDHGH29+2x9vzpJpRBw1ZIGYT/+JBujtCxhql4vfatbhyBpW56/GN+F3eNzwW7Ktqjnwoujgu6X6VPzuKO7VBClkMmHVXqN6vdz2DcHdRtwyL4ulmbSswYWRp14hFjv9XEV7ORMDKZraRpoJa8XsBU+JqXUvxzRF8YbLJmRXhebEk7gS/6V6lZbaRBeMqXb9bVMPQiasZSep2WJNtxsobiA87rIJWaNqdhw5eK6Rpw4vtawtKta76bjCrr+d3uzDkAmrY1iAp/GAaKO6HS+5fGK2Ua18WtaN2Fy64hEdwRSxOGrTIxPWkrGw1KRexn3lZJiKP7ly4vwsnpVWy2pz1alXCPrikxXp1RyFSwQzMmGtXJgr5g16Do/jLjwoxpTNdOWti7KIMvBnMff7WRV5fx4QTwdXCttpCoHPL/fYVfH5WlRqUC+Lx9UviDapFxWeFTzlqkm5cGnGktF38CxXnzoUB0hb3n5JmCk6tb5ot9+uFOJPQVhTxBi6rhV55ul4Q7RLzS8/sykWGnVbfiEzOoJHxDTK9SasxzDO7r9daQrt1p6wJt33mhiiklEtTBe9t2vtCPm6RFWBE2Ih4TJ8pc4L8TDVSFG0UDyUWqXG7bz6/wE1YWr7vSDOgAAAAABJRU5ErkJggg==" alt="DRM Logo">
+        </div>
+        <div class="brand-text">
+          <h1>منظومة DRM لإدارة مخاطر الامتثال</h1>
+          <p>Diligence Risk Management & AML Screening Platform</p>
+        </div>
+      </div>
+      <a href="https://drmuae.systems" target="_blank" class="live-badge">
+        <span class="dot"></span>
+        الموقع الحي: drmuae.systems
+      </a>
+    </div>
+
+    <p style="color: #d3e4db; font-size: 0.88rem; max-width: 720px;">حل برمجي متكامل ومخصص لفحص العملاء والشركات ومطابقة قوائم العقوبات المحلية والدولية ومكافحة غسل الأموال، مجهز بالكامل للمؤسسات المالية والشركات الخاضعة للتنظيم وفق أعلى معايير الخصوصية والأمان.</p>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="meta-lbl">الرابط الرسمي المباشر</span>
+        <span class="meta-val">https://drmuae.systems</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-lbl">نطاق التغطية</span>
+        <span class="meta-val">قوائم الإمارات + العقوبات الدولية + PEP</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-lbl">آلية التحديث</span>
+        <span class="meta-val">تحديث دوري تلقائي + سحب يدوي فوري</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-lbl">التقارير الرسمية</span>
+        <span class="meta-val">تقارير PDF معتمدة وموثقة رقمياً</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- 1. الفكرة والتقنية -->
+    <section class="section">
+      <h2 class="section-title"><span class="badge-icon">١</span> فكرة النظام والبنية التقنية</h2>
+      <div class="highlight-card">
+        <strong>ما هو نظام DRM؟</strong> منصة سحابية مخصصة لفحص الامتثال (AML / KYC / Sanctions Screening)، تمكّن الشركات من التحقق اللحظي من الأفراد والشركات لتفادي التعامل مع المدرجين على قوائم الحظر، وتوثيق القرارات واستخراج تقارير إثبات رسمية لجهات الرقابة والبنوك.
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">تقنية Next.js 16 & React 19</div>
+          <div class="card-body">سرعة فائقة واستجابة فورية وتصميم مخصص للعمل المؤسسي المستقر.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">PostgreSQL + بحث صوتي</div>
+          <div class="card-body">محرك بحث صوتي (Phonetic) وفهرسة (Trigram) للتعرف على الأسماء رغم اختلاف التهجئة بالعربية والإنجليزية.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">خصوصية وأمان تام</div>
+          <div class="card-body">معالجة داخلية خاصة دون تسريب أو مشاركة أي بيانات للعملاء مع أي أطراف خارجية.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. القوائم وآليات التحديث -->
+    <section class="section">
+      <h2 class="section-title"><span class="badge-icon">٢</span> القوائم المعتمدة وآليات التحديث (التلقائي واليدوي)</h2>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🇦🇪 قوائم دولة الإمارات العربية المتحدة (الأساسي)</div>
+          <div class="card-body">
+            • <strong>قائمة الإرهاب المحلية لدولة الإمارات:</strong> الصادرة رسمياً من مجلس الوزراء الإماراتي.<br>
+            • <strong>قوائم مكتب الرقابة والسلع المحظورة (Executive Office / IEC):</strong> لتطبيق قرارات التجميد وحظر المعاملات في الدولة.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🌐 العقوبات وقوائم الحظر الدولية (الأساسي)</div>
+          <div class="card-body">
+            • <strong>مجلس الأمن التابع للأمم المتحدة (UN Sanctions):</strong> قرارات الحظر الدولية الملزمة.<br>
+            • <strong>مكتب مراقبة الأصول الأجنبية الأمريكي (US OFAC SDN):</strong> القوائم المالية الأكثر شمولاً.<br>
+            • <strong>عقوبات الاتحاد الأوروبي (EU) وبريطانيا (UK OFSI/HMT).</strong><br>
+            • <strong>النشرات الحمراء للإنتربول (Interpol Red Notices)</strong> وقوائم <strong>الشخصيات السياسية (PEPs).</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top: 10px;">
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px 14px;">
+          <strong style="color: #047857; font-size: 0.84rem;">🔄 التحديث التلقائي الدوري (Automated Daily Sync):</strong>
+          <p style="font-size: 0.78rem; color: #065f46; margin: 2px 0 0;">يعمل النظام بشكل آلي في الخلفية بمزامنة دورية (كل ٦ ساعات / يومياً) لجلب أحدث القوائم من المصادر الرسمية مباشرة دون الحاجة لأي تدخل يدوي.</p>
+        </div>
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px;">
+          <strong style="color: #1d4ed8; font-size: 0.84rem;">⚡ السحب والتحديث اليدوي الفوري (On-Demand Sync):</strong>
+          <p style="font-size: 0.78rem; color: #1e40af; margin: 2px 0 0;">يتوفر زر فوري لمدير النظام يتيح سحب التحديثات في أي لحظة عند صدور قرارات إدراج طارئة ومطابقتها فورياً في ثوانٍ.</p>
+        </div>
+      </div>
+
+      <div style="background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: 8px; padding: 8px 12px; margin-top: 8px;">
+        <strong style="color: var(--primary); font-size: 0.82rem;">✨ قابلية إضافة وتوسيع القوائم مستقبلاً:</strong>
+        <span style="font-size: 0.78rem; color: var(--ink);"> بنية المنظومة مرنة بالكامل لإضافة أي قوائم محلية أو خليجية أو جمركية جديدة مستقبلاً بحسب متطلبات العميل.</span>
+      </div>
+    </section>
+
+    <!-- 3. الصفحات والتقارير -->
+    <section class="section">
+      <h2 class="section-title"><span class="badge-icon">٣</span> صفحات النظام والتقارير الرسمية المعتمدة</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">الصفحة / الوظيفة</th>
+            <th style="width: 50%;">الإمكانيات والمهام</th>
+            <th style="width: 25%;">الفائدة للجهة</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>١. البحث الشامل (Search)</strong></td>
+            <td>بحث فوري بالاسم، الهوية، أو الدولة بنسبة تطابق دقيقة (% Match Score) ومحرك صوتي ذكي.</td>
+            <td>فحص سريع قبل إبرام العقود.</td>
+          </tr>
+          <tr>
+            <td><strong>٢. سجل العملاء (Profiles / KYC)</strong></td>
+            <td>حفظ وتوثيق ملفات العملاء والشركات الدائمين، مع إمكانية إعادة الفحص الدوري بنقرة زر.</td>
+            <td>أرشفة ملفات العناية الواجبة.</td>
+          </tr>
+          <tr>
+            <td><strong>٣. الحالات المعلقة (Reviews)</strong></td>
+            <td>إدارة حالات الاشتباه واتخاذ قرار الامتثال (تأكيد أو استبعاد كتشابه أسماء False Positive) مع كتابة المبرر.</td>
+            <td>توثيق قرارات مسؤولي الامتثال.</td>
+          </tr>
+          <tr>
+            <td><strong>٤. التقارير الرسمية (PDF Reports)</strong></td>
+            <td>توليد تقرير فحص رسمي معتمد بصيغة PDF يتضمن تاريخ ووقت الفحص بالدقيقة، نتيجة المطابقة، اسم وتوقيع المحلل، وكود المرجع الموثق.</td>
+            <td>جاهز لتقديمه للبنك المركزي والمدققين.</td>
+          </tr>
+          <tr>
+            <td><strong>٥. مركز المصادر (Sources)</strong></td>
+            <td>متابعة تواريخ التحديثات الآلية، وحالة المزامنة، وتفعيل التحديث اليدوي الفوري.</td>
+            <td>ضمان دقة وتحديث القوائم دائماً.</td>
+          </tr>
+          <tr>
+            <td><strong>٦. سجل التدقيق (Audit Log)</strong></td>
+            <td>سجل إلكتروني غير قابل للتعديل يوثق كافة العمليات (من قام بالبحث، متى، وما هو القرار).</td>
+            <td>تلبية متطلبات الحوكمة والرقابة.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 4. الصلاحيات والأدوار -->
+    <section class="section">
+      <h2 class="section-title"><span class="badge-icon">٤</span> هيكل الصلاحيات والأدوار</h2>
+      <div class="grid-3">
+        <div class="card role-card">
+          <div class="card-title">مسؤول المؤسسة (Admin)</div>
+          <ul class="role-list">
+            <li>إنشاء وإدارة حسابات فريق العمل.</li>
+            <li>توزيع وتحديد حصص البحث (Quotas).</li>
+            <li>الاطلاع على سجل النشاط والتدقيق الشامل.</li>
+            <li>إدارة إعدادات المزامنة والتحديث الفوري.</li>
+          </ul>
+        </div>
+        <div class="card role-card" style="border-top-color: #0284c7;">
+          <div class="card-title">المحلل / الامتثال (Analyst)</div>
+          <ul class="role-list">
+            <li>إجراء عمليات البحث والفحص اليومي.</li>
+            <li>إنشاء ملفات العملاء وتحديث بيانات KYC.</li>
+            <li>دراسة حالات الاشتباه وكتابة مبررات القرار.</li>
+            <li>استخراج وطباعة تقارير الـ PDF الرسمية.</li>
+          </ul>
+        </div>
+        <div class="card role-card" style="border-top-color: #64748b;">
+          <div class="card-title">المراجع / المدقق (Viewer)</div>
+          <ul class="role-list">
+            <li>الاطلاع على ملفات العملاء ونتائج الفحص.</li>
+            <li>استعراض سجلات القرارات والتقارير السابقة.</li>
+            <li>صلاحية قراءة فقط (Read-Only) لمنع التعديل.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. الصيانة والدعم والميزات المستقبلية -->
+    <section class="section" style="margin-bottom: 0;">
+      <h2 class="section-title"><span class="badge-icon">٥</span> شروط الصيانة والدعم الفني والميزات الإضافية</h2>
+      <div class="sla-box">
+        <div class="sla-row">
+          <span class="sla-badge free">ضمان ٣ أشهر مجاناً</span>
+          <div>
+            <strong>فترة الضمان والصيانة الفنية (٣ أشهر):</strong>
+            <span style="color: var(--slate-600);">تشمل معالجة أي أخطاء أو باجات برمجية (Bug Fixes) لضمان استقرار النظام التام بعد الإطلاق.</span>
+          </div>
+        </div>
+        <div class="sla-row">
+          <span class="sla-badge custom">تطوير مخصص</span>
+          <div>
+            <strong>التعديلات وإضافة ميزات جديدة:</strong>
+            <span style="color: var(--slate-600);">أي طلبات لتعديل مسار العمل أو إضافة ميزات أو صفحات جديدة غير مشمولة في النسخة الأساسية تخضع لتقييم وتكلفة منفصلة.</span>
+          </div>
+        </div>
+        <div class="sla-row">
+          <span class="sla-badge annual">عقد سنوي اختياري</span>
+          <div>
+            <strong>الصيانة السنوية بعد انتهاء الـ ٣ أشهر:</strong>
+            <span style="color: var(--slate-600);">إمكانية تجديد الدعم الفني والمتابعة الأمنية وتحديثات القوائم عبر عقد صيانة سنوي (AMC) باشتراك سنوي متفق عليه.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-top: 10px;">
+        <div class="card" style="border-style: dashed;">
+          <div class="card-title">🔌 الربط البرمجي (API)</div>
+          <div class="card-body">إمكانية ربط النظام مباشرة مع الـ ERP وبوابات الدفع لفحص العملاء لحظياً.</div>
+        </div>
+        <div class="card" style="border-style: dashed;">
+          <div class="card-title">📁 الفحص الجماعي (Bulk)</div>
+          <div class="card-body">إمكانية رفع ملفات Excel وفحص آلاف الأسماء دفعة واحدة.</div>
+        </div>
+        <div class="card" style="border-style: dashed;">
+          <div class="card-title">🔔 التنبيهات المباشرة</div>
+          <div class="card-body">إشعار فوري لمسؤولي الامتثال عند ظهور تطابق جديد على عميل نشط.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div><strong>نظام DRM لإدارة مخاطر الامتثال</strong> — <a href="https://drmuae.systems" target="_blank" style="color: var(--accent); font-weight: 700;">https://drmuae.systems</a></div>
+    <div>نظام معتمد ومشفّر للأعمال والمؤسسات</div>
+  </footer>
+
+</div>
+
+</body>
+</html>

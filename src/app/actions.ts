@@ -6,8 +6,8 @@ import { createCustomer, updateCustomer, deleteCustomer } from '@/lib/customers'
 import { runAndSaveScreening } from '@/lib/screening';
 import { recordMatchDecision } from '@/lib/decisions';
 import { assignReviewCase } from '@/lib/review-cases';
-import { createTeamUser, setUserQuota, consumeSearch, setUserRole, setUserDisabled, resetUserPassword, updateUserProfile, deleteTeamUser, clearUserSearches, deleteUserSearchEvent, clearMySearchHistory, removeSearchHistoryItem } from '@/lib/team';
 import { getSourceRecord } from '@/lib/search';
+import { createTeamUser, setUserQuota, consumeSearch, quotaStatus, setUserRole, setUserDisabled, resetUserPassword, updateUserProfile, deleteTeamUser, clearUserSearches, deleteUserSearchEvent, clearMySearchHistory, removeSearchHistoryItem } from '@/lib/team';
 import { extractRecordCountry, extractRecordDob, extractRecordIdentifier } from '@/lib/record-details';
 import { customerSchema, teamUserSchema, canManageCustomers, uuidSchema } from '@/lib/validation';
 import { isPlatformOwner } from '@/lib/platform-access';
@@ -109,6 +109,12 @@ export async function createCustomerAction(_previous: FormState, data: FormData)
   const values = Object.fromEntries(['name','entityType','country','nationality','deliveryChannel','email','industry','dateOfBirth','identifier','notes'].map(key=>[key,String(data.get(key) ?? '')]));
   const parsed = customerSchema.safeParse(values);
   if (!parsed.success) return {error: 'راجع الحقول الموضحة أدناه.', fields: parsed.error.flatten().fieldErrors, values};
+
+  const quotaCheck = await quotaStatus(actor);
+  if (!quotaCheck.allowed) {
+    return { error: 'رصيد عمليات الفحص المتاح لك غير كافٍ لإنشاء وفحص عميل جديد. يرجى التواصل مع مسؤول النظام لزيادة الحصة.', values };
+  }
+
   let customerId: string;
   let reference: string;
   try {
@@ -119,6 +125,7 @@ export async function createCustomerAction(_previous: FormState, data: FormData)
   catch { return {error: 'تعذر حفظ الملف. لم يُسجل إنشاء مكتمل؛ أعد المحاولة.', values}; }
 
   try {
+    await consumeSearch(actor, `screen:${customerId}`, parsed.data.name);
     await runAndSaveScreening(actor, customerId);
   } catch (err) {
     console.error('Failed to run initial screening after creating customer:', err);
@@ -414,7 +421,10 @@ export async function createCustomerFromSourceRecordAction(data: FormData) {
   const country = extractRecordCountry(r.details) || 'AE';
   const dateOfBirth = extractRecordDob(r.details) || null;
   const identifier = extractRecordIdentifier(r.details, r.source_record_id) || null;
-  const notes = `تم إنشاء هذا الملف تلقائياً من سجل المصادر (${r.code} - ${r.source_record_id})`;
+  const quotaCheck = await quotaStatus(actor);
+  if (!quotaCheck.allowed) {
+    redirect(`/search/${r.code}/${encodeURIComponent(r.source_record_id)}?error=quota`);
+  }
 
   const { id: customerId, reference } = await createCustomer(actor, {
     name: r.name,
@@ -428,6 +438,7 @@ export async function createCustomerFromSourceRecordAction(data: FormData) {
   });
 
   try {
+    await consumeSearch(actor, `screen:${customerId}`, r.name);
     await runAndSaveScreening(actor, customerId);
   } catch (err) {
     console.error('Failed to run initial screening after creating customer from record:', err);
