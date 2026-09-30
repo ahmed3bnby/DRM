@@ -525,3 +525,12 @@ export async function triggerMonitoringCycleAction() {
   return res;
 }
 
+export async function markMonitoringAlertReadAction(formData: FormData) {
+  const actor = await requireActor();
+  const alertId = String(formData.get('alertId') || '');
+  if (!alertId) return;
+  const { markAlertAsRead } = await import('@/lib/ongoing-monitoring');
+  await markAlertAsRead(actor.organizationId, alertId);
+  revalidatePath('/reviews');
+}
+
