@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
 import { listCustomers, countCustomers, getStats, CUSTOMER_SORTS } from '@/lib/customers';
 import { CustomerTable, number, PAGE_SIZE, Pagination, parsePage, withQuery } from '@/components/ui';
+import CustomerRegistryTable from '@/components/customer-registry-table';
 import { canManageCustomers } from '@/lib/validation';
 import { getMessages, getLocale } from '@/lib/i18n';
 import ProfileFilters from '@/components/profile-filters';
@@ -104,7 +105,7 @@ export default async function Profiles({
         </div>
 
         <ProfileFilters q={q} type={type} sort={sort} status={status} screening={screening} />
-        <CustomerTable customers={customers} m={m} locale={locale} />
+        <CustomerRegistryTable customers={customers} m={m} locale={locale} />
         <Pagination page={page} pageSize={PAGE_SIZE} total={total} makeHref={href} m={m} />
       </section>
     </>

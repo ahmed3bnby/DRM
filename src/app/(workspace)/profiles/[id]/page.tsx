@@ -559,6 +559,11 @@ export default async function Profile({
                           <ArrowUpLeft size={13} />
                         </Link>
                       )}
+                      <Link href={`/profiles/${customer.reference}/sar`} className="text-link" style={{ marginTop: '8px', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600 }}>
+                        <ShieldAlert size={14} />
+                        <span>{locale === 'en' ? 'File goAML SAR / STR Report' : 'إعداد بلاغ اشتباه (goAML SAR)'}</span>
+                        <ArrowUpLeft size={13} />
+                      </Link>
                     </div>
                   ) : (
                     <div className="panel assessment">
