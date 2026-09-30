@@ -38,6 +38,8 @@ export default function PlatformView({
     totalAllocatedQuota: 0,
     totalAccountsWithQuota: 0,
     unlimitedAccounts: 0,
+    totalMonitoredCustomers: 0,
+    totalMonitoringAlerts: 0,
   },
   accounts = [],
   history = [],
@@ -77,6 +79,8 @@ export default function PlatformView({
     totalAllocatedQuota: 0,
     totalAccountsWithQuota: 0,
     unlimitedAccounts: 0,
+    totalMonitoredCustomers: 0,
+    totalMonitoringAlerts: 0,
   };
 
   const totalUsers = safeOrgs.reduce((acc, o) => acc + (o.users || 0), 0);
@@ -256,6 +260,26 @@ export default function PlatformView({
               {safeLockdown.enabled
                 ? (isAr ? 'وضع الصيانة معطّل للمستخدمين' : 'Maintenance active')
                 : (isAr ? 'كافة الوحدات والخدمات نشطة' : 'All modules operational')}
+            </span>
+          </div>
+        </div>
+
+        {/* Metric 5: Ongoing Monitoring & Surveillance */}
+        <div className="platform-stat-card">
+          <div className="platform-stat-icon tint-emerald">
+            <ShieldCheck size={22} style={{ color: '#16a34a' }} />
+          </div>
+          <div className="platform-stat-content">
+            <span className="platform-stat-label">
+              {isAr ? 'المراقبة المستمرة 24/7' : '24/7 Active Surveillance'}
+            </span>
+            <strong className="platform-stat-val text-emerald">
+              {number(safeSummary.totalMonitoredCustomers)}
+            </strong>
+            <span className="platform-stat-sub">
+              {isAr
+                ? `${safeSummary.totalMonitoringAlerts} تنبيه مستجد للمراجعة`
+                : `${safeSummary.totalMonitoringAlerts} unread monitoring alerts`}
             </span>
           </div>
         </div>

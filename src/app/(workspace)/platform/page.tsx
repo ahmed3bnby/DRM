@@ -48,6 +48,8 @@ export default async function PlatformPage({
         totalAllocatedQuota: 0,
         totalAccountsWithQuota: 0,
         unlimitedAccounts: 0,
+        totalMonitoredCustomers: 0,
+        totalMonitoringAlerts: 0,
       };
     }),
     listAllAccountsQuota().catch(err => {

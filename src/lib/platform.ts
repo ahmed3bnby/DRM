@@ -99,6 +99,8 @@ export type PlatformChecksSummary = {
   totalAllocatedQuota: number;
   totalAccountsWithQuota: number;
   unlimitedAccounts: number;
+  totalMonitoredCustomers: number;
+  totalMonitoringAlerts: number;
 };
 
 export async function getPlatformChecksSummary(): Promise<PlatformChecksSummary> {
@@ -110,6 +112,8 @@ export async function getPlatformChecksSummary(): Promise<PlatformChecksSummary>
     totalAllocatedQuota: 0,
     totalAccountsWithQuota: 0,
     unlimitedAccounts: 0,
+    totalMonitoredCustomers: 0,
+    totalMonitoringAlerts: 0,
   };
 
   try {
@@ -117,7 +121,7 @@ export async function getPlatformChecksSummary(): Promise<PlatformChecksSummary>
     const hiddenIds = platformOwnerIds();
 
     return await withPlatformOwner(async db => {
-      const [statsRes, quotaRes] = await Promise.all([
+      const [statsRes, quotaRes, monitorRes] = await Promise.all([
         db.query(`
           SELECT 
             count(*)::int AS total_checks,
@@ -135,11 +139,17 @@ export async function getPlatformChecksSummary(): Promise<PlatformChecksSummary>
           WHERE disabled_at IS NULL
             AND NOT (lower(email) = ANY($1::text[]))
             AND NOT (id = ANY($2::uuid[]))
-        `, [hiddenEmails, hiddenIds])
+        `, [hiddenEmails, hiddenIds]),
+        db.query(`
+          SELECT
+            (SELECT count(*)::int FROM customers WHERE monitoring_enabled = true) AS monitored_customers,
+            (SELECT count(*)::int FROM customer_monitoring_events WHERE NOT is_read) AS unread_alerts
+        `)
       ]);
 
       const s = statsRes.rows[0] || {};
       const q = quotaRes.rows[0] || {};
+      const m = monitorRes.rows[0] || {};
 
       return {
         totalChecks: Number(s.total_checks ?? 0),
@@ -149,6 +159,8 @@ export async function getPlatformChecksSummary(): Promise<PlatformChecksSummary>
         totalAllocatedQuota: Number(q.total_allocated ?? 0),
         totalAccountsWithQuota: Number(q.accounts_with_quota ?? 0),
         unlimitedAccounts: Number(q.unlimited_accounts ?? 0),
+        totalMonitoredCustomers: Number(m.monitored_customers ?? 0),
+        totalMonitoringAlerts: Number(m.unread_alerts ?? 0),
       };
     });
   } catch (err) {

@@ -61,9 +61,12 @@ export async function POST(req: NextRequest) {
 
     // Parse rows
     const items = parseBulkFile(buffer);
+    const autoEnroll = formData.get('autoEnroll') === '1';
 
     // Run batch screening
-    const screeningResult = await runBulkScreening(actor, items);
+    const screeningResult = await runBulkScreening(actor, items, {
+      autoEnrollMonitoring: autoEnroll
+    });
 
     return NextResponse.json(screeningResult);
   } catch (err: any) {

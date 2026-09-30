@@ -2,6 +2,8 @@ import * as XLSX from 'xlsx';
 import { searchPublicSources } from '@/lib/search';
 import { evaluateFATFJurisdiction } from '@/lib/fatf';
 import { consumeSearch, quotaStatus } from '@/lib/team';
+import { pool } from '@/lib/db';
+import { normalizeName } from '@/lib/name-normalization';
 import type { Actor } from '@/lib/auth';
 
 export interface BulkInputRow {
@@ -98,7 +100,8 @@ export function generateTemplateWorkbook(): Buffer {
 
 export async function runBulkScreening(
   actor: Pick<Actor, 'id' | 'organizationId' | 'features'>,
-  items: BulkInputRow[]
+  items: BulkInputRow[],
+  options?: { autoEnrollMonitoring?: boolean }
 ): Promise<{
   total: number;
   flagged: number;
@@ -134,6 +137,36 @@ export async function runBulkScreening(
 
     if (hasMatches || fatf.rating === 'blacklist') {
       flaggedCount++;
+    }
+
+    if (options?.autoEnrollMonitoring) {
+      try {
+        const norm = normalizeName(item.name);
+        const ref = `KYC-B${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        await pool.query(
+          `INSERT INTO customers (
+            organization_id, reference, name, normalized_name, entity_type, country,
+            identifier, status, screening_status, monitoring_enabled, last_monitored_at,
+            monitoring_status, monitoring_hit_count, created_by
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'draft', $8, true, now(), $9, $10, $11)
+          ON CONFLICT DO NOTHING`,
+          [
+            actor.organizationId,
+            ref,
+            item.name,
+            norm,
+            item.entityType || 'individual',
+            (item.country || 'AE').toUpperCase(),
+            item.identifier || null,
+            hasMatches ? 'potential_match' : 'no_match',
+            hasMatches ? 'flagged' : 'clear',
+            relevant.length,
+            actor.id
+          ]
+        );
+      } catch (err) {
+        console.error(`Failed to auto-enroll ${item.name} into monitoring:`, err);
+      }
     }
 
     results.push({

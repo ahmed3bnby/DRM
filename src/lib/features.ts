@@ -11,6 +11,8 @@ export const PREMIUM_FEATURES = [
   'regional_sources',
   'enforcement_debarment',
   'pep_screening',
+  'bulk_screening',
+  'ongoing_monitoring',
 ] as const;
 export type PremiumFeature = typeof PREMIUM_FEATURES[number];
 
@@ -21,6 +23,8 @@ export const FEATURE_LABELS: Record<PremiumFeature, { ar: string; en: string }> 
   regional_sources: { ar: 'القوائم الإقليمية والعربية (مصر، السعودية، الخليج)', en: 'Regional & Arab watchlists' },
   enforcement_debarment: { ar: 'الإنفاذ الدولي ومكافحة الجرائم (البنك الدولي، الإنتربول)', en: 'International enforcement & debarment' },
   pep_screening: { ar: 'فحص الشخصيات السياسية البارزة عالمياً (PEP)', en: 'Global PEP screening' },
+  bulk_screening: { ar: 'الفحص الجماعي عبر ملفات الإكسل (Bulk Excel/CSV)', en: 'Bulk Excel/CSV screening' },
+  ongoing_monitoring: { ar: 'المراقبة المستمرة التلقائية 24/7 (Ongoing Monitoring)', en: 'Automated 24/7 ongoing monitoring' },
 };
 
 export const DEFAULT_MEMBER_LIMIT = 5;
