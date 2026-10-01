@@ -2,10 +2,11 @@ import { withTenant } from './db';
 import { getCustomer, enrichCustomerFromMatch } from './customers';
 import { searchPublicSources, searchCoverage } from './search';
 import { loadCategories, classifyMatch, assess, type ClassifiedMatch, type RiskBand } from './risk';
-import { adverseMediaSearch, type AdverseArticle } from './adverse-media';
 import { canManageCustomers } from './validation';
+import { adverseMediaSearch, type AdverseArticle } from './adverse-media';
 import type { Actor } from './auth';
 import { isSourceAllowed } from './source-categories';
+import { hasFeature } from './features';
 import { extractRecordCountry, extractRecordDob, extractRecordIdentifier, extractRecordAliases } from './record-details';
 
 const RANK: Record<RiskBand, number> = { high: 3, medium: 2, low: 1 };
@@ -112,11 +113,11 @@ export async function screenCustomer(actor: Pick<Actor, 'organizationId'> & Part
 const STATUS_BY_BAND: Record<string, string> = { none: 'no_match', low: 'screened', medium: 'potential_match', high: 'potential_match' };
 
 // Run the screening and persist the outcome onto the customer profile (risk_level stays unassessed).
-export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizationId' | 'role'> & Partial<Pick<Actor, 'features'>>, customerId: string) {
+export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizationId' | 'role'> & Partial<Pick<Actor, 'features' | 'plan'>>, customerId: string) {
   if (!canManageCustomers(actor.role)) throw new Error('FORBIDDEN');
   const { customer, matches, overall, usedDob, usedIdentifier } = await screenCustomer(actor, customerId);
   // Capture an adverse-media scan at screening time (stored with the run). Never fails the screening.
-  const allowAdverse = !actor.features || actor.features.adverse_media !== false;
+  const allowAdverse = hasFeature(actor, 'adverse_media');
   const adverse = allowAdverse
     ? await adverseMediaSearch(customer.name).catch(() => ({ status: 'failed' as const, articles: [] as never[], generalNews: [] as never[], retrievedAt: undefined }))
     : { status: 'disabled' as const, articles: [] as never[], generalNews: [] as never[], retrievedAt: undefined };

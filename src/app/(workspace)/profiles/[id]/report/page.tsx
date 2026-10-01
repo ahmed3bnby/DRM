@@ -16,6 +16,7 @@ import {
 import { evaluateFATFJurisdiction } from '@/lib/fatf';
 import { countryName, DateText, DateTimeText, number, flag } from '@/components/ui';
 import { getMessages, getLocale } from '@/lib/i18n';
+import { adverseMediaSearch } from '@/lib/adverse-media';
 import PrintButton from '@/components/print-button';
 import { DeveloperCredit } from '@/components/developer-credit';
 
@@ -145,8 +146,19 @@ export default async function Report({ params }: { params: Promise<{ id: string 
 
   const targetCountry = customer.nationality || customer.country;
   const fatfInfo = evaluateFATFJurisdiction(targetCountry);
-  const adverseArticles = last?.adverse_media?.articles ?? [];
-  const generalNewsArticles = last?.adverse_media?.generalNews ?? [];
+  let adverseArticles = last?.adverse_media?.articles ?? [];
+  let generalNewsArticles = last?.adverse_media?.generalNews ?? [];
+
+  // Live Fallback: If snapshot has no adverse media records, fetch live Google & Adverse media
+  if (hasFeature(actor, 'adverse_media') && adverseArticles.length === 0 && generalNewsArticles.length === 0) {
+    try {
+      const liveAdv = await adverseMediaSearch(customer.name);
+      if (liveAdv.status === 'searched') {
+        adverseArticles = liveAdv.articles;
+        generalNewsArticles = liveAdv.generalNews || [];
+      }
+    } catch {}
+  }
 
   // Clean source list name formatter (short and readable)
   const cleanSourceName = (src: string) => {
@@ -555,12 +567,15 @@ export default async function Report({ params }: { params: Promise<{ id: string 
         {/* 5.1 Google & Public Media Results (MemberCheck Adverse Media & News) */}
         <section className="idenfo-section">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #e5e7eb', paddingBottom: '6px', marginBottom: '12px' }}>
-            <h2 className="idenfo-section-title" style={{ borderBottom: 'none', margin: 0, padding: 0 }}>
-              {isEn ? 'Google Results & Advanced Media Search' : 'نتائج محركات البحث والأخبار (Google & Adverse Media)'}
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Newspaper size={18} style={{ color: '#007527' }} />
+              <h2 className="idenfo-section-title" style={{ borderBottom: 'none', margin: 0, padding: 0 }}>
+                {isEn ? 'Google Results & Advanced Media Details' : 'نتائج محركات البحث والأخبار والوسائط السلبية (Google & Adverse Media)'}
+              </h2>
+            </div>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
               {adverseArticles.length + generalNewsArticles.length > 0
-                ? (isEn ? `${adverseArticles.length + generalNewsArticles.length} articles found` : `${adverseArticles.length + generalNewsArticles.length} مادة صحفية`)
+                ? (isEn ? `${adverseArticles.length + generalNewsArticles.length} articles found with details` : `${adverseArticles.length + generalNewsArticles.length} مادة صحفية بالتفاصيل`)
                 : (isEn ? 'No media hits' : 'سليم من الأخبار السلبية')}
             </span>
           </div>
@@ -572,19 +587,28 @@ export default async function Report({ params }: { params: Promise<{ id: string 
                   : '✓ لم تسفر عمليات البحث الإخباري عن أي وسائط سلبية أو شبهات جرائم مالية أو قضايا منشورة بحق العميل.'}
               </div>
             ) : (
-              <div>
-                {[...adverseArticles, ...generalNewsArticles].slice(0, 15).map((art, idx) => (
+              <div className="media-articles-list">
+                {[...adverseArticles, ...generalNewsArticles].slice(0, 20).map((art, idx) => (
                   <div key={idx} className="media-article-item">
                     <div className="media-article-meta">
-                      <span className="media-source-pill">{art.source || art.domain}</span>
-                      {art.date && <span>{art.date}</span>}
+                      <span className="media-source-pill">
+                        <Globe size={11} style={{ marginInlineEnd: '4px', verticalAlign: 'middle' }} />
+                        {art.source || art.domain}
+                      </span>
+                      {art.date && <span className="media-date-pill">{art.date}</span>}
                       <span className={`media-category-pill media-cat-${art.category}`}>
                         {catLabel(art.category)}
                       </span>
                     </div>
                     <a href={art.url} target="_blank" rel="noopener noreferrer" className="media-article-title">
-                      {art.title}
+                      <span>{art.title}</span>
+                      <ExternalLink size={12} style={{ marginInlineStart: '6px', opacity: 0.7, verticalAlign: 'middle' }} />
                     </a>
+                    {art.snippet && (
+                      <p className="media-article-snippet" dir="auto">
+                        {art.snippet}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
