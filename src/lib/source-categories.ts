@@ -85,9 +85,10 @@ export function getSourceCategory(code: string): SourceCategory {
 
 export function isSourceAllowed(
   code: string,
-  actor?: Partial<Pick<Actor, 'id' | 'role' | 'features'>> | null
+  actor?: Partial<Pick<Actor, 'id' | 'role' | 'features' | 'plan'>> | null
 ): boolean {
   if (!actor) return true;
+  if (actor.role === 'admin' || actor.plan === 'enterprise') return true;
   const category = getSourceCategory(code);
   if (category === 'core') return true;
   if (!actor.features) return true;

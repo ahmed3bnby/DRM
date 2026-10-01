@@ -31,7 +31,8 @@ export const DEFAULT_MEMBER_LIMIT = 5;
 
 // The platform owner always has every feature; a normal org only has what the
 // owner switched on for it.
-export function hasFeature(actor: Partial<Pick<Actor, 'id' | 'role' | 'features'>>, key: PremiumFeature): boolean {
+export function hasFeature(actor: Partial<Pick<Actor, 'id' | 'role' | 'features' | 'plan'>>, key: PremiumFeature): boolean {
   if (isPlatformOwner(actor)) return true;
+  if (actor.plan === 'enterprise') return true;
   return actor.features?.[key] === true;
 }
