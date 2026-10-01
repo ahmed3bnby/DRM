@@ -161,7 +161,17 @@ export default function MatchesView({
 
   // Translations
   const catLabel = (c: string) =>
-    ({ sanctions: m.catSanctions, pep: m.catPep, crime: m.catCrime, debarment: m.catDebarment, regulatory: m.catRegulatory, other: m.catOther } as Record<string, string>)[c] ?? c;
+    ({
+      sanctions: m.catSanctions,
+      pep: m.catPep,
+      crime: m.catCrime,
+      debarment: m.catDebarment,
+      regulatory: m.catRegulatory || (locale === 'en' ? 'Regulatory Alert' : 'إجراء رقابي'),
+      maritime: locale === 'en' ? 'Sanctioned Vessel' : 'حظر سفن وملاحة',
+      corporate_ubo: locale === 'en' ? 'Corporate & UBO' : 'سجل شركات / UBO',
+      offshore: locale === 'en' ? 'Offshore Leaks' : 'تسريبات ملاذات ضريبية',
+      other: m.catOther
+    } as Record<string, string>)[c] ?? c;
   const bandLabel = (b: string) =>
     ({ none: m.bandNone, low: m.bandLow, medium: m.bandMedium, high: m.bandHigh } as Record<string, string>)[b] ?? b;
   const decLabel = (d: string) =>

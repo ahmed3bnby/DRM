@@ -75,6 +75,9 @@ export default async function Report({ params }: { params: Promise<{ id: string 
         crime: 'Special Interest Person',
         debarment: 'Debarment / Exclusion',
         regulatory: 'Regulatory Enforcement',
+        maritime: 'Sanctioned Maritime Vessel',
+        corporate_ubo: 'Corporate & UBO Registry',
+        offshore: 'Offshore Leaks',
         other: 'Public Media'
       } as Record<string, string>)[c] ?? c;
     }
@@ -87,7 +90,10 @@ export default async function Report({ params }: { params: Promise<{ id: string 
       pep: m.catPep,
       crime: m.catCrime,
       debarment: m.catDebarment,
-      regulatory: m.catRegulatory,
+      regulatory: m.catRegulatory || 'إجراء رقابي',
+      maritime: 'حظر سفن وملاحة',
+      corporate_ubo: 'سجل شركات / UBO',
+      offshore: 'تسريبات ملاذات ضريبية',
       other: 'أخبار عامة'
     } as Record<string, string>)[c] ?? c;
   };

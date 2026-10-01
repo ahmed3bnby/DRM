@@ -6,7 +6,7 @@ import defaultCatalog from '@/data/source-catalog.json';
 // source hit is — NOT the customer's final risk rating. Per the plan's principle #3,
 // match score, analyst determination, and customer risk rating stay three separate things;
 // the final risk rating is owned by the P06 risk model + analyst, never auto-set from a name.
-export type Category = 'sanctions'|'debarment'|'crime'|'regulatory'|'pep'|'other';
+export type Category = 'sanctions'|'debarment'|'crime'|'regulatory'|'pep'|'maritime'|'corporate_ubo'|'offshore'|'other';
 export type RiskBand = 'high'|'medium'|'low';
 
 // Category comes from the OpenSanctions collection a list belongs to (data-driven, in the
@@ -19,11 +19,17 @@ const LEGACY:Record<string,Category> = {
   eg_terrorists:'sanctions', pk_proscribed_persons:'sanctions',
   interpol_red_notices:'crime', ae_dfsa_prohibited:'crime',
   worldbank_debarred:'debarment', us_cia_world_leaders:'pep',
-  eg_house_representatives:'pep', qa_shura_council:'pep', bh_nuwab:'pep', om_parliament:'pep'
+  eg_house_representatives:'pep', qa_shura_council:'pep', bh_nuwab:'pep', om_parliament:'pep',
+  ae_sca_alerts:'regulatory', ae_dfsa_adgm_alerts:'regulatory', sa_cma_alerts:'regulatory', gb_fca_warnings:'regulatory',
+  ofac_sanctioned_vessels:'maritime', black_sea_mou_detention:'maritime', abuja_mou_detention:'maritime',
+  gleif_lei_registry:'corporate_ubo', opencorporates_registry:'corporate_ubo',
+  icij_offshore_leaks:'offshore'
 };
 export const CATEGORY_LABEL:Record<Category,string> = {
   sanctions:'عقوبات', debarment:'حظر تعاقد', crime:'جريمة / إنفاذ',
-  regulatory:'إجراء رقابي', pep:'شخصية سياسية (PEP)', other:'قائمة مراقبة',
+  regulatory:'إجراء رقابي', pep:'شخصية سياسية (PEP)',
+  maritime:'حظر ملاحة وسفن', corporate_ubo:'سجل شركات / UBO', offshore:'تسريبات الملاذات',
+  other:'قائمة مراقبة',
 };
 export const BAND_LABEL:Record<RiskBand,string> = {high:'مرتفع', medium:'متوسط', low:'منخفض'};
 
@@ -87,9 +93,9 @@ export function classifyMatch(code:string, matchKind:string, similarity:number, 
   const strong=boosted||matchKind==='exact'||sim>=0.85;
   const moderate=!strong&&sim>=0.80;
   let band:RiskBand;
-  if (category==='sanctions'||category==='debarment'||category==='crime')
-    band = strong?'high':moderate?'medium':'low';           // enforcement severity scales with match strength
-  else if (category==='pep'||category==='regulatory')
+  if (category==='sanctions'||category==='debarment'||category==='crime'||category==='maritime')
+    band = strong?'high':moderate?'medium':'low';           // enforcement & maritime sanctions scale with strength
+  else if (category==='pep'||category==='regulatory'||category==='offshore')
     band = (strong||moderate)?'medium':'low';               // elevated, never auto-high on name alone
   else
     band = 'low';
@@ -105,12 +111,12 @@ export function classifyMatch(code:string, matchKind:string, similarity:number, 
 // Person-level determination across all hits.
 export type Assessment = {
   band:RiskBand|'none'; bandLabel:string; determination:string;
-  flags:{sanctions:boolean; pep:boolean; debarment:boolean; crime:boolean; regulatory:boolean};
+  flags:{sanctions:boolean; pep:boolean; debarment:boolean; crime:boolean; regulatory:boolean; maritime?:boolean; corporate_ubo?:boolean; offshore?:boolean};
   total:number; relevant:number;
 };
 const RANK:Record<RiskBand,number> = {low:1, medium:2, high:3};
 export function assess(matches:ClassifiedMatch[]):Assessment {
-  const flags={sanctions:false,pep:false,debarment:false,crime:false,regulatory:false};
+  const flags={sanctions:false,pep:false,debarment:false,crime:false,regulatory:false,maritime:false,corporate_ubo:false,offshore:false};
   let top:RiskBand|null=null, relevant=0;
   for (const m of matches) {
     if (m.band!=='low') relevant++;
@@ -120,10 +126,12 @@ export function assess(matches:ClassifiedMatch[]):Assessment {
   if (!matches.length || !top) return {band:'none',bandLabel:'لا مطابقات',determination:'لا مطابقات ذات صلة — تقييم مخاطر العميل قرار للمحلل',flags,total:0,relevant:0};
   const parts:string[]=[];
   if (flags.sanctions) parts.push('عقوبات');
+  if (flags.maritime) parts.push('حظر سفن');
   if (flags.debarment) parts.push('حظر تعاقد');
   if (flags.crime) parts.push('إنفاذ/جريمة');
   if (flags.pep) parts.push('PEP');
   if (flags.regulatory) parts.push('إجراء رقابي');
+  if (flags.offshore) parts.push('تسريبات ملاذات');
   const kinds=parts.length?parts.join(' · '):'تشابه اسم';
   return {band:top, bandLabel:BAND_LABEL[top],
     determination:`${kinds} — شدّة مطابقة ${BAND_LABEL[top]} · تقييم مخاطر العميل قرار للمحلل`,

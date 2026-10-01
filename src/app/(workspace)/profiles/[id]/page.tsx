@@ -5,7 +5,7 @@ import {
   ArrowRight, CheckCircle2, XCircle, MinusCircle, ShieldQuestion,
   ShieldAlert, ScanSearch, Clock3, FileText, LockKeyhole, ArrowUpLeft,
   Pencil, Newspaper, ExternalLink, Info, Activity as ActivityIcon, AlertCircle, ShieldCheck, Building2,
-  AlertOctagon, CheckCheck
+  AlertOctagon, CheckCheck, FileSpreadsheet
 } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
 import { hasFeature } from '@/lib/features';
@@ -132,7 +132,17 @@ export default async function Profile({
   const isOwner = !customer.created_by || customer.created_by === actor.id;
   const canEdit = actor.role === 'admin' || (canManage && isOwner);
   const bandLabel = (b: string) => ({ none: m.bandNone, low: m.bandLow, medium: m.bandMedium, high: m.bandHigh } as Record<string, string>)[b] ?? b;
-  const catLabel = (c: string) => ({ sanctions: m.catSanctions, pep: m.catPep, crime: m.catCrime, debarment: m.catDebarment, regulatory: m.catRegulatory, other: m.catOther } as Record<string, string>)[c] ?? c;
+  const catLabel = (c: string) => ({
+    sanctions: m.catSanctions,
+    pep: m.catPep,
+    crime: m.catCrime,
+    debarment: m.catDebarment,
+    regulatory: m.catRegulatory || (locale === 'en' ? 'Regulatory Alert' : 'إجراء رقابي'),
+    maritime: locale === 'en' ? 'Sanctioned Vessel' : 'حظر سفن وملاحة',
+    corporate_ubo: locale === 'en' ? 'Corporate & UBO' : 'سجل شركات / UBO',
+    offshore: locale === 'en' ? 'Offshore Leaks' : 'تسريبات ملاذات ضريبية',
+    other: m.catOther
+  } as Record<string, string>)[c] ?? c;
   const dcLabel = (c: string) => ({ face_to_face: m.dcFaceToFace, non_face_to_face: m.dcNonFaceToFace, online: m.dcOnline } as Record<string, string>)[c] ?? '';
 
   const resFatf = getFatfStatus(customer.country);
@@ -587,35 +597,60 @@ export default async function Profile({
 
                       {/* Unified Compliance Action Hub */}
                       <div className="compliance-action-hub">
-                        <div style={{ marginBottom: '8px' }}>
+                        <div className="action-hub-header">
+                          <FileSpreadsheet size={15} className="action-hub-header-icon" />
+                          <span>{locale === 'en' ? 'Compliance Operations & Reports' : 'حزمة إجراءات الامتثال والتقارير التنفيذية'}</span>
+                        </div>
+
+                        <div className="action-hub-primary-slot">
                           {screenButton}
                         </div>
 
                         <div className="action-hub-links-grid">
                           <Link href={`/profiles/${customer.reference}/report`} className="hub-link-item report">
-                            <FileText size={15} />
-                            <span>{m.viewReport}</span>
-                            <ArrowUpLeft size={13} className="hub-arrow" />
+                            <div className="hub-item-left">
+                              <FileText size={16} className="hub-icon-report" />
+                              <span className="hub-item-title">{m.viewReport}</span>
+                            </div>
+                            <div className="hub-item-right">
+                              <span className="hub-micro-badge">Dossier</span>
+                              <ArrowUpLeft size={13} className="hub-arrow" />
+                            </div>
                           </Link>
 
                           {customer.monitoring_enabled !== false && (
                             <Link href={`/profiles/${customer.reference}/monitoring-audit`} className="hub-link-item cert">
-                              <ShieldCheck size={15} />
-                              <span>{locale === 'en' ? 'Monitoring Audit Certificate' : 'شهادة الامتثال والمراقبة المستمرة'}</span>
-                              <ArrowUpLeft size={13} className="hub-arrow" />
+                              <div className="hub-item-left">
+                                <ShieldCheck size={16} className="hub-icon-cert" />
+                                <span className="hub-item-title">{locale === 'en' ? 'Monitoring Audit Certificate' : 'شهادة الامتثال والمراقبة المستمرة'}</span>
+                              </div>
+                              <div className="hub-item-right">
+                                <span className="hub-micro-badge">Audit</span>
+                                <ArrowUpLeft size={13} className="hub-arrow" />
+                              </div>
                             </Link>
                           )}
 
                           <Link href={`/profiles/${customer.reference}/sar`} className="hub-link-item sar">
-                            <ShieldAlert size={15} />
-                            <span>{locale === 'en' ? 'File goAML SAR Report' : 'إعداد بلاغ اشتباه (goAML SAR)'}</span>
-                            <ArrowUpLeft size={13} className="hub-arrow" />
+                            <div className="hub-item-left">
+                              <ShieldAlert size={16} className="hub-icon-sar" />
+                              <span className="hub-item-title">{locale === 'en' ? 'File goAML SAR Report' : 'إعداد بلاغ اشتباه (goAML SAR)'}</span>
+                            </div>
+                            <div className="hub-item-right">
+                              <span className="hub-micro-badge">goAML</span>
+                              <ArrowUpLeft size={13} className="hub-arrow" />
+                            </div>
                           </Link>
 
                           <Link href={`/profiles/${customer.reference}/sar?type=REAR`} className="hub-link-item dnfbp">
-                            <Building2 size={15} />
-                            <span>{locale === 'en' ? 'File REAR / FARI Report' : 'إبلاغ الصفقات العقارية (REAR/FARI)'}</span>
-                            <ArrowUpLeft size={13} className="hub-arrow" />
+                            <div className="hub-item-left">
+                              <Building2 size={16} className="hub-icon-dnfbp" />
+                              <span className="hub-item-title">{locale === 'en' ? 'File REAR / FARI Report' : 'إبلاغ الصفقات العقارية (REAR/FARI)'}</span>
+                            </div>
+                            <div className="hub-item-right">
+                              <span className="hub-micro-badge">DNFBP</span>
+                              <ArrowUpLeft size={13} className="hub-arrow" />
+                            </div>
                           </Link>
                         </div>
                       </div>
