@@ -8538,15 +8538,279 @@ html[dir="rtl"] .sources-search-input {
   box-shadow: 0 4px 12px rgba(133, 77, 14, 0.25);
 }
 
-/* AI Pill in match table rows */
+/* ==========================================================================
+   Executive Profile Header & Polished Compliance Workstation
+   ========================================================================== */
+.profile-heading-executive {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin: 0 0 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-head-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+}
+
+.profile-head-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.profile-head-identity > .entity-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  flex-shrink: 0;
+}
+
+.profile-identity-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.profile-name-row h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.profile-ref-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.profile-ref-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  font-size: 11.5px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #475569;
+}
+
+.profile-entity-badge {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.profile-head-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.profile-head-actions-bar .action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.profile-head-actions-bar .action-btn.edit-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.profile-head-actions-bar .action-btn.edit-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.profile-head-meta-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  width: 100%;
+}
+
+.meta-chips-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.meta-chip .chip-label {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.meta-chip.fatf-chip.blacklist {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+  font-weight: 600;
+}
+.meta-chip.fatf-chip.greylist {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+  font-weight: 600;
+}
+.meta-chip.dnfbp-chip {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+  font-weight: 600;
+}
+
+/* Compliance Action Hub in Assessment sidebar */
+.compliance-action-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.action-hub-links-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hub-link-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  line-height: 1.3;
+}
+
+.hub-link-item.report {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #1e293b;
+}
+.hub-link-item.report:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.hub-link-item.cert {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+.hub-link-item.cert:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.hub-link-item.sar {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+.hub-link-item.sar:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.hub-link-item.dnfbp {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+.hub-link-item.dnfbp:hover {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+}
+
+.hub-arrow {
+  margin-inline-start: auto;
+  opacity: 0.5;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.hub-link-item:hover .hub-arrow {
+  opacity: 1;
+  transform: translate(-2px, -2px);
+}
+
+/* Polished AI recommendation pills */
 .ai-table-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 10.5px;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
+  padding: 3px 8px;
+  border-radius: 6px;
   margin-top: 4px;
   border: 1px solid transparent;
   cursor: pointer;
@@ -8554,30 +8818,48 @@ html[dir="rtl"] .sources-search-input {
 }
 
 .ai-table-tag.dismissed {
-  background: #dcfce7;
-  color: #15803d;
+  background: #f0fdf4;
+  color: #166534;
   border-color: #bbf7d0;
 }
 .ai-table-tag.dismissed:hover {
-  background: #bbf7d0;
+  background: #dcfce7;
 }
 
 .ai-table-tag.confirmed {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #fef2f2;
+  color: #991b1b;
   border-color: #fecaca;
 }
 .ai-table-tag.confirmed:hover {
-  background: #fecaca;
+  background: #fee2e2;
 }
 
 .ai-table-tag.needs_info {
-  background: #fef9c3;
-  color: #a16207;
-  border-color: #fde047;
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
 }
 .ai-table-tag.needs_info:hover {
-  background: #fde047;
+  background: #fef3c7;
+}
+
+@media screen and (max-width: 800px) {
+  .profile-head-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .profile-head-actions-bar {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .profile-head-actions-bar .button,
+  .profile-head-actions-bar .action-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }
 
 

@@ -18,21 +18,29 @@ import {
   ChevronDown,
   History,
   ShieldCheck,
+  Building2,
+  Coins,
+  Landmark,
+  Sparkles,
+  MapPin,
+  Receipt,
 } from 'lucide-react';
 import type { Customer } from '@/lib/customers';
 import type { SarReportRecord, SarReportType, SarReasonCategory, SarActionTaken } from '@/lib/goaml-types';
-import { SAR_REASON_LABELS, SAR_ACTION_LABELS } from '@/lib/goaml-types';
+import { SAR_REPORT_TYPE_LABELS, SAR_REASON_LABELS, SAR_ACTION_LABELS } from '@/lib/goaml-types';
 import { countryName, flag } from '@/components/ui';
 import type { Locale } from '@/lib/i18n';
 
 export default function SarFilingView({
   customer,
   initialReports,
+  initialReportType,
   actor,
   locale = 'ar',
 }: {
   customer: Customer;
   initialReports: SarReportRecord[];
+  initialReportType?: string;
   actor: { id: string; displayName: string; role: string; organizationName: string };
   locale: Locale;
 }) {
@@ -42,21 +50,87 @@ export default function SarFilingView({
     initialReports.length > 0 ? initialReports[0] : null
   );
 
+  const parsedInitType: SarReportType =
+    initialReportType === 'REAR' ? 'REAR' :
+    initialReportType === 'FARI' ? 'FARI' :
+    initialReportType === 'DPMSR' ? 'DPMSR' :
+    initialReportType === 'STR' ? 'STR' : 'SAR';
+
   const [activeMode, setActiveMode] = useState<'view' | 'new'>(
-    initialReports.length === 0 ? 'new' : 'view'
+    initialReportType || initialReports.length === 0 ? 'new' : 'view'
   );
 
   // Form State
-  const [reportType, setReportType] = useState<SarReportType>('SAR');
+  const [reportType, setReportType] = useState<SarReportType>(parsedInitType);
   const [reasonCategory, setReasonCategory] = useState<SarReasonCategory>(
+    parsedInitType === 'REAR' ? 'real_estate_cash_threshold' :
+    parsedInitType === 'FARI' ? 'virtual_asset_crypto_payment' :
     customer.screening_status === 'potential_match' ? 'sanctions_match' : 'unusual_transaction'
   );
   const [actionTaken, setActionTaken] = useState<SarActionTaken>('escalate_senior_management');
-  const [suspiciousAmount, setSuspiciousAmount] = useState<string>('');
+  const [suspiciousAmount, setSuspiciousAmount] = useState<string>(
+    parsedInitType === 'REAR' || parsedInitType === 'FARI' ? '55000' : ''
+  );
   const [narrative, setNarrative] = useState<string>('');
+
+  // DNFBP / REAR / FARI Specific Fields
+  const [propertyDetails, setPropertyDetails] = useState({
+    titleDeedNumber: '',
+    propertyType: 'residential' as 'residential' | 'commercial' | 'industrial' | 'land',
+    emirate: 'Dubai',
+    projectOrBuilding: '',
+    developerOrSeller: '',
+  });
+
+  const [paymentMode, setPaymentMode] = useState<'cash' | 'crypto_virtual_asset' | 'bank_transfer' | 'cheque' | 'mixed'>(
+    parsedInitType === 'FARI' ? 'crypto_virtual_asset' : 'cash'
+  );
+
+  const [virtualAssetDetails, setVirtualAssetDetails] = useState({
+    cryptoType: 'USDT (TRC-20)',
+    walletAddress: '',
+    txHash: '',
+  });
+
+  const [dnfbpSector, setDnfbpSector] = useState<string>(
+    parsedInitType === 'REAR' ? 'Real Estate Brokerage / Development' :
+    parsedInitType === 'FARI' ? 'DNFBP / Virtual Asset Service' :
+    'Financial Institution'
+  );
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const applyPreset = (type: SarReportType) => {
+    setReportType(type);
+    if (type === 'REAR') {
+      setReasonCategory('real_estate_cash_threshold');
+      setDnfbpSector('Real Estate Brokerage / Development');
+      if (!suspiciousAmount || suspiciousAmount === '0') setSuspiciousAmount('55000');
+      if (!narrative) {
+        setNarrative(
+          isEn
+            ? `Mandatory statutory REAR filing for freehold real estate transaction. Pursuant to UAE Ministry of Economy and FIU directives for cash payments >= AED 55,000, corporate buyers, or virtual asset settlement.`
+            : `إبلاغ إلزامي عن صفقة عقارية (goAML REAR) تنفيذاً لتعاميم وزارة الاقتصاد ووحدة المعلومات المالية الإماراتية بشأن التعاملات العقارية المتضمنة دفعات نقدية ≥ 55,000 درهم إماراتي أو أطراف اعتبارية.`
+        );
+      }
+    } else if (type === 'FARI') {
+      setReasonCategory('virtual_asset_crypto_payment');
+      setPaymentMode('crypto_virtual_asset');
+      setDnfbpSector('DNFBP / Virtual Asset Service');
+      if (!suspiciousAmount || suspiciousAmount === '0') setSuspiciousAmount('75000');
+      if (!narrative) {
+        setNarrative(
+          isEn
+            ? `Mandatory statutory FARI filing for transaction involving virtual assets (crypto) or high-value physical cash payments pursuant to UAE AML/CFT regulations.`
+            : `إبلاغ إلزامي عن تدفقات نقدية أو أصول افتراضية (goAML FARI) لقطاع الأعمال والمهن غير المالية المحددة (DNFBPs) للمعاملات المنفذة عبر العملات الرقمية أو النقدية عالية القيمة.`
+        );
+      }
+    } else if (type === 'SAR') {
+      setReasonCategory(customer.screening_status === 'potential_match' ? 'sanctions_match' : 'unusual_transaction');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +153,10 @@ export default function SarFilingView({
           actionTaken,
           suspiciousAmount: suspiciousAmount ? parseFloat(suspiciousAmount) : undefined,
           currency: 'AED',
+          propertyDetails: reportType === 'REAR' ? propertyDetails : undefined,
+          paymentMode,
+          virtualAssetDetails: (paymentMode === 'crypto_virtual_asset' || reportType === 'FARI') ? virtualAssetDetails : undefined,
+          dnfbpSector,
         }),
       });
 
@@ -199,6 +277,80 @@ export default function SarFilingView({
             </div>
           </div>
 
+          {/* Quick Presets Bar */}
+          <div style={{ marginBottom: '22px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <Sparkles size={15} style={{ color: '#007527' }} />
+              <strong style={{ fontSize: '13px', color: '#14281f' }}>
+                {isEn ? '1-Click UAE Regulatory Filing Presets:' : 'نماذج التعبئة السريعة المعتمدة للوائح الإماراتية (1-Click Presets):'}
+              </strong>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => applyPreset('REAR')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: reportType === 'REAR' ? '#0369a1' : '#ffffff',
+                  color: reportType === 'REAR' ? '#ffffff' : '#0369a1',
+                  border: reportType === 'REAR' ? '1px solid #0369a1' : '1px solid #bae6fd',
+                }}
+              >
+                <Building2 size={14} />
+                <span>{isEn ? '🏢 Real Estate Deal (REAR)' : '🏢 تقرير الصفقات العقارية (REAR)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPreset('FARI')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: reportType === 'FARI' ? '#7c3aed' : '#ffffff',
+                  color: reportType === 'FARI' ? '#ffffff' : '#6d28d9',
+                  border: reportType === 'FARI' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
+                }}
+              >
+                <Coins size={14} />
+                <span>{isEn ? '🪙 Funds & Virtual Assets (FARI)' : '🪙 التدفقات النقدية والأصول الافتراضية (FARI)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPreset('SAR')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: reportType === 'SAR' ? '#dc2626' : '#ffffff',
+                  color: reportType === 'SAR' ? '#ffffff' : '#b91c1c',
+                  border: reportType === 'SAR' ? '1px solid #dc2626' : '1px solid #fecaca',
+                }}
+              >
+                <ShieldAlert size={14} />
+                <span>{isEn ? '🚨 Suspicious Activity (SAR / STR)' : '🚨 بلاغ اشتباه عام (SAR / STR)'}</span>
+              </button>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
               {/* Report Type */}
@@ -208,14 +360,17 @@ export default function SarFilingView({
                 </label>
                 <select
                   value={reportType}
-                  onChange={e => setReportType(e.target.value as SarReportType)}
+                  onChange={e => applyPreset(e.target.value as SarReportType)}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', background: '#fff' }}
                   required
                 >
-                  <option value="SAR">{isEn ? 'SAR - Suspicious Activity Report (بلاغ نشاط مشبوه)' : 'SAR — بلاغ نشاط مشبوه (بدون معاملة محددة)'}</option>
-                  <option value="STR">{isEn ? 'STR - Suspicious Transaction Report (بلاغ معاملة مشبوهة)' : 'STR — بلاغ معاملة مشبوهة مالياً'}</option>
-                  <option value="HRC">{isEn ? 'HRC - High Risk Country Report (تقرير دولة عالية المخاطر)' : 'HRC — تقرير ارتباط بدولة عالية المخاطر (القائمة السوداء)'}</option>
-                  <option value="AIF">{isEn ? 'AIF - Additional Information File (ملف معلومات إضافية)' : 'AIF — ملف معلومات إضافية لبلاغ سابق'}</option>
+                  <option value="SAR">{isEn ? 'SAR - Suspicious Activity Report' : 'SAR — بلاغ نشاط مشبوه (بدون معاملة منجزة)'}</option>
+                  <option value="STR">{isEn ? 'STR - Suspicious Transaction Report' : 'STR — بلاغ معاملة مشبوهة مالياً'}</option>
+                  <option value="REAR">{isEn ? 'REAR - Real Estate Activity Report' : 'REAR — تقرير الصفقات العقارية (وزارة الاقتصاد/FIU)'}</option>
+                  <option value="FARI">{isEn ? 'FARI - Funds & Virtual Assets Report' : 'FARI — تقرير التدفقات النقدية والأصول الافتراضية (≥55k/Crypto)'}</option>
+                  <option value="DPMSR">{isEn ? 'DPMSR - Dealers in Precious Metals' : 'DPMSR — تقرير تجار المعادن الثمينة والأحجار'}</option>
+                  <option value="HRC">{isEn ? 'HRC - High Risk Country Report' : 'HRC — تقرير ارتباط بدولة عالية المخاطر (القائمة السوداء)'}</option>
+                  <option value="AIF">{isEn ? 'AIF - Additional Information File' : 'AIF — ملف معلومات إضافية لبلاغ سابق'}</option>
                 </select>
               </div>
 
@@ -271,6 +426,188 @@ export default function SarFilingView({
                 ))}
               </select>
             </div>
+
+            {/* REAR - Real Estate Deal Details */}
+            {reportType === 'REAR' && (
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '18px 20px', marginBottom: '22px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <Building2 size={16} style={{ color: '#0284c7' }} />
+                  <strong style={{ fontSize: '13.5px', color: '#0369a1' }}>
+                    {isEn ? 'Real Estate Property & Transaction Particulars (REAR Requirements):' : 'بيانات العقار والصفقة العقارية (المتطلبات الإلزامية لـ REAR):'}
+                  </strong>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      {isEn ? 'Title Deed No. *' : 'رقم سند الملكية / العقد *'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 2024-TD-89211"
+                      value={propertyDetails.titleDeedNumber}
+                      onChange={e => setPropertyDetails({ ...propertyDetails, titleDeedNumber: e.target.value })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      {isEn ? 'Emirate *' : 'الإمارة *'}
+                    </label>
+                    <select
+                      value={propertyDetails.emirate}
+                      onChange={e => setPropertyDetails({ ...propertyDetails, emirate: e.target.value })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
+                      required
+                    >
+                      <option value="Dubai">{isEn ? 'Dubai' : 'دبي'}</option>
+                      <option value="Abu Dhabi">{isEn ? 'Abu Dhabi' : 'أبوظبي'}</option>
+                      <option value="Sharjah">{isEn ? 'Sharjah' : 'الشارقة'}</option>
+                      <option value="Ajman">{isEn ? 'Ajman' : 'عجمان'}</option>
+                      <option value="Ras Al Khaimah">{isEn ? 'Ras Al Khaimah' : 'رأس الخيمة'}</option>
+                      <option value="Umm Al Quwain">{isEn ? 'Umm Al Quwain' : 'أم القيوين'}</option>
+                      <option value="Fujairah">{isEn ? 'Fujairah' : 'الفجيرة'}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      {isEn ? 'Property Type *' : 'نوع العقار *'}
+                    </label>
+                    <select
+                      value={propertyDetails.propertyType}
+                      onChange={e => setPropertyDetails({ ...propertyDetails, propertyType: e.target.value as any })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
+                      required
+                    >
+                      <option value="residential">{isEn ? 'Residential (سكني)' : 'سكني (شقة / فيلا / تاون هاوس)'}</option>
+                      <option value="commercial">{isEn ? 'Commercial (تجاري)' : 'تجاري (مكتب / محل / مول)'}</option>
+                      <option value="industrial">{isEn ? 'Industrial (صناعي)' : 'صناعي / مستودعات'}</option>
+                      <option value="land">{isEn ? 'Land Plot (أرض فضاء)' : 'أرض فضاء / تطوير عقاري'}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      {isEn ? 'Project / Building / Community' : 'اسم المشروع أو البرج أو المجمع'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Burj Crown / Palm Residences"
+                      value={propertyDetails.projectOrBuilding}
+                      onChange={e => setPropertyDetails({ ...propertyDetails, projectOrBuilding: e.target.value })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      {isEn ? 'Developer / Seller Entity' : 'المطور العقاري أو البائع'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Emaar Properties PJSC"
+                      value={propertyDetails.developerOrSeller}
+                      onChange={e => setPropertyDetails({ ...propertyDetails, developerOrSeller: e.target.value })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* FARI / REAR Payment & Virtual Assets Details */}
+            {(reportType === 'REAR' || reportType === 'FARI') && (
+              <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '18px 20px', marginBottom: '22px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <Coins size={16} style={{ color: '#7c3aed' }} />
+                  <strong style={{ fontSize: '13.5px', color: '#6d28d9' }}>
+                    {isEn ? 'Payment Mode & Virtual Asset Settlement Details:' : 'وسيلة السداد وتفاصيل الأصول الافتراضية / الكريبتو:'}
+                  </strong>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      {isEn ? 'Settlement / Payment Mode *' : 'طريقة وتصنيف السداد *'}
+                    </label>
+                    <select
+                      value={paymentMode}
+                      onChange={e => setPaymentMode(e.target.value as any)}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
+                      required
+                    >
+                      <option value="cash">{isEn ? 'Cash Payment (دفع نقدي ≥ 55,000 درهم)' : 'دفع نقدي (فيزا/كاش يبلغ أو يتجاوز 55 ألف درهم)'}</option>
+                      <option value="crypto_virtual_asset">{isEn ? 'Virtual Asset / Cryptocurrency (أصول افتراضية)' : 'أصول افتراضية / عملات رقمية مشفرة (Crypto)'}</option>
+                      <option value="bank_transfer">{isEn ? 'Bank Transfer (تحويل مصرفي)' : 'تحويل مصرفي'}</option>
+                      <option value="cheque">{isEn ? 'Manager Cheque (شيك مصرفي)' : 'شيك مدير مصرفي'}</option>
+                      <option value="mixed">{isEn ? 'Mixed (نقدي + تحويل أو كريبتو)' : 'سداد مختلط (نقدي + أصول أخرى)'}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                      {isEn ? 'DNFBP Reporting Sector' : 'قطاع الأعمال والمهن غير المالية المحددة (DNFBP)'}
+                    </label>
+                    <input
+                      type="text"
+                      value={dnfbpSector}
+                      onChange={e => setDnfbpSector(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    />
+                  </div>
+                </div>
+
+                {(paymentMode === 'crypto_virtual_asset' || reportType === 'FARI') && (
+                  <div style={{ background: '#ffffff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '14px', marginTop: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#4c1d95', marginBottom: '4px' }}>
+                          {isEn ? 'Cryptocurrency / Token *' : 'نوع العملة المشفرة / الرمز *'}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. USDT, BTC, ETH"
+                          value={virtualAssetDetails.cryptoType}
+                          onChange={e => setVirtualAssetDetails({ ...virtualAssetDetails, cryptoType: e.target.value })}
+                          style={{ width: '100%', padding: '7px 9px', borderRadius: '5px', border: '1px solid #cbd5e1', fontSize: '12.5px' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#4c1d95', marginBottom: '4px' }}>
+                          {isEn ? 'Receiving Wallet Address' : 'عنوان المحفظة المستلمة (Wallet)'}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="0x... or T..."
+                          value={virtualAssetDetails.walletAddress}
+                          onChange={e => setVirtualAssetDetails({ ...virtualAssetDetails, walletAddress: e.target.value })}
+                          style={{ width: '100%', padding: '7px 9px', borderRadius: '5px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontFamily: 'monospace' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#4c1d95', marginBottom: '4px' }}>
+                          {isEn ? 'Blockchain TxHash' : 'معرف العملية بالبلوكشين (TxHash)'}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="0xabc123..."
+                          value={virtualAssetDetails.txHash}
+                          onChange={e => setVirtualAssetDetails({ ...virtualAssetDetails, txHash: e.target.value })}
+                          style={{ width: '100%', padding: '7px 9px', borderRadius: '5px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontFamily: 'monospace' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Narrative */}
             <div style={{ marginBottom: '24px' }}>
@@ -390,15 +727,27 @@ export default function SarFilingView({
               <div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#991b1b', background: '#fef2f2', padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, marginBottom: '8px' }}>
                   <ShieldAlert size={16} />
-                  <span>UNITED ARAB EMIRATES · FINANCIAL INTELLIGENCE UNIT (goAML)</span>
+                  <span>
+                    {selectedReport.report_type === 'REAR'
+                      ? 'UNITED ARAB EMIRATES · MINISTRY OF ECONOMY / DNFBP (goAML REAR)'
+                      : selectedReport.report_type === 'FARI'
+                      ? 'UNITED ARAB EMIRATES · FINANCIAL INTELLIGENCE UNIT (goAML FARI)'
+                      : 'UNITED ARAB EMIRATES · FINANCIAL INTELLIGENCE UNIT (goAML)'}
+                  </span>
                 </div>
                 <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-                  {isEn ? 'CONFIDENTIAL SUSPICIOUS ACTIVITY REPORT' : 'تقرير إبلاغ عن معاملة / نشاط مشبوه (سري ومحمي)'}
+                  {selectedReport.report_type === 'REAR'
+                    ? (isEn ? 'STATUTORY REAL ESTATE ACTIVITY REPORT (REAR)' : 'تقرير المعاملات والصفقات العقارية الإلزامي (goAML REAR)')
+                    : selectedReport.report_type === 'FARI'
+                    ? (isEn ? 'FUNDS & VIRTUAL ASSETS COMPLIANCE REPORT (FARI)' : 'تقرير التدفقات النقدية والأصول الافتراضية (goAML FARI)')
+                    : (isEn ? 'CONFIDENTIAL SUSPICIOUS ACTIVITY REPORT' : 'تقرير إبلاغ عن معاملة / نشاط مشبوه (سري ومحمي)')}
                 </h1>
                 <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-                  {isEn
-                    ? 'Statutory filing submitted pursuant to Article 15 of Federal Decree-Law No. (20) of 2018. Strictly Confidential - No Tipping-off.'
-                    : 'إفادة رقابية محررة وفقاً للمادة (15) من المرسوم بقانون اتحادي رقم (20) لسنة 2018 بشأن مواجهة غسل الأموال. سري للغاية ويحظر إفشاؤه.'}
+                  {selectedReport.report_type === 'REAR'
+                    ? (isEn ? 'Mandatory filing pursuant to UAE Ministry of Economy and FIU regulations for freehold real estate transactions. Strictly Confidential.' : 'إفادة رقابية إلزامية للقطاع العقاري وفقاً لقرارات وزارة الاقتصاد ووحدة المعلومات المالية. سري ومحمي.')
+                    : selectedReport.report_type === 'FARI'
+                    ? (isEn ? 'Mandatory DNFBP cash & virtual assets filing pursuant to UAE AML Law No. 20 (2018). Strictly Confidential.' : 'إبلاغ إلزامي عن المعاملات النقدية والأصول الرقمية تنفيذاً للمرسوم بقانون اتحادي رقم (20) لسنة 2018. سري ومحمي.')
+                    : (isEn ? 'Statutory filing submitted pursuant to Article 15 of Federal Decree-Law No. (20) of 2018. Strictly Confidential - No Tipping-off.' : 'إفادة رقابية محررة وفقاً للمادة (15) من المرسوم بقانون اتحادي رقم (20) لسنة 2018 بشأن مواجهة غسل الأموال. سري للغاية ويحظر إفشاؤه.')}
                 </p>
               </div>
 
@@ -480,6 +829,53 @@ export default function SarFilingView({
                 )}
               </div>
             </div>
+
+            {/* Section 3.1: Property & Payment Particulars (REAR / FARI) */}
+            {(selectedReport.fiu_payload?.propertyDetails || selectedReport.fiu_payload?.paymentMode || selectedReport.fiu_payload?.virtualAssetDetails) && (
+              <div style={{ marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>
+                  3.1 {isEn ? 'Transaction, Real Estate & Settlement Particulars' : 'تفاصيل الصفقة والعقار وطريقة السداد (REAR / FARI)'}
+                </h2>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', fontSize: '13px' }}>
+                  {selectedReport.fiu_payload.propertyDetails?.titleDeedNumber && (
+                    <div>
+                      <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{isEn ? 'Title Deed No.' : 'رقم سند الملكية'}</span>
+                      <strong style={{ fontFamily: 'monospace' }}>{selectedReport.fiu_payload.propertyDetails.titleDeedNumber}</strong>
+                    </div>
+                  )}
+                  {selectedReport.fiu_payload.propertyDetails?.emirate && (
+                    <div>
+                      <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{isEn ? 'Emirate' : 'الإمارة'}</span>
+                      <strong style={{ color: '#0f172a' }}>{selectedReport.fiu_payload.propertyDetails.emirate}</strong>
+                    </div>
+                  )}
+                  {selectedReport.fiu_payload.propertyDetails?.propertyType && (
+                    <div>
+                      <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{isEn ? 'Property Type' : 'نوع العقار'}</span>
+                      <span style={{ textTransform: 'capitalize' }}>{selectedReport.fiu_payload.propertyDetails.propertyType}</span>
+                    </div>
+                  )}
+                  {selectedReport.fiu_payload.paymentMode && (
+                    <div>
+                      <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{isEn ? 'Payment Mode' : 'وسيلة السداد'}</span>
+                      <span style={{ fontWeight: 600, color: '#0369a1' }}>{selectedReport.fiu_payload.paymentMode.toUpperCase()}</span>
+                    </div>
+                  )}
+                  {selectedReport.fiu_payload.virtualAssetDetails?.cryptoType && (
+                    <div>
+                      <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{isEn ? 'Crypto Asset' : 'العملة الرقمية'}</span>
+                      <strong style={{ color: '#7c3aed' }}>{selectedReport.fiu_payload.virtualAssetDetails.cryptoType}</strong>
+                    </div>
+                  )}
+                  {selectedReport.fiu_payload.virtualAssetDetails?.walletAddress && (
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{isEn ? 'Wallet / Tx' : 'عنوان المحفظة / المعاملة'}</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: '11px', wordBreak: 'break-all' }}>{selectedReport.fiu_payload.virtualAssetDetails.walletAddress}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Section 4: Narrative Description */}
             <div style={{ marginBottom: '24px' }}>

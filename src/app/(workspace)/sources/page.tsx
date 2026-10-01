@@ -97,12 +97,20 @@ export default async function Sources({
   const hasRegional = planTracked.some((x) => x.category === 'regional');
   const hasEnforcement = planTracked.some((x) => x.category === 'enforcement');
   const hasPep = planTracked.some((x) => x.category === 'pep');
+  const hasRegulatory = planTracked.some((x) => x.category === 'regulatory');
+  const hasMaritime = planTracked.some((x) => x.category === 'maritime');
+  const hasCorporateUbo = planTracked.some((x) => x.category === 'corporate_ubo');
+  const hasOffshore = planTracked.some((x) => x.category === 'offshore');
 
   // Filters
   let selectedCat = (search.cat || 'all') as 'all' | SourceCategory;
   if (selectedCat === 'regional' && !hasRegional) selectedCat = 'all';
   if (selectedCat === 'enforcement' && !hasEnforcement) selectedCat = 'all';
   if (selectedCat === 'pep' && !hasPep) selectedCat = 'all';
+  if (selectedCat === 'regulatory' && !hasRegulatory) selectedCat = 'all';
+  if (selectedCat === 'maritime' && !hasMaritime) selectedCat = 'all';
+  if (selectedCat === 'corporate_ubo' && !hasCorporateUbo) selectedCat = 'all';
+  if (selectedCat === 'offshore' && !hasOffshore) selectedCat = 'all';
 
   const q = (search.q || '').trim().toLowerCase();
 
@@ -230,6 +238,10 @@ export default async function Sources({
           filterRegional: 'Regional & Arab',
           filterEnforcement: 'Enforcement',
           filterPep: 'PEP',
+          filterRegulatory: 'Regulatory Alerts (SCA / DFSA / FCA)',
+          filterMaritime: 'Sanctioned Vessels',
+          filterCorporateUbo: 'Corporate & UBO (GLEIF)',
+          filterOffshore: 'Offshore Leaks (ICIJ)',
           searchListsPh: 'Search sources by name or code…',
         }
       : {
@@ -249,6 +261,10 @@ export default async function Sources({
           filterRegional: 'القوائم الإقليمية والعربية',
           filterEnforcement: 'الإنفاذ الدولي وحظر التعاقد',
           filterPep: 'الشخصيات السياسية (PEP)',
+          filterRegulatory: 'التنبيهات الرقابية (SCA / DFSA / CMA / FCA)',
+          filterMaritime: 'حظر السفن والملاحة البحرية',
+          filterCorporateUbo: 'المستفيد الحقيقي والشركات (GLEIF)',
+          filterOffshore: 'تسريبات وثائق بنما والملاذات (ICIJ)',
           searchListsPh: 'ابحث عن قائمة بالاسم أو الرمز…',
         };
 
@@ -406,6 +422,50 @@ export default async function Sources({
                   {labels.filterPep}{' '}
                   <span className="pill-count">
                     {number(planTracked.filter((x) => x.category === 'pep').length)}
+                  </span>
+                </Link>
+              )}
+              {hasRegulatory && (
+                <Link
+                  className={`pill-btn ${selectedCat === 'regulatory' ? 'active' : ''}`}
+                  href={sourcesHref({ cat: 'regulatory', lists: 1 })}
+                >
+                  {labels.filterRegulatory}{' '}
+                  <span className="pill-count">
+                    {number(planTracked.filter((x) => x.category === 'regulatory').length)}
+                  </span>
+                </Link>
+              )}
+              {hasMaritime && (
+                <Link
+                  className={`pill-btn ${selectedCat === 'maritime' ? 'active' : ''}`}
+                  href={sourcesHref({ cat: 'maritime', lists: 1 })}
+                >
+                  {labels.filterMaritime}{' '}
+                  <span className="pill-count">
+                    {number(planTracked.filter((x) => x.category === 'maritime').length)}
+                  </span>
+                </Link>
+              )}
+              {hasCorporateUbo && (
+                <Link
+                  className={`pill-btn ${selectedCat === 'corporate_ubo' ? 'active' : ''}`}
+                  href={sourcesHref({ cat: 'corporate_ubo', lists: 1 })}
+                >
+                  {labels.filterCorporateUbo}{' '}
+                  <span className="pill-count">
+                    {number(planTracked.filter((x) => x.category === 'corporate_ubo').length)}
+                  </span>
+                </Link>
+              )}
+              {hasOffshore && (
+                <Link
+                  className={`pill-btn ${selectedCat === 'offshore' ? 'active' : ''}`}
+                  href={sourcesHref({ cat: 'offshore', lists: 1 })}
+                >
+                  {labels.filterOffshore}{' '}
+                  <span className="pill-count">
+                    {number(planTracked.filter((x) => x.category === 'offshore').length)}
                   </span>
                 </Link>
               )}

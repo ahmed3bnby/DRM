@@ -15,9 +15,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-export default async function SarPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SarPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ type?: string }>;
+}) {
   const actor = await requireActor();
   const { id } = await params;
+  const search = searchParams ? await searchParams : {};
   if (!/^[\w-]{4,60}$/.test(id)) notFound();
 
   const customer = await getCustomerByHandle(actor.organizationId, id);
@@ -33,6 +40,7 @@ export default async function SarPage({ params }: { params: Promise<{ id: string
       <SarFilingView
         customer={customer}
         initialReports={reports}
+        initialReportType={search?.type}
         actor={{
           id: actor.id,
           displayName: actor.displayName,

@@ -24,7 +24,18 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { reportType, reasonCategory, narrative, actionTaken, suspiciousAmount, currency } = body;
+    const {
+      reportType,
+      reasonCategory,
+      narrative,
+      actionTaken,
+      suspiciousAmount,
+      currency,
+      propertyDetails,
+      paymentMode,
+      virtualAssetDetails,
+      dnfbpSector
+    } = body;
 
     if (!reportType || !reasonCategory || !narrative || !actionTaken) {
       return NextResponse.json({ error: 'يرجى استكمال كافة الحقول الإلزامية لتقرير goAML' }, { status: 400 });
@@ -56,6 +67,10 @@ export async function POST(
       screeningSummary,
       suspiciousAmount: suspiciousAmount ? Number(suspiciousAmount) : undefined,
       currency: currency || 'AED',
+      propertyDetails,
+      paymentMode,
+      virtualAssetDetails,
+      dnfbpSector,
     });
 
     return NextResponse.json({ success: true, report });

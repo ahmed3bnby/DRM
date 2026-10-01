@@ -23,12 +23,27 @@ export async function createSarReport(
     screeningSummary?: string;
     suspiciousAmount?: number;
     currency?: string;
+    propertyDetails?: {
+      titleDeedNumber?: string;
+      propertyType?: 'residential' | 'commercial' | 'industrial' | 'land';
+      emirate?: string;
+      projectOrBuilding?: string;
+      developerOrSeller?: string;
+    };
+    paymentMode?: 'cash' | 'crypto_virtual_asset' | 'bank_transfer' | 'cheque' | 'mixed';
+    virtualAssetDetails?: {
+      cryptoType?: string;
+      walletAddress?: string;
+      txHash?: string;
+    };
+    dnfbpSector?: string;
   }
 ): Promise<SarReportRecord> {
   return withTenant(actor.organizationId, async db => {
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const referenceNumber = `SAR-${today}-${rand}`;
+    const prefix = params.reportType || 'SAR';
+    const referenceNumber = `${prefix}-${today}-${rand}`;
 
     const fiuPayload = {
       customerSnapshot: params.customerSnapshot,
@@ -38,6 +53,10 @@ export async function createSarReport(
       suspiciousAmount: params.suspiciousAmount,
       currency: params.currency || 'AED',
       submissionDate: new Date().toISOString(),
+      propertyDetails: params.propertyDetails,
+      paymentMode: params.paymentMode,
+      virtualAssetDetails: params.virtualAssetDetails,
+      dnfbpSector: params.dnfbpSector,
     };
 
     const res = await db.query(
@@ -205,6 +224,30 @@ export function generateGoAmlXml(
     ${
       report.fiu_payload?.suspiciousAmount
         ? `<amount_local currency="AED">${report.fiu_payload.suspiciousAmount}</amount_local>`
+        : ''
+    }
+    ${
+      report.fiu_payload?.paymentMode
+        ? `<payment_mode>${cleanStr(report.fiu_payload.paymentMode)}</payment_mode>`
+        : ''
+    }
+    ${
+      report.fiu_payload?.propertyDetails?.titleDeedNumber
+        ? `<property_transaction>
+      <title_deed>${cleanStr(report.fiu_payload.propertyDetails.titleDeedNumber)}</title_deed>
+      <property_type>${cleanStr(report.fiu_payload.propertyDetails.propertyType || 'residential')}</property_type>
+      <emirate>${cleanStr(report.fiu_payload.propertyDetails.emirate || 'Dubai')}</emirate>
+      <developer_seller>${cleanStr(report.fiu_payload.propertyDetails.developerOrSeller || '')}</developer_seller>
+    </property_transaction>`
+        : ''
+    }
+    ${
+      report.fiu_payload?.virtualAssetDetails?.walletAddress
+        ? `<virtual_asset_transfer>
+      <crypto_type>${cleanStr(report.fiu_payload.virtualAssetDetails.cryptoType || 'USDT')}</crypto_type>
+      <wallet_address>${cleanStr(report.fiu_payload.virtualAssetDetails.walletAddress)}</wallet_address>
+      <tx_hash>${cleanStr(report.fiu_payload.virtualAssetDetails.txHash || '')}</tx_hash>
+    </virtual_asset_transfer>`
         : ''
     }
   </activity>

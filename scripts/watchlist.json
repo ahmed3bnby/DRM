@@ -27,6 +27,20 @@
     "us_sec_harmed_investors",
     "us_sec_pause",
 
+    "ae_sca_alerts",
+    "ae_dfsa_adgm_alerts",
+    "sa_cma_alerts",
+    "gb_fca_warnings",
+
+    "ofac_sanctioned_vessels",
+    "black_sea_mou_detention",
+    "abuja_mou_detention",
+
+    "gleif_lei_registry",
+    "opencorporates_registry",
+
+    "icij_offshore_leaks",
+
     "ir_sanctions",
     "sa_pcct_terrorism_list",
     "pk_proscribed_persons",

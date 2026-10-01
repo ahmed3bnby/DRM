@@ -363,99 +363,107 @@ export default async function Profile({
         </div>
       )}
 
-      <div className="profile-heading">
-        <div className="profile-main-meta">
-          <EntityIcon type={customer.entity_type} />
-          <div className="profile-title-block">
-            <span className="eyebrow" dir="ltr">{customer.reference}</span>
-            <h1>{customer.name}</h1>
+      <div className="profile-heading-executive">
+        {/* Top Header Row: Name & Status on Right, Actions on Left */}
+        <div className="profile-head-top">
+          <div className="profile-head-identity">
+            <EntityIcon type={customer.entity_type} />
+            <div className="profile-identity-info">
+              <div className="profile-name-row">
+                <h1>{customer.name}</h1>
+                <Status status={customer.status} m={m} />
+              </div>
+              <div className="profile-ref-row">
+                <span className="profile-ref-code" dir="ltr">{customer.reference}</span>
+                <span className="profile-entity-badge">
+                  {customer.entity_type === 'company' ? m.entityCompany : m.entityIndividual}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="profile-status-inline">
-            <Status status={customer.status} m={m} />
+
+          <div className="profile-head-actions-bar">
+            <MonitoringToggle
+              customerId={customer.id}
+              handle={customer.reference}
+              initialEnabled={customer.monitoring_enabled !== false}
+              status={customer.monitoring_status}
+              lastMonitoredAt={customer.last_monitored_at}
+              hitCount={customer.monitoring_hit_count}
+              locale={locale}
+            />
+            {canEdit && (
+              <Link
+                href={`/profiles/${customer.reference}/edit`}
+                className="action-btn edit-btn"
+              >
+                <Pencil size={14} />
+                <span>{m.edit}</span>
+              </Link>
+            )}
+            {actor.role === 'admin' && (
+              <DeleteCustomerButton
+                customerId={customer.id}
+                customerName={customer.name}
+                isArabic={locale === 'ar'}
+              />
+            )}
           </div>
         </div>
-        <div className="id-chips">
+
+        {/* Bottom Metadata & Screening Status Strip */}
+        <div className="profile-head-meta-strip">
           {last?.created_at && (
             <LastScreenedBadge date={last.created_at} locale={locale} variant="header" />
           )}
-          <span className="id-chip">
-            {customer.entity_type === 'company' ? m.entityCompany : m.entityIndividual}
-          </span>
-          <span className="id-chip">
-            <span className="flag" aria-hidden>{flag(customer.country) || '🌐'}</span>
-            {countryName(customer.country, locale)}
-          </span>
-          {resFatf && (
-            <span className={`id-chip fatf-chip ${resFatf}`}>
-              <AlertOctagon size={13} />
-              {resFatf === 'blacklist' ? m.fatfBlacklistShort : m.fatfGreylistShort}
+
+          <div className="meta-chips-group">
+            <span className="meta-chip">
+              <span className="flag" aria-hidden>{flag(customer.country) || '🌐'}</span>
+              <span>{countryName(customer.country, locale)}</span>
             </span>
-          )}
-          {customer.nationality && natFatf && natFatf !== resFatf && (
-            <span className={`id-chip fatf-chip ${natFatf}`}>
-              <AlertOctagon size={13} />
-              {countryName(customer.nationality, locale)}: {natFatf === 'blacklist' ? m.fatfBlacklistShort : m.fatfGreylistShort}
-            </span>
-          )}
-          {isCashThresholdSector(customer.industry) && (
-            <span className="id-chip dnfbp-chip">
-              <Building2 size={13} />
-              {m.dnfbpBadge}
-            </span>
-          )}
-          {customer.date_of_birth && (
-            <span className="id-chip">
-              {customer.entity_type === 'company' ? m.chipFoundingDate : m.chipDob} · <span dir="ltr">{customer.date_of_birth}</span>
-            </span>
-          )}
-          {customer.identifier && (
-            <span className="id-chip">
-              {customer.entity_type === 'company' ? m.chipCrNumber : m.chipId} · <span dir="ltr">{customer.identifier}</span>
-            </span>
-          )}
-        </div>
-        <div className="profile-head-actions">
-          <MonitoringToggle
-            customerId={customer.id}
-            handle={customer.reference}
-            initialEnabled={customer.monitoring_enabled !== false}
-            status={customer.monitoring_status}
-            lastMonitoredAt={customer.last_monitored_at}
-            hitCount={customer.monitoring_hit_count}
-            locale={locale}
-          />
-          {canEdit && (
-            <Link
-              href={`/profiles/${customer.reference}/edit`}
-              className="button secondary sm"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                minHeight: '38px',
-                height: '38px',
-                padding: '0 12px',
-                fontSize: '12px',
-                fontWeight: 500,
-                borderRadius: '7px',
-                transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap',
-                lineHeight: 1
-              }}
-            >
-              <Pencil size={15} style={{ flexShrink: 0 }} />
-              <span>{m.edit}</span>
-            </Link>
-          )}
-          {actor.role === 'admin' && (
-            <DeleteCustomerButton
-              customerId={customer.id}
-              customerName={customer.name}
-              isArabic={locale === 'ar'}
-            />
-          )}
-          <div className="profile-status-desktop">
-            <Status status={customer.status} m={m} />
+
+            {customer.nationality && customer.nationality !== customer.country && (
+              <span className="meta-chip">
+                <span className="flag" aria-hidden>{flag(customer.nationality) || '🌐'}</span>
+                <span>{countryName(customer.nationality, locale)}</span>
+              </span>
+            )}
+
+            {resFatf && (
+              <span className={`meta-chip fatf-chip ${resFatf}`}>
+                <AlertOctagon size={13} />
+                <span>{resFatf === 'blacklist' ? m.fatfBlacklistShort : m.fatfGreylistShort}</span>
+              </span>
+            )}
+
+            {customer.nationality && natFatf && natFatf !== resFatf && (
+              <span className={`meta-chip fatf-chip ${natFatf}`}>
+                <AlertOctagon size={13} />
+                <span>{countryName(customer.nationality, locale)}: {natFatf === 'blacklist' ? m.fatfBlacklistShort : m.fatfGreylistShort}</span>
+              </span>
+            )}
+
+            {isCashThresholdSector(customer.industry) && (
+              <span className="meta-chip dnfbp-chip">
+                <Building2 size={13} />
+                <span>{m.dnfbpBadge}</span>
+              </span>
+            )}
+
+            {customer.date_of_birth && (
+              <span className="meta-chip">
+                <span className="chip-label">{customer.entity_type === 'company' ? m.chipFoundingDate : m.chipDob}: </span>
+                <strong dir="ltr">{customer.date_of_birth}</strong>
+              </span>
+            )}
+
+            {customer.identifier && (
+              <span className="meta-chip">
+                <span className="chip-label">{customer.entity_type === 'company' ? m.chipCrNumber : m.chipId}: </span>
+                <strong dir="ltr">{customer.identifier}</strong>
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -480,22 +488,48 @@ export default async function Profile({
             iconName: 'summary',
             content: (
               <div className="profile-grid" id="profile-summary">
-                <section className="panel">
-                  <div className="panel-heading">
-                    <h2>{m.customerData}</h2>
-                    <FileText size={20} />
+                <section className="panel customer-details-panel">
+                  <div className="panel-heading" style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FileText size={18} style={{ color: '#007527' }} />
+                      <h2 style={{ fontSize: '16px', margin: 0 }}>{m.customerData}</h2>
+                    </div>
                   </div>
-                  <dl className="detail-grid">
-                    {fields.map(([label, value]) => (
-                      <div key={label} className="detail-item">
-                        <dt>{label}</dt>
-                        <dd dir={ltrField(label)}>{fieldValue(value)}</dd>
-                      </div>
-                    ))}
+                  <dl className="detail-grid" style={{ padding: '20px', margin: 0 }}>
+                    {fields.map(([label, value]) => {
+                      const isNotAdded = value === m.notAddedM || value === m.notAdded;
+                      return (
+                        <div key={label} className="detail-item">
+                          <dt style={{ fontSize: '11.5px', color: '#64748b', marginBottom: '4px' }}>{label}</dt>
+                          <dd dir={ltrField(label)} style={{ margin: 0, fontSize: '13.5px', color: isNotAdded ? '#94a3b8' : '#0f172a' }}>
+                            {isNotAdded ? <span style={{ color: '#94a3b8', fontStyle: 'normal' }}>—</span> : fieldValue(value)}
+                          </dd>
+                        </div>
+                      );
+                    })}
                   </dl>
-                  <div className="notes">
-                    <h3>{m.internalNotes}</h3>
-                    <p>{customer.notes || m.noNotes}</p>
+
+                  {/* Audit Footer Strip */}
+                  <div className="customer-audit-footer" style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', padding: '12px 20px', display: 'flex', flexWrap: 'wrap', gap: '20px', fontSize: '11.5px', color: '#64748b' }}>
+                    <div>
+                      <span>{locale === 'en' ? 'Created by:' : 'سُجّل بواسطة:'} </span>
+                      <strong style={{ color: '#334155' }}>{customer.creator_name || (locale === 'en' ? 'System' : 'النظام')}</strong>
+                    </div>
+                    <div>
+                      <span>{m.fCreated}: </span>
+                      <strong style={{ color: '#334155' }}><DateText value={customer.created_at} locale={locale} /></strong>
+                    </div>
+                    <div>
+                      <span>{m.fUpdated}: </span>
+                      <strong style={{ color: '#334155' }}><DateText value={customer.updated_at} locale={locale} /></strong>
+                    </div>
+                  </div>
+
+                  <div className="notes" style={{ padding: '18px 20px', borderTop: '1px solid #f1f5f9', margin: 0 }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>{m.internalNotes}</h3>
+                    <p style={{ margin: 0, fontSize: '13px', color: customer.notes ? '#1e293b' : '#94a3b8' }}>
+                      {customer.notes || m.noNotes}
+                    </p>
                   </div>
                 </section>
 
@@ -514,6 +548,7 @@ export default async function Profile({
                           {riskAssessment.isPending ? <Clock3 size={13} /> : (last.top_matches.length ? <CheckCircle2 size={13} /> : <MinusCircle size={13} />)} {reviewStatusLabel}
                         </span>
                       </div>
+
                       <div className="screen-checks" aria-label={m.screenChecksTitle}>
                         {checkList.map(([label, key]) => {
                           const { state, label: statusLabel, Icon } = checkState(key);
@@ -525,49 +560,65 @@ export default async function Profile({
                           );
                         })}
                       </div>
+
                       <p className={`screen-risk-note ${riskAssessment.isPending ? 'pending' : 'complete'}`}>
                         <Info size={14} />
                         {riskAssessment.isPending ? m.pendingSignalRiskNote : m.confirmedSignalRiskNote}
                       </p>
-                      <p className="muted">{m.neutralNote}</p>
-                      <p>
-                        {number(last.relevant_count)} {m.relevantOf} {number(last.match_count)} · {m.screenedByName}
-                        {last.used_dob ? m.plusDob : ''}
-                        {last.used_identifier ? m.plusId : ''}.
-                      </p>
-                      <p className="muted coverage-line">
-                        {locale === 'en'
-                          ? 'Screened against official watchlists (dates in report)'
-                          : 'فُحص عبر القوائم الرسمية (تواريخها في التقرير)'} · {m.coverageLineC}
-                      </p>
-                      <div className="profile-side-risk-pill">
+
+                      {/* Clean Single Scope Note */}
+                      <div className="assessment-scope-badge" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', fontSize: '11.5px', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', margin: '8px 0 12px' }}>
+                        <CheckCheck size={14} style={{ color: '#16a34a', flexShrink: 0 }} />
+                        <span>{number(last.relevant_count)} {m.relevantOf} {number(last.match_count)} · {locale === 'en' ? 'Screened against official lists' : 'فُحص آلياً عبر القوائم الرسمية'}</span>
+                      </div>
+
+                      <div className="profile-side-risk-pill" style={{ margin: '4px 0 10px' }}>
                         <span className={`status ${riskAssessment.isPending ? 'amber' : 'neutral'}`}>
                           {riskAssessment.isPending
                             ? m.riskPendingValue
                             : (last ? `${m.riskModelTitle}: ${bandLabel(rating.band)}` : m.riskUnassessed)}
                         </span>
                       </div>
-                      <div className={`goaml-side-tag ${goAml.requiresImmediateAction ? 'critical' : goAml.requiresEdd ? 'warning' : 'standard'}`}>
+
+                      <div className={`goaml-side-tag ${goAml.requiresImmediateAction ? 'critical' : goAml.requiresEdd ? 'warning' : 'standard'}`} style={{ marginBottom: '14px' }}>
                         <ShieldAlert size={14} />
                         <span>{goAml.requiresImmediateAction ? m.goAmlImmediateAction : goAml.requiresEdd ? m.goAmlEddRequired : m.goAmlStandardCdd}</span>
                       </div>
-                      <LastScreenedBadge date={last.created_at} locale={locale} variant="side-card" />
-                      {screenButton}
-                      <Link href={`/profiles/${customer.reference}/report`} className="text-link">
-                        {m.viewReport} <ArrowUpLeft size={14} />
-                      </Link>
-                      {customer.monitoring_enabled !== false && (
-                        <Link href={`/profiles/${customer.reference}/monitoring-audit`} className="text-link" style={{ marginTop: '8px', color: '#15803d', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-                          <ShieldCheck size={14} />
-                          <span>{locale === 'en' ? 'Monitoring Audit Certificate' : 'شهادة الامتثال والمراقبة المستمرة'}</span>
-                          <ArrowUpLeft size={13} />
-                        </Link>
-                      )}
-                      <Link href={`/profiles/${customer.reference}/sar`} className="text-link" style={{ marginTop: '8px', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600 }}>
-                        <ShieldAlert size={14} />
-                        <span>{locale === 'en' ? 'File goAML SAR / STR Report' : 'إعداد بلاغ اشتباه (goAML SAR)'}</span>
-                        <ArrowUpLeft size={13} />
-                      </Link>
+
+                      {/* Unified Compliance Action Hub */}
+                      <div className="compliance-action-hub">
+                        <div style={{ marginBottom: '8px' }}>
+                          {screenButton}
+                        </div>
+
+                        <div className="action-hub-links-grid">
+                          <Link href={`/profiles/${customer.reference}/report`} className="hub-link-item report">
+                            <FileText size={15} />
+                            <span>{m.viewReport}</span>
+                            <ArrowUpLeft size={13} className="hub-arrow" />
+                          </Link>
+
+                          {customer.monitoring_enabled !== false && (
+                            <Link href={`/profiles/${customer.reference}/monitoring-audit`} className="hub-link-item cert">
+                              <ShieldCheck size={15} />
+                              <span>{locale === 'en' ? 'Monitoring Audit Certificate' : 'شهادة الامتثال والمراقبة المستمرة'}</span>
+                              <ArrowUpLeft size={13} className="hub-arrow" />
+                            </Link>
+                          )}
+
+                          <Link href={`/profiles/${customer.reference}/sar`} className="hub-link-item sar">
+                            <ShieldAlert size={15} />
+                            <span>{locale === 'en' ? 'File goAML SAR Report' : 'إعداد بلاغ اشتباه (goAML SAR)'}</span>
+                            <ArrowUpLeft size={13} className="hub-arrow" />
+                          </Link>
+
+                          <Link href={`/profiles/${customer.reference}/sar?type=REAR`} className="hub-link-item dnfbp">
+                            <Building2 size={15} />
+                            <span>{locale === 'en' ? 'File REAR / FARI Report' : 'إبلاغ الصفقات العقارية (REAR/FARI)'}</span>
+                            <ArrowUpLeft size={13} className="hub-arrow" />
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="panel assessment">

@@ -404,13 +404,13 @@ export default function MatchesView({
                         onClick={(e) => openDrawer(match, e)}
                         title={locale === 'en' ? aiRecommendations[match.recordId].headlineEn : aiRecommendations[match.recordId].headlineAr}
                       >
-                        <Sparkles size={11} />
+                        <Sparkles size={10} />
                         <span>
                           {aiRecommendations[match.recordId].recommendation === 'dismissed'
-                            ? (locale === 'en' ? 'AI: False Positive' : 'AI: تشابه سطحي (False Positive)')
+                            ? (locale === 'en' ? 'AI: False Positive' : 'توصية ذكية: استبعاد (تشابه سطحي)')
                             : aiRecommendations[match.recordId].recommendation === 'confirmed'
-                            ? (locale === 'en' ? 'AI: True Positive' : 'AI: اشتباه مؤكد (True Positive)')
-                            : (locale === 'en' ? 'AI: Needs Info' : 'AI: يحتاج معلومات')}
+                            ? (locale === 'en' ? 'AI: True Positive' : 'توصية ذكية: اشتباه مؤكد')
+                            : (locale === 'en' ? 'AI: Needs Info' : 'توصية ذكية: استيفاء بيانات')}
                         </span>
                       </button>
                     )}
@@ -508,13 +508,13 @@ export default function MatchesView({
                     className={`ai-table-tag ${aiRecommendations[match.recordId].recommendation}`}
                     onClick={(e) => openDrawer(match, e)}
                   >
-                    <Sparkles size={11} />
+                    <Sparkles size={10} />
                     <span>
                       {aiRecommendations[match.recordId].recommendation === 'dismissed'
-                        ? (locale === 'en' ? 'AI: False Positive' : 'AI: تشابه سطحي')
+                        ? (locale === 'en' ? 'AI: False Positive' : 'توصية ذكية: استبعاد')
                         : aiRecommendations[match.recordId].recommendation === 'confirmed'
-                        ? (locale === 'en' ? 'AI: True Positive' : 'AI: اشتباه مؤكد')
-                        : (locale === 'en' ? 'AI: Needs Info' : 'AI: يحتاج معلومات')}
+                        ? (locale === 'en' ? 'AI: True Positive' : 'توصية ذكية: تأكيد')
+                        : (locale === 'en' ? 'AI: Needs Info' : 'توصية ذكية: استيفاء')}
                     </span>
                   </button>
                 )}
