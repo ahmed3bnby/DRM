@@ -8299,6 +8299,288 @@ html[dir="rtl"] .sources-search-input {
   color: #b91c1c;
 }
 
+/* AI False Positive Assistant & Compliance Copilot */
+.ai-assistant-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(241, 245, 249, 0.95));
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+}
+
+[data-theme='dark'] .ai-assistant-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.85));
+  border-color: #334155;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.ai-assistant-card.dismissed {
+  border-color: #86efac;
+  background: linear-gradient(135deg, #f0fdf4 0%, #f7fee7 100%);
+}
+[data-theme='dark'] .ai-assistant-card.dismissed {
+  border-color: #166534;
+  background: linear-gradient(135deg, rgba(20, 83, 45, 0.3) 0%, rgba(22, 101, 52, 0.15) 100%);
+}
+
+.ai-assistant-card.confirmed {
+  border-color: #fca5a5;
+  background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+}
+[data-theme='dark'] .ai-assistant-card.confirmed {
+  border-color: #991b1b;
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.35) 0%, rgba(153, 27, 27, 0.15) 100%);
+}
+
+.ai-assistant-card.needs_info {
+  border-color: #fde047;
+  background: linear-gradient(135deg, #fefce8 0%, #fffbeb 100%);
+}
+[data-theme='dark'] .ai-assistant-card.needs_info {
+  border-color: #854d0e;
+  background: linear-gradient(135deg, rgba(113, 63, 18, 0.3) 0%, rgba(133, 77, 14, 0.15) 100%);
+}
+
+.ai-assistant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ai-assistant-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-assistant-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #6366f1;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+}
+
+.ai-sparkle-icon {
+  animation: pulseSparkle 2s infinite ease-in-out;
+}
+
+@keyframes pulseSparkle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+.ai-conf-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.ai-conf-badge.dismissed {
+  background: #dcfce7;
+  color: #166534;
+}
+.ai-conf-badge.confirmed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.ai-conf-badge.needs_info {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.ai-rec-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 8px;
+}
+.ai-rec-chip.dismissed {
+  background: #22c55e;
+  color: #ffffff;
+}
+.ai-rec-chip.confirmed {
+  background: #ef4444;
+  color: #ffffff;
+}
+.ai-rec-chip.needs_info {
+  background: #eab308;
+  color: #ffffff;
+}
+
+.ai-assistant-quote-box {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+[data-theme='dark'] .ai-assistant-quote-box {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.ai-assistant-quote-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+[data-theme='dark'] .ai-assistant-quote-text {
+  color: #f1f5f9;
+}
+
+.ai-factors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ai-factor-item {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+[data-theme='dark'] .ai-factor-item {
+  background: rgba(15, 23, 42, 0.4);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.ai-factor-top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 3px;
+}
+[data-theme='dark'] .ai-factor-top {
+  color: #94a3b8;
+}
+
+.ai-factor-detail {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #334155;
+}
+[data-theme='dark'] .ai-factor-detail {
+  color: #cbd5e1;
+}
+
+.ai-assistant-action-bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ai-apply-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.ai-apply-btn.dismissed {
+  background: #15803d;
+  color: #ffffff;
+  border: 1px solid #166534;
+}
+.ai-apply-btn.dismissed:hover {
+  background: #166534;
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.25);
+}
+
+.ai-apply-btn.confirmed {
+  background: #b91c1c;
+  color: #ffffff;
+  border: 1px solid #991b1b;
+}
+.ai-apply-btn.confirmed:hover {
+  background: #991b1b;
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.25);
+}
+
+.ai-apply-btn.needs_info {
+  background: #a16207;
+  color: #ffffff;
+  border: 1px solid #854d0e;
+}
+.ai-apply-btn.needs_info:hover {
+  background: #854d0e;
+  box-shadow: 0 4px 12px rgba(133, 77, 14, 0.25);
+}
+
+/* AI Pill in match table rows */
+.ai-table-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-top: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-table-tag.dismissed {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.ai-table-tag.dismissed:hover {
+  background: #bbf7d0;
+}
+
+.ai-table-tag.confirmed {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+.ai-table-tag.confirmed:hover {
+  background: #fecaca;
+}
+
+.ai-table-tag.needs_info {
+  background: #fef9c3;
+  color: #a16207;
+  border-color: #fde047;
+}
+.ai-table-tag.needs_info:hover {
+  background: #fde047;
+}
+
+
 
 
 

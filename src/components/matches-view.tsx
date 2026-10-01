@@ -5,13 +5,15 @@ import Link from 'next/link';
 import {
   CheckCircle2, XCircle, Clock3, AlertTriangle, Search,
   ExternalLink, ArrowUpLeft, X, ChevronRight, ChevronLeft,
-  FileCheck2, ShieldAlert, ArrowRight, UserCheck, ShieldQuestion
+  FileCheck2, ShieldAlert, ArrowRight, UserCheck, ShieldQuestion,
+  Sparkles, Zap
 } from 'lucide-react';
 import { useLocale } from './locale-context';
 import { useToast } from './toast';
 import { saveMatchDecisionAction } from '@/app/actions';
 import type { DecisionRow } from '@/lib/decisions';
 import { countryName, flag, number, DateText, DateTimeText } from './ui';
+import { analyzeMatchForDecision, type AiDecisionRecommendation } from '@/lib/ai-compliance-assistant';
 
 export type ScreeningMatchItem = {
   name: string;
@@ -81,6 +83,35 @@ export default function MatchesView({
   const [reason, setReason] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // AI recommendations map for all matches
+  const aiRecommendations = useMemo(() => {
+    const map: Record<string, AiDecisionRecommendation> = {};
+    for (const item of matches) {
+      map[item.recordId] = analyzeMatchForDecision(customer, item, locale as 'ar' | 'en');
+    }
+    return map;
+  }, [matches, customer, locale]);
+
+  // AI recommendation for current selected match in drawer
+  const aiRec = useMemo(() => {
+    if (!selectedMatch) return null;
+    return aiRecommendations[selectedMatch.recordId] || analyzeMatchForDecision(customer, selectedMatch, locale as 'ar' | 'en');
+  }, [selectedMatch, aiRecommendations, customer, locale]);
+
+  const handleApplyAiRecommendation = () => {
+    if (!aiRec) return;
+    setSelectedDecision(aiRec.recommendation);
+    const text = locale === 'en' ? aiRec.auditRationaleEn : aiRec.auditRationaleAr;
+    setReason(text);
+    setFormError(null);
+    toast(
+      locale === 'en'
+        ? 'AI Compliance recommendation applied and audit rationale documented.'
+        : 'تم تطبيق توصية الذكاء الاصطناعي وتوثيق السبب آلياً.',
+      'success'
+    );
+  };
 
   // Drawer accessibility & focus management
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -366,6 +397,23 @@ export default function MatchesView({
                       {match.dobMatch && <span className="cat-badge pep">{m.dobMatched}</span>}
                       {match.dobConflict && <span className="cat-badge conflict">{m.dobConflictL}</span>}
                     </div>
+                    {!dec && match.percent >= 80 && aiRecommendations[match.recordId] && (
+                      <button
+                        type="button"
+                        className={`ai-table-tag ${aiRecommendations[match.recordId].recommendation}`}
+                        onClick={(e) => openDrawer(match, e)}
+                        title={locale === 'en' ? aiRecommendations[match.recordId].headlineEn : aiRecommendations[match.recordId].headlineAr}
+                      >
+                        <Sparkles size={11} />
+                        <span>
+                          {aiRecommendations[match.recordId].recommendation === 'dismissed'
+                            ? (locale === 'en' ? 'AI: False Positive' : 'AI: تشابه سطحي (False Positive)')
+                            : aiRecommendations[match.recordId].recommendation === 'confirmed'
+                            ? (locale === 'en' ? 'AI: True Positive' : 'AI: اشتباه مؤكد (True Positive)')
+                            : (locale === 'en' ? 'AI: Needs Info' : 'AI: يحتاج معلومات')}
+                        </span>
+                      </button>
+                    )}
                   </td>
 
                   {/* Category */}
@@ -454,6 +502,22 @@ export default function MatchesView({
                 {match.idMatch && <span className="cat-badge sanctions">{m.idMatched}</span>}
                 {match.dobMatch && <span className="cat-badge pep">{m.dobMatched}</span>}
                 {match.dobConflict && <span className="cat-badge conflict">{m.dobConflictL}</span>}
+                {!dec && match.percent >= 80 && aiRecommendations[match.recordId] && (
+                  <button
+                    type="button"
+                    className={`ai-table-tag ${aiRecommendations[match.recordId].recommendation}`}
+                    onClick={(e) => openDrawer(match, e)}
+                  >
+                    <Sparkles size={11} />
+                    <span>
+                      {aiRecommendations[match.recordId].recommendation === 'dismissed'
+                        ? (locale === 'en' ? 'AI: False Positive' : 'AI: تشابه سطحي')
+                        : aiRecommendations[match.recordId].recommendation === 'confirmed'
+                        ? (locale === 'en' ? 'AI: True Positive' : 'AI: اشتباه مؤكد')
+                        : (locale === 'en' ? 'AI: Needs Info' : 'AI: يحتاج معلومات')}
+                    </span>
+                  </button>
+                )}
               </div>
               <div className="card-footer">
                 <div className="card-status">
@@ -642,6 +706,73 @@ export default function MatchesView({
                     <FileCheck2 size={17} />
                     <h3>{m.decisionTitle}</h3>
                   </div>
+
+                  {/* AI False Positive Assistant & Compliance Copilot */}
+                  {aiRec && (
+                    <div className={`ai-assistant-card ${aiRec.recommendation}`}>
+                      <div className="ai-assistant-header">
+                        <div className="ai-assistant-title-group">
+                          <span className="ai-assistant-tag">
+                            <Sparkles size={13} className="ai-sparkle-icon" />
+                            <span>{locale === 'en' ? 'AI False Positive Assistant' : 'محلل قرارات الامتثال الذكي'}</span>
+                          </span>
+                          <span className={`ai-conf-badge ${aiRec.recommendation}`}>
+                            {locale === 'en' ? `Confidence: ${aiRec.confidence}%` : `دقة التوصية: ${aiRec.confidence}%`}
+                          </span>
+                        </div>
+                        <div className={`ai-rec-chip ${aiRec.recommendation}`}>
+                          {aiRec.recommendation === 'confirmed' ? (
+                            <CheckCircle2 size={15} />
+                          ) : aiRec.recommendation === 'needs_info' ? (
+                            <Clock3 size={15} />
+                          ) : (
+                            <XCircle size={15} />
+                          )}
+                          <span>{locale === 'en' ? aiRec.recommendationBadgeEn : aiRec.recommendationBadgeAr}</span>
+                        </div>
+                      </div>
+
+                      {/* Highlighted System Quote */}
+                      <div className="ai-assistant-quote-box">
+                        <p className="ai-assistant-quote-text" dir="auto">
+                          «{locale === 'en' ? aiRec.summaryEn : aiRec.summaryAr}»
+                        </p>
+                      </div>
+
+                      {/* Factor Comparison Grid */}
+                      <div className="ai-factors-grid">
+                        {aiRec.factors.map(f => (
+                          <div key={f.key} className={`ai-factor-item ${f.status}`}>
+                            <div className="ai-factor-top">
+                              <span className="ai-factor-icon">
+                                {f.status === 'match' ? '✅' : f.status === 'conflict' ? '❌' : f.status === 'partial' ? '⚠️' : '⚪'}
+                              </span>
+                              <span className="ai-factor-label">{locale === 'en' ? f.labelEn : f.labelAr}</span>
+                            </div>
+                            <p className="ai-factor-detail" dir="auto">
+                              {locale === 'en' ? f.detailEn : f.detailAr}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* 1-Click Action to Auto-Fill Decision and Reason */}
+                      <div className="ai-assistant-action-bar">
+                        <button
+                          type="button"
+                          className={`button ai-apply-btn ${aiRec.recommendation}`}
+                          onClick={handleApplyAiRecommendation}
+                        >
+                          <Zap size={15} />
+                          <span>
+                            {locale === 'en'
+                              ? '⚡ Auto-Apply AI Recommendation & Document Audit Reason'
+                              : '⚡ تطبيق توصية الذكاء الاصطناعي وتوثيق السبب آلياً'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {formError && (
                     <div role="alert" className="form-error">
