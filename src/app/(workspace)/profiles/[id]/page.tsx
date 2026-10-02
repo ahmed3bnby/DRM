@@ -386,7 +386,7 @@ export default async function Profile({
             <div className="profile-identity-info">
               <div className="profile-name-row">
                 <h1>{customer.name}</h1>
-                <Status status={customer.status} m={m} />
+                <Status status={customer.status} customer={customer} m={m} locale={locale} />
               </div>
               <div className="profile-ref-row">
                 <span className="profile-ref-code" dir="ltr">{customer.reference}</span>

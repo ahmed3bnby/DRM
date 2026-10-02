@@ -10,6 +10,7 @@ import {
   Download,
   CheckSquare,
   Square,
+  MinusSquare,
   Loader2,
   FileArchive,
   X,
@@ -44,6 +45,7 @@ export default function CustomerRegistryTable({
 
   const allSelected = customers.length > 0 && selectedIds.size === customers.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < customers.length;
+  const hasSelection = selectedIds.size > 0;
 
   const toggleSelectAll = () => {
     if (allSelected) {
@@ -174,17 +176,18 @@ export default function CustomerRegistryTable({
 
       {/* Desktop Data Table */}
       <div className="table-scroll desktop-only-table">
-        <table className="data-table customers-table" dir={locale === 'en' ? 'ltr' : 'rtl'}>
+        <table className={`data-table customers-table ${hasSelection ? 'has-selection' : ''}`} dir={locale === 'en' ? 'ltr' : 'rtl'}>
           <thead>
             <tr>
               <th scope="col" className="th-select">
                 <button
                   type="button"
                   onClick={toggleSelectAll}
-                  aria-label={isEn ? 'Select all' : 'تحديد الكل'}
+                  title={allSelected ? (isEn ? 'Deselect all' : 'إلغاء تحديد الكل') : (isEn ? 'Select all for audit package' : 'تحديد الكل لتصدير حزمة التدقيق')}
+                  aria-label={allSelected ? (isEn ? 'Deselect all' : 'إلغاء تحديد الكل') : (isEn ? 'Select all' : 'تحديد الكل')}
                   style={{
-                    background: allSelected ? '#eff6ff' : 'transparent',
-                    border: 'none',
+                    background: allSelected ? '#eff6ff' : hasSelection ? '#f1f5f9' : 'transparent',
+                    border: hasSelection ? '1px solid #bfdbfe' : '1px solid transparent',
                     cursor: 'pointer',
                     width: '32px',
                     height: '32px',
@@ -192,11 +195,17 @@ export default function CustomerRegistryTable({
                     display: 'grid',
                     placeItems: 'center',
                     margin: '0 auto',
-                    color: allSelected ? '#2563eb' : '#94a3b8',
+                    color: hasSelection ? '#2563eb' : '#94a3b8',
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {allSelected ? <CheckSquare size={18} style={{ color: '#2563eb' }} /> : <Square size={18} />}
+                  {allSelected ? (
+                    <CheckSquare size={18} style={{ color: '#2563eb' }} />
+                  ) : someSelected ? (
+                    <MinusSquare size={18} style={{ color: '#2563eb' }} />
+                  ) : (
+                    <Square size={18} />
+                  )}
                 </button>
               </th>
               <th scope="col" className="th-client">{m.thClient}</th>
@@ -220,9 +229,10 @@ export default function CustomerRegistryTable({
                       type="button"
                       onClick={e => toggleSelectOne(c.id, e)}
                       aria-label={`${isEn ? 'Select' : 'تحديد'} ${c.name}`}
+                      className={`row-select-btn ${isSelected ? 'is-selected' : ''}`}
                       style={{
                         background: isSelected ? '#eff6ff' : 'transparent',
-                        border: 'none',
+                        border: isSelected ? '1px solid #bfdbfe' : 'none',
                         cursor: 'pointer',
                         width: '32px',
                         height: '32px',
@@ -231,7 +241,8 @@ export default function CustomerRegistryTable({
                         placeItems: 'center',
                         margin: '0 auto',
                         color: isSelected ? '#2563eb' : '#94a3b8',
-                        transition: 'all 0.15s ease',
+                        opacity: (hasSelection || isSelected) ? 1 : 0,
+                        transition: 'opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease',
                       }}
                     >
                       {isSelected ? <CheckSquare size={18} style={{ color: '#2563eb' }} /> : <Square size={18} />}
@@ -265,7 +276,7 @@ export default function CustomerRegistryTable({
                     </span>
                   </td>
                   <td className="customer-status-cell" data-label={m.thStatus}>
-                    <Status status={c.status} m={m} />
+                    <Status status={c.status} customer={c} m={m} locale={locale} />
                   </td>
                   <td className="customer-screening-cell" data-label={m.thScreening}>
                     <ScreeningTag status={c.screening_status} customer={c} m={m} locale={locale} />
@@ -292,11 +303,28 @@ export default function CustomerRegistryTable({
               className={`mobile-customer-card ${isSelected ? 'is-selected' : ''}`}
               style={{ position: 'relative', border: isSelected ? '1.5px solid #2563eb' : undefined }}
             >
-              <div style={{ position: 'absolute', top: '12px', [locale === 'en' ? 'right' : 'left']: '12px', zIndex: 5 }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  [locale === 'en' ? 'right' : 'left']: '12px',
+                  zIndex: 5,
+                  opacity: (hasSelection || isSelected) ? 1 : 0.4,
+                  transition: 'opacity 0.15s ease',
+                }}
+              >
                 <button
                   type="button"
                   onClick={e => toggleSelectOne(c.id, e)}
-                  style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '4px', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                  style={{
+                    background: isSelected ? '#eff6ff' : '#fff',
+                    border: isSelected ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                    borderRadius: '5px',
+                    padding: '4px',
+                    cursor: 'pointer',
+                    display: 'grid',
+                    placeItems: 'center',
+                  }}
                 >
                   {isSelected ? <CheckSquare size={16} style={{ color: '#2563eb' }} /> : <Square size={16} />}
                 </button>
@@ -330,7 +358,7 @@ export default function CustomerRegistryTable({
                     {c.entity_type === 'company' ? m.entityCompany : m.entityIndividual}
                   </span>
                   <span className="m-meta-chip status">
-                    <Status status={c.status} m={m} />
+                    <Status status={c.status} customer={c} m={m} locale={locale} />
                   </span>
                   <span className="m-card-arrow" aria-hidden="true">
                     <ArrowUpLeft size={15} />

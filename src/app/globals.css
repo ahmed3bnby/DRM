@@ -556,6 +556,17 @@ time{display:inline-block;font-variant-numeric:tabular-nums}
   .customers-table td.row-open-cell { width: 48px !important; text-align: center !important; }
 }
 
+.customers-table tbody tr:hover td.td-select .row-select-btn {
+  opacity: 0.75 !important;
+}
+.customers-table tbody tr:hover td.td-select .row-select-btn:hover {
+  opacity: 1 !important;
+  background: #eff6ff !important;
+}
+.customers-table.has-selection tbody td.td-select .row-select-btn {
+  opacity: 1 !important;
+}
+
 .customers-table .customer-cell {
   display: flex;
   align-items: center;
