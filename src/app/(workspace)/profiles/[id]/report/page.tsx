@@ -17,6 +17,10 @@ import { evaluateFATFJurisdiction } from '@/lib/fatf';
 import { countryName, DateText, DateTimeText, number, flag } from '@/components/ui';
 import { getMessages, getLocale } from '@/lib/i18n';
 import { adverseMediaSearch } from '@/lib/adverse-media';
+import { getSourceRecordsMap } from '@/lib/search';
+import { extractUboHierarchy } from '@/lib/ubo-extractor';
+import { getOrganizationBranding } from '@/lib/branding';
+import UboHierarchyTree from '@/components/ubo-hierarchy-tree';
 import PrintButton from '@/components/print-button';
 import { DeveloperCredit } from '@/components/developer-credit';
 
@@ -50,12 +54,13 @@ export default async function Report({ params }: { params: Promise<{ id: string 
     notFound();
   }
 
-  const [last, decisions, activities, m, locale] = await Promise.all([
+  const [last, decisions, activities, m, locale, branding] = await Promise.all([
     getLastScreening(actor.organizationId, customer.id),
     getMatchDecisions(actor.organizationId, customer.id),
     getActivity(actor.organizationId, customer.id),
     getMessages(),
     getLocale(),
+    getOrganizationBranding(actor.organizationId),
   ]);
 
   const isEn = locale === 'en';
@@ -133,6 +138,11 @@ export default async function Report({ params }: { params: Promise<{ id: string 
     return true;
   }).slice(0, 25);
 
+  const matchRecordIds = (last?.top_matches ?? []).map(m => m.recordId).filter(Boolean);
+  const sourceRecordsMap = await getSourceRecordsMap(matchRecordIds);
+  const rawDetailsList = Array.from(sourceRecordsMap.values()).map(r => ({ code: r.code, details: r.details }));
+  const uboTreeData = extractUboHierarchy(customer, last?.top_matches ?? [], rawDetailsList);
+
   const decided = last ? displayHits.map(mt => decisions[mt.recordId]?.decision).filter(Boolean) : [];
   const genuineCount = decided.filter(d => d === 'confirmed').length;
   const notGenuineCount = decided.filter(d => d === 'dismissed').length;
@@ -185,12 +195,24 @@ export default async function Report({ params }: { params: Promise<{ id: string 
       <article className="report-doc idenfo-doc">
         {/* Top Header & Brand */}
         <header className="idenfo-header">
-          <div className="idenfo-brand">
-            <img src="/logo.webp" alt="DRM" className="idenfo-logo-img" />
+          <div className="idenfo-brand" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {branding?.logoUrl ? (
+              <img
+                src={branding.logoUrl}
+                alt={branding.companyName || actor.organizationName}
+                className="idenfo-logo-img"
+                style={{ maxHeight: '46px', maxWidth: '140px', objectFit: 'contain' }}
+              />
+            ) : (
+              <img src="/logo.webp" alt="DRM" className="idenfo-logo-img" />
+            )}
             <div className="idenfo-brand-text">
-              <span className="idenfo-brand-title" translate="no">DRM</span>
+              <span className="idenfo-brand-title" translate="no">
+                {branding?.companyName || actor.organizationName || 'DRM'}
+              </span>
               <span className="idenfo-brand-sub">
-                {isEn ? 'Diligence Risk Management · Compliance & Screening' : 'إدارة المخاطر والخدمات المهنية · نظام الفحص والامتثال'}
+                {branding?.licenseNumber ? `${isEn ? 'Lic. No:' : 'ترخيص رقم:'} ${branding.licenseNumber} · ` : ''}
+                {isEn ? 'AML/CFT Compliance Screening & Due Diligence Dossier' : 'إدارة الامتثال والتدقيق ومكافحة غسل الأموال · تقرير فحص رسمي معتمد'}
               </span>
             </div>
           </div>
@@ -486,6 +508,16 @@ export default async function Report({ params }: { params: Promise<{ id: string 
           </table>
         </section>
 
+        {/* 4. Corporate Structure & Ultimate Beneficial Ownership (UBO) */}
+        {(customer.entity_type === 'company' || uboTreeData.hasHierarchy) && (
+          <section className="idenfo-section ubo-report-section">
+            <h2 className="idenfo-section-title">{isEn ? 'Corporate Structure & Beneficial Ownership (UBO)' : 'هيكل الملكية والمستفيد الحقيقي (UBO Hierarchy)'}</h2>
+            <div style={{ marginTop: '12px' }}>
+              <UboHierarchyTree treeData={uboTreeData} locale={locale} />
+            </div>
+          </section>
+        )}
+
         {/* 5. Screening Hit Details Table */}
         <section className="idenfo-section">
           <h2 className="idenfo-section-title">{isEn ? 'Screening Hit Details' : 'تفاصيل مطابقات الفحص (Screening Hit Details)'}</h2>
@@ -705,6 +737,11 @@ export default async function Report({ params }: { params: Promise<{ id: string 
 
         {/* Footer */}
         <footer className="idenfo-footer">
+          {branding?.customFooterNote && (
+            <p className="branding-custom-footer" style={{ fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
+              {branding.customFooterNote}
+            </p>
+          )}
           <p>{m.rptFooter}</p>
           <div className="report-foot-drm">
             <span>{isEn ? 'Diligence Risk Management (DRM) · Risk Management & Pro Services' : 'دي آر إم لإدارة المخاطر والخدمات المهنية (DRM)'}</span>

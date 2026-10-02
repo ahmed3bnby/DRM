@@ -1,14 +1,15 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, UsersRound, Database, Search, UserCog, ClipboardCheck, Activity, MoreHorizontal, Building2 } from 'lucide-react';
+import { LayoutDashboard, UsersRound, Database, Search, UserCog, ClipboardCheck, Activity, MoreHorizontal, Building2, BarChart3 } from 'lucide-react';
 import { useLocale } from './locale-context';
 
 type NavigationItem = { href: string; label: string; short: string; icon: typeof LayoutDashboard };
 
 export default function Navigation({ isAdmin = false, isOwner = false, reviews = false }: { isAdmin?: boolean; isOwner?: boolean; reviews?: boolean }) {
   const path = usePathname();
-  const { m } = useLocale();
+  const { m, locale } = useLocale();
+  const isEn = locale === 'en';
   const groups: { label: string; items: NavigationItem[] }[] = [
     { label: m.navGroupWorkspace, items: [
       { href: '/', label: m.navOverview, short: m.navOverviewShort, icon: LayoutDashboard },
@@ -16,6 +17,7 @@ export default function Navigation({ isAdmin = false, isOwner = false, reviews =
     ] },
     { label: m.navGroupCompliance, items: [
       { href: '/profiles', label: m.navCustomers, short: m.navCustomersShort, icon: UsersRound },
+      { href: '/analytics', label: isEn ? 'Executive Analytics' : 'لوحة المؤشرات والتحليلات', short: isEn ? 'Analytics' : 'التحليلات', icon: BarChart3 },
       ...(reviews ? [{ href: '/reviews', label: m.navReviews, short: m.navReviewsShort, icon: ClipboardCheck }] : []),
     ] },
     ...(isAdmin ? [{ label: m.navGroupAdministration, items: [

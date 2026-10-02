@@ -30,11 +30,23 @@ async function capture() {
   await page.screenshot({ path: '.local/kyc_profile_rendered.png', fullPage: true });
   console.log('Saved .local/kyc_profile_rendered.png');
 
-  console.log('Navigating to search?q=Lana...');
-  await page.goto('http://localhost:3001/search?q=Lana');
+  console.log('Navigating to KYC-1F74DA96 report...');
+  await page.goto('http://localhost:3001/profiles/KYC-1F74DA96/report');
   await page.waitForLoadState('networkidle');
-  await page.screenshot({ path: '.local/search_lana_rendered.png', fullPage: true });
-  console.log('Saved .local/search_lana_rendered.png');
+  await page.screenshot({ path: '.local/kyc_report_rendered.png', fullPage: true });
+  console.log('Saved .local/kyc_report_rendered.png');
+
+  console.log('Navigating to /analytics...');
+  await page.goto('http://localhost:3001/analytics');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: '.local/analytics_dashboard_rendered.png', fullPage: true });
+  console.log('Saved .local/analytics_dashboard_rendered.png');
+
+  console.log('Navigating to /team...');
+  await page.goto('http://localhost:3001/team');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: '.local/team_branding_rendered.png', fullPage: true });
+  console.log('Saved .local/team_branding_rendered.png');
 
   await browser.close();
   await pool.query("DELETE FROM sessions WHERE token_hash = $1", [tokenHash]);

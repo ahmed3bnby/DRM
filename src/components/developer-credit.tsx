@@ -126,7 +126,7 @@ export function DeveloperIntegrityGuard() {
 
       const isValid = verifyIntegrity();
       if (!isValid) {
-        // Confirmation window (300ms) to ensure it's not a transient React hydration or route navigation tick
+        // Confirmation window (2000ms) to ensure it's not a transient React hydration or route navigation tick
         if (!checkTimeout) {
           checkTimeout = setTimeout(() => {
             checkTimeout = null;
@@ -134,7 +134,7 @@ export function DeveloperIntegrityGuard() {
               setTampered(true);
               guardRef.current = true;
             }
-          }, 300);
+          }, 2000);
         }
       } else {
         if (checkTimeout) {

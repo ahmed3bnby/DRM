@@ -19,6 +19,8 @@ import ScreenCustomerButton from '@/components/screen-customer-button';
 import { canManageCustomers } from '@/lib/validation';
 import { EntityIcon, Status, RiskPill, countryName, DateText, number, flag } from '@/components/ui';
 import { getMessages, getLocale } from '@/lib/i18n';
+import { extractUboHierarchy } from '@/lib/ubo-extractor';
+import UboHierarchyTree from '@/components/ubo-hierarchy-tree';
 import MatchesView from '@/components/matches-view';
 import ProfileTabsView from '@/components/profile-tabs-view';
 import DeleteCustomerButton from '@/components/delete-customer-button';
@@ -127,6 +129,9 @@ export default async function Profile({
       }
     }
   }
+
+  const rawDetailsList = Array.from(sourceRecordsMap.values()).map(r => ({ code: r.code, details: r.details }));
+  const uboTreeData = extractUboHierarchy(customer, last?.top_matches ?? [], rawDetailsList);
 
   const canManage = canManageCustomers(actor.role);
   const isOwner = !customer.created_by || customer.created_by === actor.id;
@@ -497,7 +502,8 @@ export default async function Profile({
             label: m.tabSummary,
             iconName: 'summary',
             content: (
-              <div className="profile-grid" id="profile-summary">
+              <>
+                <div className="profile-grid" id="profile-summary">
                 <section className="panel customer-details-panel">
                   <div className="panel-heading" style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -670,12 +676,31 @@ export default async function Profile({
                   </div>
                 </aside>
               </div>
-            ),
-          },
-          {
-            id: 'matches',
-            label: m.tabMatches,
-            iconName: 'matches',
+
+              {(customer.entity_type === 'company' || uboTreeData.hasHierarchy) && (
+                <div style={{ marginTop: '24px' }}>
+                  <UboHierarchyTree treeData={uboTreeData} locale={locale} />
+                </div>
+              )}
+            </>
+          ),
+        },
+        {
+          id: 'ubo',
+          label: locale === 'en' ? 'UBO & Ownership Tree' : 'شجرة المستفيد الحقيقي (UBO)',
+          iconName: 'ubo',
+          badge: uboTreeData.totalNodes > 1 ? uboTreeData.totalNodes : undefined,
+          badgeType: uboTreeData.offshoreJurisdictions.length > 0 ? 'amber' : 'neutral',
+          content: (
+            <div className="profile-ubo-tab-content">
+              <UboHierarchyTree treeData={uboTreeData} locale={locale} />
+            </div>
+          ),
+        },
+        {
+          id: 'matches',
+          label: m.tabMatches,
+          iconName: 'matches',
             badge: riskAssessment.unresolvedCount > 0 ? riskAssessment.unresolvedCount : (last?.top_matches.length ? last.top_matches.length : undefined),
             badgeType: riskAssessment.unresolvedCount > 0 ? 'amber' : 'neutral',
             content: (

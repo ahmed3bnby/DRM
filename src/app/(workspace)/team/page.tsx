@@ -7,6 +7,8 @@ import { listTeam } from '@/lib/team';
 import { number, PAGE_SIZE, Pagination, parsePage, withQuery } from '@/components/ui';
 import TeamCreateModal from '@/components/team-create-modal';
 import QuotaForm from '@/components/quota-form';
+import { getOrganizationBranding } from '@/lib/branding';
+import BrandingSettingsCard from '@/components/branding-settings-card';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +25,10 @@ export default async function TeamPage({
   const q = typeof search.q === 'string' ? search.q.trim().slice(0, 80) : '';
   const roleFilter = ['admin', 'analyst', 'viewer'].includes(search.role ?? '') ? search.role! : '';
 
-  const members = await listTeam(actor.organizationId);
+  const [members, branding] = await Promise.all([
+    listTeam(actor.organizationId),
+    getOrganizationBranding(actor.organizationId),
+  ]);
 
   // Overall counts (independent of current filters)
   const totalAll = members.length;
@@ -437,6 +442,12 @@ export default async function TeamPage({
           m={m}
         />
       </div>
+
+      <BrandingSettingsCard
+        initialBranding={branding}
+        organizationName={actor.organizationName}
+        locale={locale}
+      />
     </>
   );
 }

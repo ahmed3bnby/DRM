@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, ReactNode } from 'react';
-import { FileText, ShieldAlert, Activity, Clock3, AlertTriangle } from 'lucide-react';
+import { FileText, ShieldAlert, Activity, Clock3, AlertTriangle, Network } from 'lucide-react';
 import { useLocale } from './locale-context';
 
 export type ProfileTabItem = {
   id: string;
   label: string;
-  iconName?: 'summary' | 'matches' | 'risk' | 'activity';
+  iconName?: 'summary' | 'matches' | 'risk' | 'activity' | 'ubo';
   badge?: number | string;
   badgeType?: 'neutral' | 'amber' | 'blue' | 'danger';
   content: ReactNode;
@@ -62,6 +62,8 @@ export default function ProfileTabsView({ tabs, defaultTab = 'summary' }: Profil
         return <Activity size={17} />;
       case 'activity':
         return <Clock3 size={17} />;
+      case 'ubo':
+        return <Network size={17} />;
       default:
         return null;
     }
