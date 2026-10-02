@@ -39,6 +39,15 @@ export default function CustomerForm({
   const [identifier, setIdentifier] = useState<string>(v('identifier', customer?.identifier ?? defaults?.identifier));
   const [notes, setNotes] = useState<string>(v('notes', customer?.notes ?? defaults?.notes));
   const [isDirty, setIsDirty] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (state?.error) {
+      setIsSubmitting(false);
+    }
+  }, [state]);
+
+  const busy = pending || isSubmitting;
 
   const handleOcrExtracted = (data: ExtractedDocData) => {
     setIsDirty(true);
@@ -59,23 +68,30 @@ export default function CustomerForm({
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty && !pending) {
+      if (isDirty && !busy) {
         e.preventDefault();
         e.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isDirty, pending]);
+  }, [isDirty, busy]);
 
   const isCompany = entityType === 'company';
 
   return (
     <form
       action={action}
-      className="panel form-panel"
+      className={`panel form-panel ${busy ? 'is-submitting' : ''}`}
       onChange={() => setIsDirty(true)}
-      onSubmit={() => setIsDirty(false)}
+      onSubmit={(e) => {
+        if (busy) {
+          e.preventDefault();
+          return;
+        }
+        setIsSubmitting(true);
+        setIsDirty(false);
+      }}
     >
       {editing && <input type="hidden" name="id" value={customer.id} />}
       
@@ -355,11 +371,18 @@ export default function CustomerForm({
       </div>
 
       <div className="form-actions">
-        <button disabled={pending} className="button primary" type="submit">
-          {pending ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}
-          {pending ? m.saving : (editing ? m.saveEdits : m.saveCustomer)}
+        <button
+          disabled={busy}
+          className={`button primary${busy ? ' is-loading' : ''}`}
+          type="submit"
+          style={busy ? { opacity: 0.85, pointerEvents: 'none' } : undefined}
+        >
+          {busy ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}
+          {busy
+            ? (editing ? (locale === 'en' ? 'Saving changes…' : 'جاري حفظ التعديلات...') : (locale === 'en' ? 'Saving & screening…' : 'جاري الحفظ والفحص الأمني...'))
+            : (editing ? m.saveEdits : m.saveCustomer)}
         </button>
-        <Link href={editing ? `/profiles/${customer.reference}` : '/profiles'} className="button secondary">
+        <Link href={editing ? `/profiles/${customer.reference}` : '/profiles'} className={`button secondary${busy ? ' disabled' : ''}`}>
           {m.cancel}
         </Link>
       </div>

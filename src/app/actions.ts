@@ -8,10 +8,12 @@ import { recordMatchDecision } from '@/lib/decisions';
 import { assignReviewCase } from '@/lib/review-cases';
 import { getSourceRecord } from '@/lib/search';
 import { createTeamUser, setUserQuota, consumeSearch, quotaStatus, setUserRole, setUserDisabled, resetUserPassword, updateUserProfile, deleteTeamUser, clearUserSearches, deleteUserSearchEvent, clearMySearchHistory, removeSearchHistoryItem } from '@/lib/team';
-import { extractRecordCountry, extractRecordDob, extractRecordIdentifier } from '@/lib/record-details';
 import { customerSchema, teamUserSchema, canManageCustomers, uuidSchema } from '@/lib/validation';
+import { extractRecordCountry, extractRecordDob, extractRecordIdentifier } from '@/lib/record-details';
 import { isPlatformOwner } from '@/lib/platform-access';
 import { getSystemLockdown, setSystemLockdown } from '@/lib/platform';
+import { withTenant } from '@/lib/db';
+import { normalizeName } from '@/lib/name-normalization';
 
 export type LoginState = {error?: string};
 export async function loginAction(_previous: LoginState, data: FormData): Promise<LoginState> {
@@ -113,6 +115,28 @@ export async function createCustomerAction(_previous: FormState, data: FormData)
   const quotaCheck = await quotaStatus(actor);
   if (!quotaCheck.allowed) {
     return { error: 'رصيد عمليات الفحص المتاح لك غير كافٍ لإنشاء وفحص عميل جديد. يرجى التواصل مع مسؤول النظام لزيادة الحصة.', values };
+  }
+
+  // Double-Submit / Idempotency Guard: prevent duplicate profiles created in rapid succession
+  const norm = normalizeName(parsed.data.name);
+  const recentDuplicate = await withTenant(actor.organizationId, async db => {
+    const r = await db.query(
+      `SELECT id, reference FROM customers
+       WHERE organization_id = $1
+         AND created_by = $2
+         AND normalized_name = $3
+         AND entity_type = $4
+         AND created_at > now() - interval '10 seconds'
+       ORDER BY created_at DESC LIMIT 1`,
+      [actor.organizationId, actor.id, norm, parsed.data.entityType]
+    );
+    return r.rows[0] as { id: string; reference: string } | undefined;
+  });
+
+  if (recentDuplicate) {
+    revalidatePath('/');
+    revalidatePath('/profiles');
+    redirect(`/profiles/${recentDuplicate.reference}?created=1&screened=1`);
   }
 
   let customerId: string;

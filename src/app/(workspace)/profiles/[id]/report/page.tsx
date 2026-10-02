@@ -159,8 +159,8 @@ export default async function Report({ params }: { params: Promise<{ id: string 
   let adverseArticles = last?.adverse_media?.articles ?? [];
   let generalNewsArticles = last?.adverse_media?.generalNews ?? [];
 
-  // Live Fallback: If snapshot has no adverse media records, fetch live Google & Adverse media
-  if (hasFeature(actor, 'adverse_media') && adverseArticles.length === 0 && generalNewsArticles.length === 0) {
+  // Fallback only if the screening snapshot did not record adverse media
+  if (hasFeature(actor, 'adverse_media') && !last?.adverse_media) {
     try {
       const liveAdv = await adverseMediaSearch(customer.name);
       if (liveAdv.status === 'searched') {

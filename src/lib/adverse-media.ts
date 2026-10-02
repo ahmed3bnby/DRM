@@ -169,7 +169,7 @@ async function fetchGoogleRss(query: string, hl: string, gl: string, ceid: strin
     const url = `https://news.google.com/rss/search?q=${encoded}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
 
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(4500),
+      signal: AbortSignal.timeout(2000),
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         Accept: 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8'
@@ -222,7 +222,7 @@ async function fetchGdelt(name: string, matcher: (t: string) => boolean): Promis
 
     const res = await fetch(url, {
       cache: 'no-store',
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(1800),
       headers: { Accept: 'application/json' }
     });
 
@@ -269,18 +269,29 @@ async function fetchGdelt(name: string, matcher: (t: string) => boolean): Promis
   }
 }
 
-export async function adverseMediaSearch(
-  q: string,
-  options?: { country?: string }
-): Promise<{
+export type AdverseSearchResult = {
   status: 'not_searched' | 'searched' | 'failed';
   articles: AdverseArticle[];
   generalNews?: AdverseArticle[];
   retrievedAt?: string;
-}> {
+};
+
+const ADVERSE_CACHE = new Map<string, { result: AdverseSearchResult; expiresAt: number }>();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+export async function adverseMediaSearch(
+  q: string,
+  options?: { country?: string }
+): Promise<AdverseSearchResult> {
   const name = q.trim();
   if (name.length < 2 || name.length > 160) {
     return { status: 'not_searched', articles: [], generalNews: [] };
+  }
+
+  const cacheKey = normalizeLat(normalizeAr(name));
+  const cached = ADVERSE_CACHE.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.result;
   }
 
   const isArabic = /[\u0600-\u06FF]/.test(name);
@@ -288,113 +299,125 @@ export async function adverseMediaSearch(
   const { variants } = extractNameVariants(name);
 
   try {
-    let rawItems: RawFeedItem[] = [];
+    const executeSearch = async (): Promise<AdverseSearchResult> => {
+      let rawItems: RawFeedItem[] = [];
 
-    // Search targets: full official name + top journalistic short name variants
-    const targetNames = [name, ...variants.slice(0, 2)];
+      // Search targets: full official name + top journalistic short name variants
+      const targetNames = [name, ...variants.slice(0, 2)];
 
-    if (isArabic) {
-      // 1. Arabic Search: Target Middle East & Gulf publications across name variants
-      const promises: Promise<RawFeedItem[]>[] = [];
-      for (const tName of targetNames) {
-        const adverseQuery = `"${tName}" (${ARABIC_ADVERSE_TERMS.slice(0, 8).join(' OR ')})`;
-        const generalQuery = `"${tName}"`;
-        promises.push(
-          fetchGoogleRss(adverseQuery, 'ar', 'EG', 'EG:ar'),
-          fetchGoogleRss(adverseQuery, 'ar', 'AE', 'AE:ar'),
-          fetchGoogleRss(generalQuery, 'ar', 'EG', 'EG:ar')
-        );
-      }
-
-      const resultsArrays = await Promise.all(promises);
-      rawItems = resultsArrays.flat();
-    } else {
-      // 2. Latin / International Search: US & UK/Global editions
-      const promises: Promise<RawFeedItem[]>[] = [];
-      for (const tName of targetNames) {
-        const adverseQuery = `"${tName}" (${ENGLISH_ADVERSE_TERMS.slice(0, 8).join(' OR ')})`;
-        const generalQuery = `"${tName}"`;
-        promises.push(
-          fetchGoogleRss(adverseQuery, 'en-US', 'US', 'US:en'),
-          fetchGoogleRss(adverseQuery, 'en-GB', 'GB', 'GB:en'),
-          fetchGoogleRss(generalQuery, 'en-US', 'US', 'US:en')
-        );
-      }
-
-      const resultsArrays = await Promise.all(promises);
-      rawItems = resultsArrays.flat();
-    }
-
-    // Process & Filter with Strict Name Verification
-    const seen = new Set<string>();
-    const verifiedArticles: AdverseArticle[] = [];
-
-    for (const item of rawItems) {
-      if (!item.title || !item.link) continue;
-
-      // CRITICAL COMPLIANCE RULE:
-      // Only keep the article if the searched name is verified in the title or snippet!
-      const contentToMatch = `${item.title} ${item.snippet}`;
-      if (!matcher(contentToMatch)) {
-        continue; // Drop completely irrelevant articles
-      }
-
-      let domain = item.source;
-      try {
-        if (!domain) domain = new URL(item.link).hostname.replace(/^www\./, '');
-      } catch {
-        domain = 'Google News';
-      }
-
-      const dedupeKey = `${domain.toLowerCase()}|${item.title.toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '')}`;
-      if (seen.has(dedupeKey)) continue;
-      seen.add(dedupeKey);
-
-      let formattedDate = '';
-      try {
-        const d = new Date(item.pubDate);
-        if (!isNaN(d.getTime())) {
-          formattedDate = d.toISOString().split('T')[0];
+      if (isArabic) {
+        // 1. Arabic Search: Target Middle East & Gulf publications across name variants
+        const promises: Promise<RawFeedItem[]>[] = [];
+        for (const tName of targetNames) {
+          const adverseQuery = `"${tName}" (${ARABIC_ADVERSE_TERMS.slice(0, 8).join(' OR ')})`;
+          const generalQuery = `"${tName}"`;
+          promises.push(
+            fetchGoogleRss(adverseQuery, 'ar', 'EG', 'EG:ar'),
+            fetchGoogleRss(adverseQuery, 'ar', 'AE', 'AE:ar'),
+            fetchGoogleRss(generalQuery, 'ar', 'EG', 'EG:ar')
+          );
         }
-      } catch {
-        formattedDate = item.pubDate;
+
+        const resultsArrays = await Promise.all(promises);
+        rawItems = resultsArrays.flat();
+      } else {
+        // 2. Latin / International Search: US & UK/Global editions
+        const promises: Promise<RawFeedItem[]>[] = [];
+        for (const tName of targetNames) {
+          const adverseQuery = `"${tName}" (${ENGLISH_ADVERSE_TERMS.slice(0, 8).join(' OR ')})`;
+          const generalQuery = `"${tName}"`;
+          promises.push(
+            fetchGoogleRss(adverseQuery, 'en-US', 'US', 'US:en'),
+            fetchGoogleRss(adverseQuery, 'en-GB', 'GB', 'GB:en'),
+            fetchGoogleRss(generalQuery, 'en-US', 'US', 'US:en')
+          );
+        }
+
+        const resultsArrays = await Promise.all(promises);
+        rawItems = resultsArrays.flat();
       }
 
-      const category = classifyArticle(`${item.title} ${item.snippet}`);
+      // Process & Filter with Strict Name Verification
+      const seen = new Set<string>();
+      const verifiedArticles: AdverseArticle[] = [];
 
-      verifiedArticles.push({
-        title: item.title,
-        url: item.link,
-        domain,
-        date: formattedDate,
-        source: item.source || domain,
-        snippet: item.snippet,
-        category
-      });
-    }
+      for (const item of rawItems) {
+        if (!item.title || !item.link) continue;
 
-    // If Google returned very few hits, run GDELT with the same strict matcher
-    if (verifiedArticles.length < 3) {
-      const gdeltHits = await fetchGdelt(name, matcher);
-      for (const gh of gdeltHits) {
-        const dedupeKey = `${gh.domain.toLowerCase()}|${gh.title.toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '')}`;
-        if (!seen.has(dedupeKey)) {
-          seen.add(dedupeKey);
-          verifiedArticles.push(gh);
+        // CRITICAL COMPLIANCE RULE:
+        // Only keep the article if the searched name is verified in the title or snippet!
+        const contentToMatch = `${item.title} ${item.snippet}`;
+        if (!matcher(contentToMatch)) {
+          continue; // Drop completely irrelevant articles
+        }
+
+        let domain = item.source;
+        try {
+          if (!domain) domain = new URL(item.link).hostname.replace(/^www\./, '');
+        } catch {
+          domain = 'Google News';
+        }
+
+        const dedupeKey = `${domain.toLowerCase()}|${item.title.toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '')}`;
+        if (seen.has(dedupeKey)) continue;
+        seen.add(dedupeKey);
+
+        let formattedDate = '';
+        try {
+          const d = new Date(item.pubDate);
+          if (!isNaN(d.getTime())) {
+            formattedDate = d.toISOString().split('T')[0];
+          }
+        } catch {
+          formattedDate = item.pubDate;
+        }
+
+        const category = classifyArticle(`${item.title} ${item.snippet}`);
+
+        verifiedArticles.push({
+          title: item.title,
+          url: item.link,
+          domain,
+          date: formattedDate,
+          source: item.source || domain,
+          snippet: item.snippet,
+          category
+        });
+      }
+
+      // If Google returned very few hits, run GDELT with the same strict matcher
+      if (verifiedArticles.length < 3) {
+        const gdeltHits = await fetchGdelt(name, matcher);
+        for (const gh of gdeltHits) {
+          const dedupeKey = `${gh.domain.toLowerCase()}|${gh.title.toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '')}`;
+          if (!seen.has(dedupeKey)) {
+            seen.add(dedupeKey);
+            verifiedArticles.push(gh);
+          }
         }
       }
-    }
 
-    // Separate genuine adverse media from neutral public presence
-    const adverseList = verifiedArticles.filter(a => a.category !== 'other');
-    const generalList = verifiedArticles.filter(a => a.category === 'other');
+      // Separate genuine adverse media from neutral public presence
+      const adverseList = verifiedArticles.filter(a => a.category !== 'other');
+      const generalList = verifiedArticles.filter(a => a.category === 'other');
 
-    return {
-      status: 'searched',
-      articles: adverseList.slice(0, 15),
-      generalNews: generalList.slice(0, 20),
-      retrievedAt: new Date().toISOString()
+      const outcome: AdverseSearchResult = {
+        status: 'searched',
+        articles: adverseList.slice(0, 15),
+        generalNews: generalList.slice(0, 20),
+        retrievedAt: new Date().toISOString()
+      };
+
+      ADVERSE_CACHE.set(cacheKey, { result: outcome, expiresAt: Date.now() + CACHE_TTL_MS });
+      return outcome;
     };
+
+    // Cap total adverse search time at 2500ms max so caller is never blocked
+    const fallbackTimeout: Promise<AdverseSearchResult> = new Promise(resolve =>
+      setTimeout(() => resolve({ status: 'searched', articles: [], generalNews: [], retrievedAt: new Date().toISOString() }), 2500)
+    );
+
+    return await Promise.race([executeSearch(), fallbackTimeout]);
   } catch {
     return { status: 'failed', articles: [], generalNews: [] };
   }
