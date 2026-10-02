@@ -121,31 +121,31 @@ export async function getPlatformChecksSummary(): Promise<PlatformChecksSummary>
     const hiddenIds = platformOwnerIds();
 
     return await withPlatformOwner(async db => {
-      const [statsRes, quotaRes, monitorRes] = await Promise.all([
-        db.query(`
-          SELECT 
-            count(*)::int AS total_checks,
-            count(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS today_checks,
-            count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS week_checks,
-            count(DISTINCT user_id)::int AS active_accounts
-          FROM search_events
-        `),
-        db.query(`
-          SELECT 
-            COALESCE(sum(search_quota), 0)::int AS total_allocated,
-            count(*) FILTER (WHERE search_quota IS NOT NULL)::int AS accounts_with_quota,
-            count(*) FILTER (WHERE search_quota IS NULL)::int AS unlimited_accounts
-          FROM users
-          WHERE disabled_at IS NULL
-            AND NOT (lower(email) = ANY($1::text[]))
-            AND NOT (id = ANY($2::uuid[]))
-        `, [hiddenEmails, hiddenIds]),
-        db.query(`
-          SELECT
-            (SELECT count(*)::int FROM customers WHERE monitoring_enabled = true) AS monitored_customers,
-            (SELECT count(*)::int FROM customer_monitoring_events WHERE NOT is_read) AS unread_alerts
-        `)
-      ]);
+      const statsRes = await db.query(`
+        SELECT 
+          count(*)::int AS total_checks,
+          count(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS today_checks,
+          count(*) FILTER (WHERE created_at >= now() - interval '7 days')::int AS week_checks,
+          count(DISTINCT user_id)::int AS active_accounts
+        FROM search_events
+      `);
+
+      const quotaRes = await db.query(`
+        SELECT 
+          COALESCE(sum(search_quota), 0)::int AS total_allocated,
+          count(*) FILTER (WHERE search_quota IS NOT NULL)::int AS accounts_with_quota,
+          count(*) FILTER (WHERE search_quota IS NULL)::int AS unlimited_accounts
+        FROM users
+        WHERE disabled_at IS NULL
+          AND NOT (lower(email) = ANY($1::text[]))
+          AND NOT (id = ANY($2::uuid[]))
+      `, [hiddenEmails, hiddenIds]);
+
+      const monitorRes = await db.query(`
+        SELECT
+          (SELECT count(*)::int FROM customers WHERE monitoring_enabled = true) AS monitored_customers,
+          (SELECT count(*)::int FROM customer_monitoring_events WHERE NOT is_read) AS unread_alerts
+      `);
 
       const s = statsRes.rows[0] || {};
       const q = quotaRes.rows[0] || {};

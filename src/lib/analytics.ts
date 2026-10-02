@@ -47,76 +47,74 @@ export interface AnalyticsSummary {
 
 export async function getComplianceAnalytics(organizationId: string): Promise<AnalyticsSummary> {
   return withTenant(organizationId, async (db) => {
-    // 1. Overview counts
-    const [custRes, screenRes, casesRes, decisionsRes, sarRes, auditRes] = await Promise.all([
-      db.query(`
-        SELECT
-          count(*)::int AS total,
-          count(*) FILTER (WHERE monitoring_enabled = true)::int AS monitored,
-          count(*) FILTER (WHERE screening_status = 'potential_match')::int AS high_risk,
-          count(*) FILTER (WHERE screening_status = 'screened')::int AS low_risk,
-          count(*) FILTER (WHERE screening_status = 'no_match')::int AS clean,
-          country,
-          nationality,
-          industry
-        FROM customers
-        WHERE organization_id = $1
-        GROUP BY country, nationality, industry
-      `, [organizationId]),
+    // 1. Execute queries sequentially on the single tenant client (avoids concurrent client.query warnings in pg)
+    const custRes = await db.query(`
+      SELECT
+        count(*)::int AS total,
+        count(*) FILTER (WHERE monitoring_enabled = true)::int AS monitored,
+        count(*) FILTER (WHERE screening_status = 'potential_match')::int AS high_risk,
+        count(*) FILTER (WHERE screening_status = 'screened')::int AS low_risk,
+        count(*) FILTER (WHERE screening_status = 'no_match')::int AS clean,
+        country,
+        nationality,
+        industry
+      FROM customers
+      WHERE organization_id = $1
+      GROUP BY country, nationality, industry
+    `, [organizationId]);
 
-      db.query(`
-        SELECT
-          count(*)::int AS total,
-          count(*) FILTER (WHERE overall_band = 'high')::int AS band_high,
-          count(*) FILTER (WHERE overall_band = 'medium')::int AS band_medium,
-          count(*) FILTER (WHERE overall_band = 'low' OR overall_band = 'none')::int AS band_low
-        FROM customer_screenings
-        WHERE organization_id = $1
-      `, [organizationId]),
+    const screenRes = await db.query(`
+      SELECT
+        count(*)::int AS total,
+        count(*) FILTER (WHERE overall_band = 'high')::int AS band_high,
+        count(*) FILTER (WHERE overall_band = 'medium')::int AS band_medium,
+        count(*) FILTER (WHERE overall_band = 'low' OR overall_band = 'none')::int AS band_low
+      FROM customer_screenings
+      WHERE organization_id = $1
+    `, [organizationId]);
 
-      db.query(`
-        SELECT
-          count(*)::int AS total,
-          count(*) FILTER (WHERE status = 'pending' OR status = 'in_review')::int AS pending,
-          count(*) FILTER (WHERE status = 'resolved')::int AS resolved
-        FROM review_cases
-        WHERE organization_id = $1
-      `, [organizationId]),
+    const casesRes = await db.query(`
+      SELECT
+        count(*)::int AS total,
+        count(*) FILTER (WHERE status = 'pending' OR status = 'in_review')::int AS pending,
+        count(*) FILTER (WHERE status = 'resolved')::int AS resolved
+      FROM review_cases
+      WHERE organization_id = $1
+    `, [organizationId]);
 
-      db.query(`
-        SELECT
-          count(*)::int AS total,
-          count(*) FILTER (WHERE decision = 'confirmed')::int AS confirmed,
-          count(*) FILTER (WHERE decision = 'dismissed')::int AS dismissed
-        FROM match_decisions
-        WHERE organization_id = $1
-      `, [organizationId]),
+    const decisionsRes = await db.query(`
+      SELECT
+        count(*)::int AS total,
+        count(*) FILTER (WHERE decision = 'confirmed')::int AS confirmed,
+        count(*) FILTER (WHERE decision = 'dismissed')::int AS dismissed
+      FROM match_decisions
+      WHERE organization_id = $1
+    `, [organizationId]);
 
-      db.query(`
-        SELECT
-          count(*)::int AS total,
-          count(*) FILTER (WHERE report_type = 'SAR' OR report_type = 'STR')::int AS sar_str,
-          count(*) FILTER (WHERE report_type = 'REAR')::int AS rear,
-          count(*) FILTER (WHERE report_type = 'FARI')::int AS fari,
-          count(*) FILTER (WHERE report_type = 'DPMSR')::int AS dpmsr
-        FROM customer_sar_reports
-        WHERE organization_id = $1
-      `, [organizationId]),
+    const sarRes = await db.query(`
+      SELECT
+        count(*)::int AS total,
+        count(*) FILTER (WHERE report_type = 'SAR' OR report_type = 'STR')::int AS sar_str,
+        count(*) FILTER (WHERE report_type = 'REAR')::int AS rear,
+        count(*) FILTER (WHERE report_type = 'FARI')::int AS fari,
+        count(*) FILTER (WHERE report_type = 'DPMSR')::int AS dpmsr
+      FROM customer_sar_reports
+      WHERE organization_id = $1
+    `, [organizationId]);
 
-      db.query(`
-        SELECT
-          a.id, a.action, a.summary, a.created_at,
-          u.display_name AS actor_name,
-          c.name AS customer_name,
-          c.reference AS customer_ref
-        FROM audit_events a
-        LEFT JOIN users u ON u.id = a.actor_id
-        LEFT JOIN customers c ON c.id = a.customer_id
-        WHERE a.organization_id = $1
-        ORDER BY a.created_at DESC
-        LIMIT 10
-      `, [organizationId]),
-    ]);
+    const auditRes = await db.query(`
+      SELECT
+        a.id, a.action, a.summary, a.created_at,
+        u.display_name AS actor_name,
+        c.name AS customer_name,
+        c.reference AS customer_ref
+      FROM audit_events a
+      LEFT JOIN users u ON u.id = a.actor_id
+      LEFT JOIN customers c ON c.id = a.customer_id
+      WHERE a.organization_id = $1
+      ORDER BY a.created_at DESC
+      LIMIT 10
+    `, [organizationId]);
 
     // Aggregate Customer & FATF breakdown
     let totalCustomers = 0;
