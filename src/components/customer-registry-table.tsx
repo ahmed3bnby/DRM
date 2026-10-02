@@ -268,7 +268,7 @@ export default function CustomerRegistryTable({
                     <Status status={c.status} m={m} />
                   </td>
                   <td className="customer-screening-cell" data-label={m.thScreening}>
-                    <ScreeningTag status={c.screening_status} m={m} />
+                    <ScreeningTag status={c.screening_status} customer={c} m={m} locale={locale} />
                   </td>
                   <td className="row-open-cell">
                     <Link className="row-open" href={`/profiles/${c.reference}`} aria-label={`${m.open} ${c.name}`}>
@@ -317,7 +317,7 @@ export default function CustomerRegistryTable({
                     </small>
                   </div>
                   <div className="m-card-screening">
-                    <ScreeningTag status={c.screening_status} m={m} />
+                    <ScreeningTag status={c.screening_status} customer={c} m={m} locale={locale} />
                   </div>
                 </div>
 

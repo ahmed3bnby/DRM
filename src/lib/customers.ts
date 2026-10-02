@@ -17,6 +17,11 @@ export type Customer = {
   last_monitored_at?: string | null;
   monitoring_status?: 'clear' | 'flagged' | 'pending_review';
   monitoring_hit_count?: number;
+  screening_band?: 'high' | 'medium' | 'low' | 'none';
+  screening_relevant_count?: number;
+  screening_flags?: Record<string, boolean>;
+  confirmed_matches_count?: number;
+  dismissed_matches_count?: number;
 };
 // Whitelisted sort orders (never interpolate user input into ORDER BY).
 export const CUSTOMER_SORTS: Record<string, string> = {
@@ -46,8 +51,30 @@ export async function listCustomers(organizationId: string, query = '', type = '
     const status = customerStatuses.has(opts?.status as Customer['status']) ? opts!.status! : '';
     const screening = screeningStatuses.has(opts?.screening as Customer['screening_status']) ? opts!.screening! : '';
     const creatorId = opts?.actorId ?? null;
-    const result = await db.query(`SELECT c.*, u.display_name AS creator_name FROM customers c
+    const result = await db.query(`SELECT 
+      c.*, 
+      u.display_name AS creator_name,
+      s.overall_band AS screening_band,
+      s.relevant_count AS screening_relevant_count,
+      s.flags AS screening_flags,
+      COALESCE(dec.confirmed_count, 0)::int AS confirmed_matches_count,
+      COALESCE(dec.dismissed_count, 0)::int AS dismissed_matches_count
+      FROM customers c
       LEFT JOIN users u ON u.id = c.created_by
+      LEFT JOIN LATERAL (
+        SELECT cs.overall_band, cs.relevant_count, cs.flags
+        FROM customer_screenings cs
+        WHERE cs.customer_id = c.id
+        ORDER BY cs.created_at DESC
+        LIMIT 1
+      ) s ON true
+      LEFT JOIN LATERAL (
+        SELECT 
+          COUNT(*) FILTER (WHERE md.decision = 'confirmed') AS confirmed_count,
+          COUNT(*) FILTER (WHERE md.decision = 'dismissed') AS dismissed_count
+        FROM match_decisions md
+        WHERE md.customer_id = c.id
+      ) dec ON true
       WHERE c.organization_id=$1
       AND ($2='' OR ($4<>'' AND c.normalized_name LIKE '%' || $4 || '%') OR c.name ILIKE '%' || $2 || '%' OR c.reference ILIKE '%' || $2 || '%')
       AND ($3='' OR c.entity_type=$3)
@@ -119,8 +146,30 @@ export async function findMatchingExistingCustomer(organizationId: string, query
 
 export async function getCustomer(organizationId: string, id: string, actorId?: string): Promise<Customer | null> {
   return withTenant(organizationId, async db => {
-    const result = await db.query(`SELECT c.*, u.display_name AS creator_name FROM customers c
+    const result = await db.query(`SELECT 
+      c.*, 
+      u.display_name AS creator_name,
+      s.overall_band AS screening_band,
+      s.relevant_count AS screening_relevant_count,
+      s.flags AS screening_flags,
+      COALESCE(dec.confirmed_count, 0)::int AS confirmed_matches_count,
+      COALESCE(dec.dismissed_count, 0)::int AS dismissed_matches_count
+      FROM customers c
       LEFT JOIN users u ON u.id = c.created_by
+      LEFT JOIN LATERAL (
+        SELECT cs.overall_band, cs.relevant_count, cs.flags
+        FROM customer_screenings cs
+        WHERE cs.customer_id = c.id
+        ORDER BY cs.created_at DESC
+        LIMIT 1
+      ) s ON true
+      LEFT JOIN LATERAL (
+        SELECT 
+          COUNT(*) FILTER (WHERE md.decision = 'confirmed') AS confirmed_count,
+          COUNT(*) FILTER (WHERE md.decision = 'dismissed') AS dismissed_count
+        FROM match_decisions md
+        WHERE md.customer_id = c.id
+      ) dec ON true
       WHERE c.organization_id=$1 AND c.id=$2
       AND ($3::uuid IS NULL OR c.created_by=$3)`, [organizationId, id, actorId ?? null]);
     return result.rows[0] ?? null;
@@ -131,12 +180,56 @@ export async function getCustomerByHandle(organizationId: string, handle: string
   const byId = /^[0-9a-fA-F-]{36}$/.test(handle);
   return withTenant(organizationId, async db => {
     const result = byId
-      ? await db.query(`SELECT c.*, u.display_name AS creator_name FROM customers c
+      ? await db.query(`SELECT 
+          c.*, 
+          u.display_name AS creator_name,
+          s.overall_band AS screening_band,
+          s.relevant_count AS screening_relevant_count,
+          s.flags AS screening_flags,
+          COALESCE(dec.confirmed_count, 0)::int AS confirmed_matches_count,
+          COALESCE(dec.dismissed_count, 0)::int AS dismissed_matches_count
+          FROM customers c
           LEFT JOIN users u ON u.id = c.created_by
+          LEFT JOIN LATERAL (
+            SELECT cs.overall_band, cs.relevant_count, cs.flags
+            FROM customer_screenings cs
+            WHERE cs.customer_id = c.id
+            ORDER BY cs.created_at DESC
+            LIMIT 1
+          ) s ON true
+          LEFT JOIN LATERAL (
+            SELECT 
+              COUNT(*) FILTER (WHERE md.decision = 'confirmed') AS confirmed_count,
+              COUNT(*) FILTER (WHERE md.decision = 'dismissed') AS dismissed_count
+            FROM match_decisions md
+            WHERE md.customer_id = c.id
+          ) dec ON true
           WHERE c.organization_id=$1 AND c.id=$2
           AND ($3::uuid IS NULL OR c.created_by=$3)`, [organizationId, handle, actorId ?? null])
-      : await db.query(`SELECT c.*, u.display_name AS creator_name FROM customers c
+      : await db.query(`SELECT 
+          c.*, 
+          u.display_name AS creator_name,
+          s.overall_band AS screening_band,
+          s.relevant_count AS screening_relevant_count,
+          s.flags AS screening_flags,
+          COALESCE(dec.confirmed_count, 0)::int AS confirmed_matches_count,
+          COALESCE(dec.dismissed_count, 0)::int AS dismissed_matches_count
+          FROM customers c
           LEFT JOIN users u ON u.id = c.created_by
+          LEFT JOIN LATERAL (
+            SELECT cs.overall_band, cs.relevant_count, cs.flags
+            FROM customer_screenings cs
+            WHERE cs.customer_id = c.id
+            ORDER BY cs.created_at DESC
+            LIMIT 1
+          ) s ON true
+          LEFT JOIN LATERAL (
+            SELECT 
+              COUNT(*) FILTER (WHERE md.decision = 'confirmed') AS confirmed_count,
+              COUNT(*) FILTER (WHERE md.decision = 'dismissed') AS dismissed_count
+            FROM match_decisions md
+            WHERE md.customer_id = c.id
+          ) dec ON true
           WHERE c.organization_id=$1 AND c.reference=$2
           AND ($3::uuid IS NULL OR c.created_by=$3)`, [organizationId, handle.toUpperCase(), actorId ?? null]);
     return result.rows[0] ?? null;

@@ -100,15 +100,92 @@ export function Pagination({
 const regionAr=new Intl.DisplayNames(['ar'],{type:'region'});const regionEn=new Intl.DisplayNames(['en'],{type:'region'});
 export const countryName = (code:string,locale:Locale='en')=>{const c=(code||'').toUpperCase();if(!c||c==='OTHER'||c==='OT')return locale==='en'?'Other':'أخرى';if(/^[A-Z]{2}$/.test(c)){try{return (locale==='en'?regionEn:regionAr).of(c)??c;}catch{return c;}}return code;};
 export function Status({status,m}:{status:string;m:Messages}) {return <span className={`status ${status==='awaiting_information'?'amber':'neutral'}`}><span className="status-mark"/>{status==='awaiting_information'?m.stAwaiting:m.stDraft}</span>;}
-const screeningCls:Record<string,string>={not_run:'not-run',no_match:'neutral',screened:'neutral',potential_match:'amber'};
-export function ScreeningTag({status,m}:{status:string;m:Messages}) {const cls=screeningCls[status]??'not-run';const label=({not_run:m.scNotRun,no_match:m.scNoMatch,screened:m.scScreened,potential_match:m.scPotential} as Record<string,string>)[status]??m.scNotRun;return cls==='not-run'?<span className="not-run">{label}</span>:<span className={`status ${cls}`}><span className="status-mark"/>{label}</span>;}
+export function ScreeningTag({
+  status,
+  customer,
+  m,
+  locale = 'ar'
+}: {
+  status: string;
+  customer?: Customer;
+  m: Messages;
+  locale?: Locale;
+}) {
+  const isEn = locale === 'en';
+
+  if (customer && (customer.confirmed_matches_count ?? 0) > 0) {
+    return (
+      <span className="status danger status-confirmed" title={isEn ? 'Confirmed Match by Analyst' : 'تم تأكيد التطابق من المحلل'}>
+        <span className="status-mark" />
+        {m.scConfirmed || (isEn ? 'Confirmed Match' : 'تطابق مؤكد (خطر مرتفع)')}
+      </span>
+    );
+  }
+
+  if (
+    customer &&
+    status === 'potential_match' &&
+    (customer.screening_band === 'high' ||
+      customer.screening_flags?.sanctions ||
+      customer.screening_flags?.crime ||
+      customer.screening_flags?.debarment)
+  ) {
+    return (
+      <span className="status danger status-high-risk" title={isEn ? 'High Risk Compliance Hit' : 'مطابقة مع قوائم عقوبات أو جهات محظورة'}>
+        <span className="status-mark" />
+        {m.scHighRisk || (isEn ? 'High Risk Match' : 'مطابقة محتملة (خطر عالي)')}
+      </span>
+    );
+  }
+
+  if (
+    customer &&
+    (customer.dismissed_matches_count ?? 0) > 0 &&
+    (customer.confirmed_matches_count ?? 0) === 0 &&
+    (customer.screening_relevant_count ?? 0) <= (customer.dismissed_matches_count ?? 0)
+  ) {
+    return (
+      <span className="status green status-cleared" title={isEn ? 'False Positive Dismissed' : 'تم استبعاد جميع الشبهات واعتماد الملف كسليم'}>
+        <span className="status-mark" />
+        {m.scDismissed || (isEn ? 'Cleared (Dismissed)' : 'مستبعد (سليم)')}
+      </span>
+    );
+  }
+
+  if (status === 'potential_match') {
+    return (
+      <span className="status amber" title={isEn ? 'Potential Match - Pending Review' : 'مطابقة محتملة قيد مراجعة المحلل'}>
+        <span className="status-mark" />
+        {m.scPotential || (isEn ? 'Potential Match' : 'مطابقة محتملة')}
+      </span>
+    );
+  }
+
+  if (status === 'no_match' || status === 'screened') {
+    const label = status === 'no_match'
+      ? (m.scClean || m.scNoMatch || (isEn ? 'Clean (No matches)' : 'سليم (بلا تطابق)'))
+      : (m.scScreenedClean || m.scScreened || (isEn ? 'Screened (Clean)' : 'فُحص (سليم)'));
+    return (
+      <span className="status green status-clean" title={isEn ? 'Screened Clean' : 'تم الفحص - لا توجد مطابقات أو شبهات'}>
+        <span className="status-mark" />
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <span className="not-run" title={isEn ? 'Not Screened Yet' : 'لم يتم تشغيل الفحص الآلي بعد'}>
+      {m.scNotRun || (isEn ? 'Not Screened' : 'لم يُفحص')}
+    </span>
+  );
+}
 export function EntityIcon({type}:{type:string}) {return <span className={`entity-icon ${type==='company'?'company':'person'}`}>{type==='company'?<Building2 size={19}/>:<UserRound size={19}/>}</span>;}
 export function CustomerTable({customers,m,locale}:{customers:Customer[];m:Messages;locale:Locale}) {
   if(!customers.length) return <div className="empty"><UserRound size={32}/><h3>{m.emptyTitle}</h3><p>{m.emptyBody}</p></div>;
   return <>
     <div className="table-scroll desktop-only-table"><table className="data-table customers-table" dir={locale==='en'?'ltr':'rtl'}><thead><tr><th scope="col" className="th-client">{m.thClient}</th><th scope="col" className="th-type">{m.thType}</th><th scope="col" className="th-country">{m.thCountry}</th><th scope="col" className="th-status">{m.thStatus}</th><th scope="col" className="th-screening">{m.thScreening}</th><th scope="col" className="th-open"><span className="sr-only">{m.open}</span></th></tr></thead><tbody>{customers.map(c=><tr key={c.id}>
       <td className="customer-name-cell" data-label={m.thClient}><Link className="customer-cell" href={`/profiles/${c.reference}`}><EntityIcon type={c.entity_type}/><span className="customer-cell-text"><strong dir="auto"><bdi>{c.name}</bdi></strong><small dir="ltr" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><bdi>{c.reference}</bdi>{c.monitoring_enabled && <span title={locale === 'en' ? 'Ongoing Monitoring: Active' : 'المراقبة المستمرة: مفعّلة'} style={{ display: 'inline-flex', alignItems: 'center' }}><ShieldCheck size={12} style={{ color: '#16a34a' }}/></span>}</small></span></Link></td>
-      <td className="customer-type-cell" data-label={m.thType}><span className={`entity-type ${c.entity_type==='company'?'company':'individual'}`}>{c.entity_type==='company'?m.entityCompany:m.entityIndividual}</span></td><td className="customer-country-cell" data-label={m.thCountry}><span className="country-cell"><span className="flag" aria-hidden>{flag(c.country)||'🌐'}</span><bdi className="country-name">{countryName(c.country,locale)}</bdi></span></td><td className="customer-status-cell" data-label={m.thStatus}><Status status={c.status} m={m}/></td><td className="customer-screening-cell" data-label={m.thScreening}><ScreeningTag status={c.screening_status} m={m}/></td><td className="row-open-cell"><Link className="row-open" href={`/profiles/${c.reference}`} aria-label={`${m.open} ${c.name}`}><ArrowUpLeft size={18}/></Link></td>
+      <td className="customer-type-cell" data-label={m.thType}><span className={`entity-type ${c.entity_type==='company'?'company':'individual'}`}>{c.entity_type==='company'?m.entityCompany:m.entityIndividual}</span></td><td className="customer-country-cell" data-label={m.thCountry}><span className="country-cell"><span className="flag" aria-hidden>{flag(c.country)||'🌐'}</span><bdi className="country-name">{countryName(c.country,locale)}</bdi></span></td><td className="customer-status-cell" data-label={m.thStatus}><Status status={c.status} m={m}/></td><td className="customer-screening-cell" data-label={m.thScreening}><ScreeningTag status={c.screening_status} customer={c} m={m} locale={locale}/></td><td className="row-open-cell"><Link className="row-open" href={`/profiles/${c.reference}`} aria-label={`${m.open} ${c.name}`}><ArrowUpLeft size={18}/></Link></td>
     </tr>)}</tbody></table></div>
 
     <div className="mobile-customer-cards" aria-label={m.navCustomers}>
@@ -128,7 +205,7 @@ export function CustomerTable({customers,m,locale}:{customers:Customer[];m:Messa
               </small>
             </div>
             <div className="m-card-screening">
-              <ScreeningTag status={c.screening_status} m={m}/>
+              <ScreeningTag status={c.screening_status} customer={c} m={m} locale={locale}/>
             </div>
           </div>
           <div className="m-card-meta">

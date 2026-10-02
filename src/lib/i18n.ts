@@ -95,7 +95,7 @@ export const messages = {
     // shared table + status
     thClient: 'العميل', thType: 'نوع الملف', thCountry: 'الدولة', thStatus: 'حالة الملف', thScreening: 'الفحص', open: 'فتح',
     entityCompany: 'شركة', entityIndividual: 'فرد', emptyTitle: 'لا توجد ملفات مطابقة', emptyBody: 'جرّب تغيير البحث أو أضف ملف عميل جديد.',
-    stDraft: 'مسودة', stAwaiting: 'بانتظار البيانات', scNotRun: 'لم يُفحص', scNoMatch: 'لا مطابقات', scScreened: 'فُحص', scPotential: 'مطابقة محتملة',
+    stDraft: 'مسودة', stAwaiting: 'بانتظار البيانات', scNotRun: 'لم يُفحص', scNoMatch: 'سليم (بلا تطابق)', scScreened: 'فُحص (سليم)', scPotential: 'مطابقة محتملة', scConfirmed: 'تطابق مؤكد (خطر مرتفع)', scHighRisk: 'مطابقة محتملة (خطر عالي)', scDismissed: 'مستبعد (سليم)', scClean: 'سليم (بلا تطابق)', scScreenedClean: 'فُحص (سليم)',
     // profiles list
     profilesTitle: 'ملفات العملاء', profilesSub: 'الأفراد والشركات والعلاقات المرتبطة بمكتبك.', registryLabel: 'سجل العملاء',
     sortBy: 'ترتيب حسب', sortNameAsc: 'الاسم (أ ← ي)', sortNameDesc: 'الاسم (ي ← أ)', sortNewest: 'الأحدث أولًا', sortOldest: 'الأقدم أولًا', sortType: 'النوع', sortStatus: 'الحالة',
@@ -304,7 +304,7 @@ export const messages = {
     coverageNoteTitle: 'Clear sources for every result', coverageNoteBody: 'Track the active lists, their version dates, and what isn’t linked yet.', dataSourcesStatus: 'Data sources status',
     thClient: 'Customer', thType: 'Profile type', thCountry: 'Country', thStatus: 'Profile status', thScreening: 'Screening', open: 'Open',
     entityCompany: 'Company', entityIndividual: 'Individual', emptyTitle: 'No matching profiles', emptyBody: 'Try a different search or add a new customer profile.',
-    stDraft: 'Draft', stAwaiting: 'Awaiting data', scNotRun: 'Not screened', scNoMatch: 'No matches', scScreened: 'Screened', scPotential: 'Potential match',
+    stDraft: 'Draft', stAwaiting: 'Awaiting data', scNotRun: 'Not screened', scNoMatch: 'Clean (No matches)', scScreened: 'Screened (Clean)', scPotential: 'Potential match', scConfirmed: 'Confirmed Match', scHighRisk: 'High Risk Match', scDismissed: 'Cleared (Dismissed)', scClean: 'Clean (No matches)', scScreenedClean: 'Screened (Clean)',
     profilesTitle: 'Customer Profiles', profilesSub: 'People, companies, and relationships linked to your firm.', registryLabel: 'Customer registry',
     sortBy: 'Sort by', sortNameAsc: 'Name (A → Z)', sortNameDesc: 'Name (Z → A)', sortNewest: 'Newest first', sortOldest: 'Oldest first', sortType: 'Type', sortStatus: 'Status',
     tabAll: 'All profiles', tabIndividuals: 'Individuals', tabCompanies: 'Companies', listSearchPlaceholder: 'Search by name or reference…', allTypes: 'All customer types', apply: 'Apply',
