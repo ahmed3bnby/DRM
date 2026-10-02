@@ -17,7 +17,8 @@ export default function Navigation({ isAdmin = false, isOwner = false, reviews =
     ] },
     { label: m.navGroupCompliance, items: [
       { href: '/profiles', label: m.navCustomers, short: m.navCustomersShort, icon: UsersRound },
-      { href: '/analytics', label: isEn ? 'Executive Analytics' : 'لوحة المؤشرات والتحليلات', short: isEn ? 'Analytics' : 'التحليلات', icon: BarChart3 },
+      // Executive analytics is admin-only (the page enforces the same gate).
+      ...(isAdmin ? [{ href: '/analytics', label: isEn ? 'Executive Analytics' : 'لوحة المؤشرات والتحليلات', short: isEn ? 'Analytics' : 'التحليلات', icon: BarChart3 }] : []),
       ...(reviews ? [{ href: '/reviews', label: m.navReviews, short: m.navReviewsShort, icon: ClipboardCheck }] : []),
     ] },
     ...(isAdmin ? [{ label: m.navGroupAdministration, items: [

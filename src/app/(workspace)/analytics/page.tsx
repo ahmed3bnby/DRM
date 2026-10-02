@@ -18,9 +18,10 @@ import {
   Sparkles,
   AlertOctagon,
   KeyRound,
+  LockKeyhole,
 } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
-import { getLocale } from '@/lib/i18n';
+import { getLocale, getMessages } from '@/lib/i18n';
 import { getComplianceAnalytics } from '@/lib/analytics';
 import { number, DateText, DateTimeText } from '@/components/ui';
 
@@ -37,6 +38,20 @@ export default async function AnalyticsPage() {
   const actor = await requireActor();
   const locale = await getLocale();
   const isEn = locale === 'en';
+
+  // Executive org-level dashboard: restricted to admins, like the Team and
+  // Administration areas. Analysts/viewers get the same view-only notice used
+  // elsewhere in the workspace.
+  if (actor.role !== 'admin') {
+    const m = await getMessages();
+    return (
+      <div className="panel empty">
+        <LockKeyhole />
+        <h1>{m.viewOnlyTitle}</h1>
+        <p>{m.viewOnlyBody}</p>
+      </div>
+    );
+  }
 
   const data = await getComplianceAnalytics(actor.organizationId);
 
@@ -57,7 +72,7 @@ export default async function AnalyticsPage() {
             </h1>
             <p>
               {isEn
-                ? 'Consolidated view of customer screening volume, AI decision efficiency, FATF exposure, and goAML DNFBP statutory filings.'
+                ? 'Consolidated view of customer screening volume, decision-assistant efficiency, FATF exposure, and goAML DNFBP statutory filings.'
                 : 'رؤية مركزية لحجم عمليات الفحص، دقة استبعاد التشابه السطحي الذكي، توزيع مخاطر FATF، وبلاغات goAML الرسمية.'}
             </p>
           </div>
@@ -91,7 +106,7 @@ export default async function AnalyticsPage() {
         {/* Card 2: AI False Positive Assistant Clearance Rate */}
         <div className="analytics-kpi-card">
           <div className="analytics-kpi-top">
-            <span className="analytics-kpi-title">{isEn ? 'AI Decision Copilot Efficiency' : 'دقة المساعد الذكي (استبعاد التشابه)'}</span>
+            <span className="analytics-kpi-title">{isEn ? 'Decision Assistant Efficiency' : 'دقة مساعد القرار (استبعاد التشابه)'}</span>
             <div className="analytics-kpi-icon emerald">
               <Sparkles size={18} />
             </div>

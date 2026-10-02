@@ -150,13 +150,15 @@ export async function getComplianceAnalytics(organizationId: string): Promise<An
     const totalDecisions = decRow.total || 0;
     const dismissed = decRow.dismissed || 0;
     const confirmed = decRow.confirmed || 0;
-    const fpRate = totalDecisions > 0 ? Math.round((dismissed / totalDecisions) * 100) : 85;
+    // Honest metric: 0 when there are no decisions yet, never a fabricated figure.
+    const fpRate = totalDecisions > 0 ? Math.round((dismissed / totalDecisions) * 100) : 0;
 
     return {
       overview: {
         totalCustomers,
-        totalScreenings: screenRow.total || totalCustomers,
-        activeMonitored: activeMonitored || totalCustomers,
+        // Real counts only — no "|| totalCustomers" fallbacks that invent numbers when the true value is 0.
+        totalScreenings: screenRow.total ?? 0,
+        activeMonitored,
         totalReviewCases: casesRow.total || 0,
         pendingReviews: casesRow.pending || 0,
         resolvedReviews: casesRow.resolved || 0,
@@ -164,7 +166,7 @@ export async function getComplianceAnalytics(organizationId: string): Promise<An
       riskDistribution: {
         high: screenRow.band_high || 0,
         medium: screenRow.band_medium || 0,
-        low: screenRow.band_low || (totalCustomers - (screenRow.band_high || 0) - (screenRow.band_medium || 0)),
+        low: screenRow.band_low ?? 0,
         unassessed: Math.max(0, totalCustomers - (screenRow.total || 0)),
       },
       decisionAccuracy: {
@@ -176,7 +178,7 @@ export async function getComplianceAnalytics(organizationId: string): Promise<An
       fatfExposure: {
         blacklistCount,
         greylistCount,
-        gccCount: gccCount || totalCustomers,
+        gccCount,
         otherCount,
       },
       dnfbpFilings: {

@@ -177,7 +177,13 @@ export async function getSarReportById(
 }
 
 /**
- * Generate standard UAE FIU goAML XML Document adhering to UNODC XML schema standards.
+ * Generate a UAE FIU goAML XML document following the UNODC goAML structure.
+ *
+ * NOTE (pre-submission): dates are emitted as xs:dateTime and all values are XML-escaped,
+ * but `<report_code>` and `<indicator>` carry the app's own report type / reason category.
+ * Before real FIU submission these MUST be mapped to the official goAML UAE code tables
+ * (report codes and indicator codes) and the output validated against the production
+ * goAML.xsd — those code lists are issued by the FIU and are not bundled here.
  */
 export function generateGoAmlXml(
   report: SarReportRecord,
@@ -192,6 +198,19 @@ export function generateGoAmlXml(
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
+
+  // goAML dates are xs:dateTime (YYYY-MM-DDThh:mm:ss). Only emit a birth date when we
+  // have a full, valid calendar date — a bare year or malformed value is dropped rather
+  // than written as an invalid element.
+  const toGoAmlDateTime = (val?: string | null): string | null => {
+    if (!val) return null;
+    const m = String(val).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`);
+    if (isNaN(d.getTime())) return null;
+    return `${m[1]}-${m[2]}-${m[3]}T00:00:00`;
+  };
+  const birthDateTime = toGoAmlDateTime(c.date_of_birth);
 
   const submissionDate = new Date(report.created_at).toISOString().replace(/\.\d{3}Z$/, '');
 
@@ -261,15 +280,17 @@ export function generateGoAmlXml(
         <incorporation_country_code>${cleanStr(c.country || 'AE')}</incorporation_country_code>
         <incorporation_number>${cleanStr(c.identifier || 'UNKNOWN')}</incorporation_number>
         <commercial_name>${cleanStr(c.name)}</commercial_name>
-        <business>${cleanStr(c.industry || 'General')}</business>
-        <phones>
-          <phone><phone_number>${cleanStr(c.email || '')}</phone_number></phone>
-        </phones>
+        <business>${cleanStr(c.industry || 'General')}</business>${
+        c.email ? `
+        <email>${cleanStr(c.email)}</email>` : ''
+      }
       </t_entity>`
           : `<t_person>
         <first_name>${cleanStr(c.name?.split(' ')[0] || c.name)}</first_name>
-        <last_name>${cleanStr(c.name?.split(' ').slice(1).join(' ') || '')}</last_name>
-        <birth_date>${cleanStr(c.date_of_birth || '')}</birth_date>
+        <last_name>${cleanStr(c.name?.split(' ').slice(1).join(' ') || '')}</last_name>${
+        birthDateTime ? `
+        <birth_date>${birthDateTime}</birth_date>` : ''
+      }
         <nationality_country_code>${cleanStr(c.nationality || c.country || 'AE')}</nationality_country_code>
         <residence_country_code>${cleanStr(c.country || 'AE')}</residence_country_code>
         <id_number>${cleanStr(c.identifier || '')}</id_number>

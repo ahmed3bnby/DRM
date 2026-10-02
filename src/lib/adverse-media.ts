@@ -75,11 +75,44 @@ function normalizeLat(text: string): string {
 }
 
 /**
+ * Extracts searchable journalistic name variants for long compound names.
+ */
+export function extractNameVariants(name: string): { full: string; variants: string[] } {
+  const isArabic = /[\u0600-\u06FF]/.test(name);
+  const clean = isArabic ? normalizeAr(name) : normalizeLat(name);
+  const tokens = clean.split(/\s+/).filter(w => w.length >= 2);
+  const variants: string[] = [];
+
+  if (tokens.length >= 3) {
+    // 1. First 2 tokens (e.g. "محمد خيرت")
+    const firstTwo = tokens.slice(0, 2).join(' ');
+    if (firstTwo.length >= 5) variants.push(firstTwo);
+
+    // 2. First + Last (e.g. "محمد الشاطر")
+    const firstLast = `${tokens[0]} ${tokens[tokens.length - 1]}`;
+    if (firstLast.length >= 5) variants.push(firstLast);
+
+    // 3. Second + Last (e.g. "خيرت الشاطر")
+    const secondLast = `${tokens[1]} ${tokens[tokens.length - 1]}`;
+    if (secondLast.length >= 5) variants.push(secondLast);
+
+    // 4. First 2 + Last (e.g. "محمد خيرت الشاطر")
+    if (tokens.length >= 4) {
+      const firstTwoLast = `${tokens.slice(0, 2).join(' ')} ${tokens[tokens.length - 1]}`;
+      if (firstTwoLast.length >= 6) variants.push(firstTwoLast);
+    }
+  }
+
+  return { full: name, variants: [...new Set(variants)] };
+}
+
+/**
  * Builds a strict name-verification matcher to prevent false positives
- * (e.g. general news matching unrelated words like prepositions or foreign politicians).
+ * while supporting natural journalistic name variants for long compound names.
  */
 export function buildNameMatcher(name: string): (text: string) => boolean {
   const isArabic = /[\u0600-\u06FF]/.test(name);
+  const { variants } = extractNameVariants(name);
 
   if (!isArabic) {
     const clean = normalizeLat(name);
@@ -88,9 +121,14 @@ export function buildNameMatcher(name: string): (text: string) => boolean {
       return (text: string) => new RegExp(`\\b${parts[0]}\\b`, 'i').test(normalizeLat(text));
     }
     const regex = new RegExp(`\\b${parts[0]}\\b(?:\\s+\\w+){0,3}\\s+\\b${parts[parts.length - 1]}\\b`, 'i');
+    const normVariants = variants.map(v => normalizeLat(v)).filter(Boolean);
     return (text: string) => {
       const norm = normalizeLat(text);
-      return norm.includes(clean) || regex.test(norm);
+      if (norm.includes(clean) || regex.test(norm)) return true;
+      for (const v of normVariants) {
+        if (norm.includes(v)) return true;
+      }
+      return false;
     };
   }
 
@@ -105,10 +143,15 @@ export function buildNameMatcher(name: string): (text: string) => boolean {
   // Must match exact normalized sequence or with typical Arabic connectives (بن, ابن, ال, آل, عبد, ابو)
   const pattern = words.join('(?:\\s+(?:بن|ابن|ال|آل|ابو|عبد)?\\s*|\\s+)');
   const connectiveRegex = new RegExp(`(?:^|\\s)${pattern}(?:\\s|$)`, 'u');
+  const normVariants = variants.map(v => normalizeAr(v)).filter(Boolean);
 
   return (text: string) => {
     const normText = normalizeAr(text);
-    return normText.includes(normName) || connectiveRegex.test(normText);
+    if (normText.includes(normName) || connectiveRegex.test(normText)) return true;
+    for (const nv of normVariants) {
+      if (nv.length >= 5 && normText.includes(nv)) return true;
+    }
+    return false;
   };
 }
 
@@ -242,34 +285,44 @@ export async function adverseMediaSearch(
 
   const isArabic = /[\u0600-\u06FF]/.test(name);
   const matcher = buildNameMatcher(name);
+  const { variants } = extractNameVariants(name);
 
   try {
     let rawItems: RawFeedItem[] = [];
 
+    // Search targets: full official name + top journalistic short name variants
+    const targetNames = [name, ...variants.slice(0, 2)];
+
     if (isArabic) {
-      // 1. Arabic Search: Target Middle East & Gulf publications
-      const adverseQuery = `"${name}" (${ARABIC_ADVERSE_TERMS.slice(0, 8).join(' OR ')})`;
-      const generalQuery = `"${name}"`;
+      // 1. Arabic Search: Target Middle East & Gulf publications across name variants
+      const promises: Promise<RawFeedItem[]>[] = [];
+      for (const tName of targetNames) {
+        const adverseQuery = `"${tName}" (${ARABIC_ADVERSE_TERMS.slice(0, 8).join(' OR ')})`;
+        const generalQuery = `"${tName}"`;
+        promises.push(
+          fetchGoogleRss(adverseQuery, 'ar', 'EG', 'EG:ar'),
+          fetchGoogleRss(adverseQuery, 'ar', 'AE', 'AE:ar'),
+          fetchGoogleRss(generalQuery, 'ar', 'EG', 'EG:ar')
+        );
+      }
 
-      const [advEg, advAe, genEg] = await Promise.all([
-        fetchGoogleRss(adverseQuery, 'ar', 'EG', 'EG:ar'),
-        fetchGoogleRss(adverseQuery, 'ar', 'AE', 'AE:ar'),
-        fetchGoogleRss(generalQuery, 'ar', 'EG', 'EG:ar'),
-      ]);
-
-      rawItems = [...advEg, ...advAe, ...genEg];
+      const resultsArrays = await Promise.all(promises);
+      rawItems = resultsArrays.flat();
     } else {
       // 2. Latin / International Search: US & UK/Global editions
-      const adverseQuery = `"${name}" (${ENGLISH_ADVERSE_TERMS.slice(0, 8).join(' OR ')})`;
-      const generalQuery = `"${name}"`;
+      const promises: Promise<RawFeedItem[]>[] = [];
+      for (const tName of targetNames) {
+        const adverseQuery = `"${tName}" (${ENGLISH_ADVERSE_TERMS.slice(0, 8).join(' OR ')})`;
+        const generalQuery = `"${tName}"`;
+        promises.push(
+          fetchGoogleRss(adverseQuery, 'en-US', 'US', 'US:en'),
+          fetchGoogleRss(adverseQuery, 'en-GB', 'GB', 'GB:en'),
+          fetchGoogleRss(generalQuery, 'en-US', 'US', 'US:en')
+        );
+      }
 
-      const [advUs, advGb, genUs] = await Promise.all([
-        fetchGoogleRss(adverseQuery, 'en-US', 'US', 'US:en'),
-        fetchGoogleRss(adverseQuery, 'en-GB', 'GB', 'GB:en'),
-        fetchGoogleRss(generalQuery, 'en-US', 'US', 'US:en'),
-      ]);
-
-      rawItems = [...advUs, ...advGb, ...genUs];
+      const resultsArrays = await Promise.all(promises);
+      rawItems = resultsArrays.flat();
     }
 
     // Process & Filter with Strict Name Verification

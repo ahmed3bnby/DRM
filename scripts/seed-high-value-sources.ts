@@ -629,6 +629,214 @@ const DATASETS: SourceDataset[] = [
         }
       }
     ]
+  },
+  {
+    code: 'eg_terror_list',
+    sourceUrl: 'https://www.cc.gov.eg/Official_Gazette',
+    parserVersion: 'eg-gazette-1.0',
+    records: [
+      {
+        id: 'EG-TERROR-001',
+        name: 'محمد بديع عبد المجيد سامي',
+        kind: 'individual',
+        aliases: ['محمد بديع', 'Mohamed Badie', 'Mohammed Badie', 'د. محمد بديع', 'Mohamed Badie Abdel Meguid', 'Badie Mohamed'],
+        details: {
+          authority: 'محكمة جنايات القاهرة - الوقائع المصرية (قائمة الإرهابيين الرسمية)',
+          country: ['eg'],
+          birthDate: '1943-08-07',
+          topics: ['sanctions.terror', 'egypt.terror_list', 'proscribed_person'],
+          identifier: 'EG-TERROR-001',
+          description: 'مرشد جماعة الإخوان المسلمين - مدرج رسمياً على قوائم الإرهابيين وفق القانون رقم 8 لسنة 2015 بقرار محكمة الجنايات المنشور بالجريدة الرسمية.',
+          sanctions: ['قرار محكمة جنايات القاهرة رقم 1 لسنة 2017 إدراج إرهابيين المنشور بالوقائع المصرية', 'أحكام نهائية في قضايا أمن الدولة طوارئ']
+        }
+      },
+      {
+        id: 'EG-TERROR-002',
+        name: 'محمود عزت إبراهيم',
+        kind: 'individual',
+        aliases: ['محمود عزت', 'Mahmoud Ezzat', 'Mahmoud Ezzat Ibrahim'],
+        details: {
+          authority: 'محكمة جنايات القاهرة - الوقائع المصرية',
+          country: ['eg'],
+          birthDate: '1944-08-13',
+          topics: ['sanctions.terror', 'egypt.terror_list'],
+          identifier: 'EG-TERROR-002',
+          description: 'القائم بأعمال المرشد العام لجماعة الإخوان - مدرج على قائمة الإرهابيين الرسمية.',
+          sanctions: ['قرار محكمة جنايات القاهرة المنشور بالجريدة الرسمية']
+        }
+      },
+      {
+        id: 'EG-TERROR-003',
+        name: 'يوسف عبد الله القرضاوي',
+        kind: 'individual',
+        aliases: ['يوسف القرضاوي', 'Yusuf Al-Qaradawi', 'Yusuf Qaradawi', 'Yusuf Abdallah Al-Qaradawi'],
+        details: {
+          authority: 'القائمة المشتركة لمكافحة الإرهاب وقوائم الإرهاب الرسمية',
+          country: ['eg', 'qa'],
+          birthDate: '1926-09-09',
+          topics: ['sanctions.terror', 'gcc.terror_list'],
+          identifier: 'EG-TERROR-003',
+          description: 'رئيس الاتحاد العالمي لعلماء المسلمين سابقاً - مدرج على القوائم الرباعية لمكافحة الإرهاب.',
+          sanctions: ['بيان الدول الأربع لمكافحة الإرهاب (مصر، الإمارات، السعودية، البحرين)']
+        }
+      },
+      {
+        id: 'EG-TERROR-004',
+        name: 'طارق الزمر',
+        kind: 'individual',
+        aliases: ['طارق الزمر', 'Tarek Al-Zomor', 'Tarek Al-Zumar', 'Tarek Abdel-Mawgoud Al-Zomor'],
+        details: {
+          authority: 'محكمة جنايات القاهرة - الوقائع المصرية',
+          country: ['eg'],
+          birthDate: '1959-05-12',
+          topics: ['sanctions.terror', 'egypt.terror_list'],
+          identifier: 'EG-TERROR-004',
+          description: 'قيادي الجماعة الإسلامية وتنظيم الجهاد - مدرج على القوائم الإرهابية الرسمية.',
+          sanctions: ['قوائم الإرهاب الصادرة بقرار محكمة الجنايات']
+        }
+      },
+      {
+        id: 'EG-TERROR-005',
+        name: 'عاصم عبد الماجد',
+        kind: 'individual',
+        aliases: ['عاصم عبد الماجد', 'Assem Abdel Maged', 'Asim Abdulmajid'],
+        details: {
+          authority: 'محكمة جنايات القاهرة - الوقائع المصرية',
+          country: ['eg'],
+          birthDate: '1958-09-18',
+          topics: ['sanctions.terror', 'egypt.terror_list'],
+          identifier: 'EG-TERROR-005',
+          description: 'عضو مجلس شورى الجماعة الإسلامية - مدرج على قائمة الإرهابيين.',
+          sanctions: ['قوائم الإرهاب بالجريدة الرسمية']
+        }
+      },
+      {
+        id: 'EG-TERROR-006',
+        name: 'وجدي عبد الحميد غنيم',
+        kind: 'individual',
+        aliases: ['وجدي غنيم', 'Wagdi Ghoneim', 'Wagdi Abd el-Hamid Mohamed Ghoneim'],
+        details: {
+          authority: 'محكمة جنايات القاهرة والقوائم الإقليمية',
+          country: ['eg', 'tr'],
+          birthDate: '1951-02-08',
+          topics: ['sanctions.terror', 'egypt.terror_list'],
+          identifier: 'EG-TERROR-006',
+          description: 'مدرج رسمياً على قوائم الإرهاب المصرية وأحكام جنايات أمن الدولة العليا.',
+          sanctions: ['قرار الجنايات المنشور بالوقائع المصرية']
+        }
+      },
+      {
+        id: 'EG-TERROR-007',
+        name: 'يحيى السيد إبراهيم موسى',
+        kind: 'individual',
+        aliases: ['يحيى موسى', 'Yehia Moussa', 'Yahya Moussa'],
+        details: {
+          authority: 'محكمة جنايات القاهرة - قضايا أنصار بيت المقدس وحسم',
+          country: ['eg', 'tr'],
+          birthDate: '1975-03-04',
+          topics: ['sanctions.terror', 'egypt.terror_list', 'us_ofac.sdgt'],
+          identifier: 'EG-TERROR-007',
+          description: 'مسؤول تنظيم حسم والمدرج بقوائم الإرهاب المصرية وقوائم الإرهاب الدولي بالخزانة الأمريكية (OFAC SDGT).',
+          sanctions: ['قوائم الإرهاب المصرية وقوائم OFAC SDGT 2021']
+        }
+      },
+      {
+        id: 'EG-TERROR-008',
+        name: 'علاء علي علي السماحي',
+        kind: 'individual',
+        aliases: ['علاء السماحي', 'Alaa El Samahy', 'Alaa Ali Ali El Samahy'],
+        details: {
+          authority: 'محكمة جنايات القاهرة والخزانة الأمريكية OFAC',
+          country: ['eg', 'tr'],
+          birthDate: '1984-06-17',
+          topics: ['sanctions.terror', 'us_ofac.sdgt'],
+          identifier: 'EG-TERROR-008',
+          description: 'مؤسس حركة حسم المسلحة ومدرج على قوائم الإرهاب المصرية والأمريكية.',
+          sanctions: ['قوائم الإرهاب بالجريدة الرسمية والـ OFAC SDGT']
+        }
+      },
+      {
+        id: 'EG-TERROR-009',
+        name: 'محمد خيرت سعد عبد اللطيف الشاطر',
+        kind: 'individual',
+        aliases: ['خيرت الشاطر', 'Khairat El-Shater', 'Khairat Al-Shater', 'Mohamed Khairat El-Shater'],
+        details: {
+          authority: 'محكمة جنايات القاهرة - الوقائع المصرية',
+          country: ['eg'],
+          birthDate: '1950-05-04',
+          topics: ['sanctions.terror', 'egypt.terror_list'],
+          identifier: 'EG-TERROR-009',
+          description: 'نائب مرشد جماعة الإخوان ومدرج على القوائم الرسمية للإرهابيين وتجميد الأموال.',
+          sanctions: ['قرار الإدراج الصادر من محكمة الجنايات وتجميد التحفظ على الأموال']
+        }
+      },
+      {
+        id: 'EG-TERROR-010',
+        name: 'حسن عز الدين يوسف مالك',
+        kind: 'individual',
+        aliases: ['حسن مالك', 'Hassan Malek', 'Hassan Ezz Eldin Malek'],
+        details: {
+          authority: 'لجنة التحفظ على أموال الإرهابيين ومحكمة الجنايات',
+          country: ['eg'],
+          birthDate: '1958-08-08',
+          topics: ['sanctions.terror', 'financial_freeze'],
+          identifier: 'EG-TERROR-010',
+          description: 'رجل أعمال ومسؤول الشبكة المالية والتجارية للجماعة - مدرج رسمياً بقرارات الجنايات.',
+          sanctions: ['قرار التحفظ وإدراج الكيانات الإرهابية']
+        }
+      }
+    ]
+  },
+  {
+    code: 'ae_local_terror_list',
+    sourceUrl: 'https://www.uaeiec.gov.ae/en-us/un-sc-sanctions',
+    parserVersion: 'uae-local-1.0',
+    records: [
+      {
+        id: 'AE-TERROR-001',
+        name: 'حجاج بن فهد العجمي',
+        kind: 'individual',
+        aliases: ['حجاج العجمي', 'Hajjaj Al-Ajmi', 'Hajjaj Fahd Al Ajmi', 'Hajjaj bin Fahad Al-Ajmi'],
+        details: {
+          authority: 'المجلس الأعلى للأمن الوطني - دولة الإمارات (قائمة الإرهاب المحلية)',
+          country: ['kw', 'ae'],
+          birthDate: '1987-09-09',
+          topics: ['sanctions.terror', 'unsc.1267', 'ae.local_terror_list'],
+          identifier: 'AE-TERROR-001',
+          description: 'مدرج رسمياً على قائمة الإرهاب المحلية المعتمدة بقرار مجلس الوزراء الإماراتي وقائمة مجلس الأمن الدولي 1267.',
+          sanctions: ['قرار مجلس الوزراء الإماراتي رقم 18 لسنة 2017 بشأن القوائم الإرهابية', 'عقوبات مجلس الأمن الدولي QDi.339']
+        }
+      },
+      {
+        id: 'AE-TERROR-002',
+        name: 'عبد الرحمن بن عمير النعيمي',
+        kind: 'individual',
+        aliases: ['عبد الرحمن النعيمي', 'Abdul Rahman Al-Nuaimi', 'Abdulrahman Al Nuaimi', 'Abdul Rahman bin Umayr Al-Nuaimi'],
+        details: {
+          authority: 'المجلس الأعلى للأمن الوطني - دولة الإمارات وقائمة OFAC SDGT',
+          country: ['qa', 'ae'],
+          birthDate: '1954-01-01',
+          topics: ['sanctions.terror', 'ofac.sdgt', 'ae.local_terror_list'],
+          identifier: 'AE-TERROR-002',
+          description: 'مدرج على قائمة الإرهاب المحلية بدولة الإمارات وقوائم الإرهاب العالمي بالخزانة الأمريكية (OFAC).',
+          sanctions: ['قرار مجلس الوزراء الإماراتي بشأن القوائم الإرهابية', 'US OFAC Specially Designated Global Terrorist 2013']
+        }
+      },
+      {
+        id: 'AE-TERROR-003',
+        name: 'محمد يوسف باقر',
+        kind: 'individual',
+        aliases: ['محمد يوسف باقر', 'Mohamed Yousef Baqer', 'Mohammad Yousef Baqer'],
+        details: {
+          authority: 'قائمة الإرهاب المحلية المعتمدة - دولة الإمارات',
+          country: ['ae', 'ir'],
+          topics: ['sanctions.terror', 'ae.local_terror_list'],
+          identifier: 'AE-TERROR-003',
+          description: 'مدرج على قائمة الإرهاب المحلية بدولة الإمارات لتورطه في شبكات تمويل ودعم كيانات محظورة.',
+          sanctions: ['قرار مجلس الوزراء الإماراتي بشأن تصنيف أفراد وكيانات إرهابية']
+        }
+      }
+    ]
   }
 ];
 

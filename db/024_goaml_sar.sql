@@ -16,4 +16,19 @@ CREATE TABLE IF NOT EXISTS customer_sar_reports (
 
 CREATE INDEX IF NOT EXISTS customer_sar_reports_lookup ON customer_sar_reports(organization_id, customer_id, created_at DESC);
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON customer_sar_reports TO mizan_app;
+-- Regulatory filings are append-only: once submitted to the FIU they must not
+-- be edited or deleted by the application (same principle as audit_events). The
+-- app only ever inserts and reads them. Cascade deletion when a customer/org is
+-- removed still works — referential actions run with the FK's own privileges and
+-- do not require DELETE to be granted here.
+GRANT SELECT, INSERT ON customer_sar_reports TO mizan_app;
+-- Converge existing databases that were granted the wider set before.
+REVOKE UPDATE, DELETE, TRUNCATE ON customer_sar_reports FROM mizan_app;
+
+-- Tenant isolation: enforce organization scoping at the database level.
+ALTER TABLE customer_sar_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_sar_reports FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS customer_sar_reports_tenant ON customer_sar_reports;
+CREATE POLICY customer_sar_reports_tenant ON customer_sar_reports
+  USING (organization_id = nullif(current_setting('app.organization_id', true), '')::uuid)
+  WITH CHECK (organization_id = nullif(current_setting('app.organization_id', true), '')::uuid);

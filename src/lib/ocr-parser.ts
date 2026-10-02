@@ -68,11 +68,16 @@ export function mapCountryCode(input?: string): string | undefined {
   return undefined;
 }
 
-function parseMRZDate(raw: string): string {
+function parseMRZDate(raw: string, kind: 'dob' | 'expiry' = 'dob'): string {
   if (!raw || raw.length !== 6 || !/^\d{6}$/.test(raw)) return '';
   const currentYear = new Date().getFullYear() % 100;
   const yy = parseInt(raw.substring(0, 2), 10);
-  const century = yy > currentYear ? '19' : '20';
+  // DOB is in the past, so a 2-digit year above the current year must be 19xx.
+  // Expiry is in the (near) future, so it is 20xx for the realistic document range
+  // (yy 00–69 → 20xx); without this split, an expiry of 2028 would parse as 1928.
+  const century = kind === 'expiry'
+    ? (yy < 70 ? '20' : '19')
+    : (yy > currentYear ? '19' : '20');
   const mm = raw.substring(2, 4);
   const dd = raw.substring(4, 6);
   return `${century}${raw.substring(0, 2)}-${mm}-${dd}`;
@@ -117,7 +122,7 @@ export function parseMRZ(text: string): Partial<ExtractedDocData> | null {
       country,
       nationality,
       dateOfBirth: parseMRZDate(rawDob),
-      expiryDate: parseMRZDate(rawExpiry),
+      expiryDate: parseMRZDate(rawExpiry, 'expiry'),
       gender: genderRaw === 'M' ? 'male' : genderRaw === 'F' ? 'female' : undefined,
       confidence: 96,
       summary: `جواز سفر (${docNumber}) - ${fullName}`
@@ -156,7 +161,7 @@ export function parseMRZ(text: string): Partial<ExtractedDocData> | null {
       country: isEmirates ? 'AE' : (mapCountryCode(issuingIcao) || 'AE'),
       nationality,
       dateOfBirth: parseMRZDate(rawDob),
-      expiryDate: parseMRZDate(rawExpiry),
+      expiryDate: parseMRZDate(rawExpiry, 'expiry'),
       gender: genderRaw === 'M' ? 'male' : genderRaw === 'F' ? 'female' : undefined,
       confidence: 98,
       summary: `${isEmirates ? 'بطاقة هوية إماراتية' : 'بطاقة هوية وطنية'} - ${fullName}`

@@ -1,4 +1,5 @@
 import { hasFeature } from './features';
+import { isPlatformOwner } from './platform-access';
 import type { Actor } from './auth';
 
 export type SourceCategory =
@@ -14,6 +15,8 @@ export type SourceCategory =
 export const REGIONAL_CODES = new Set([
   'sa_pcct_terrorism_list',
   'eg_terrorists',
+  'eg_terror_list',
+  'ae_local_terror_list',
   'eg_house_representatives',
   'qa_shura_council',
   'bh_nuwab',
@@ -88,10 +91,15 @@ export function isSourceAllowed(
   actor?: Partial<Pick<Actor, 'id' | 'role' | 'features' | 'plan'>> | null
 ): boolean {
   if (!actor) return true;
-  if (actor.role === 'admin' || actor.plan === 'enterprise') return true;
+  // Only the platform owner (super admin) or an enterprise-plan org gets every source.
+  // A normal org admin must NOT bypass plan gating — mirrors hasFeature() in features.ts.
+  // (Previously `actor.role === 'admin'` let every org admin see all premium sources.)
+  if (isPlatformOwner(actor) || actor.plan === 'enterprise') return true;
   const category = getSourceCategory(code);
   if (category === 'core') return true;
-  if (!actor.features) return true;
+  // Fail closed: a non-core (premium) category requires an explicit feature grant.
+  // No features object → deny premium sources (never fall open to allow-all).
+  if (!actor.features) return false;
   if (category === 'regional') return hasFeature(actor, 'regional_sources');
   if (category === 'enforcement') return hasFeature(actor, 'enforcement_debarment');
   if (category === 'pep') return hasFeature(actor, 'pep_screening');

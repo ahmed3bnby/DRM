@@ -48,6 +48,16 @@ function cleanEntityName(str: string): string {
 }
 
 /**
+ * Classify a party name as a company when it carries a legal-entity suffix/keyword,
+ * otherwise treat it as an individual. This is far more reliable than matching a fixed
+ * list of first names.
+ */
+function looksLikeCompany(name: string): boolean {
+  return /\b(l\.?l\.?c|ltd|limited|inc|corp|co|company|fz[ce]|fzco|llp|plc|holdings?|group|investments?|capital|trading|enterprises?|est|establishment|partners?|ventures?|trust|fund|sarl|gmbh|ag|sa|bv|pte)\b/i.test(name)
+    || /ش\.?\s*ذ\.?\s*م\.?\s*م|شركة|مؤسسة|القابضة|للتجارة|للاستثمار|والشركاه|ذ\.?م\.?م/.test(name);
+}
+
+/**
  * Extracts UBO structure from customer profile and all screened matches.
  */
 export function extractUboHierarchy(
@@ -161,7 +171,7 @@ export function extractUboHierarchy(
         for (const sh of det.shareholders) {
           const shName = cleanEntityName(sh);
           const pct = parseOwnershipPercent(sh);
-          const isIndividual = /al\s|bin\s|moham|tariq|ahmed|vladimir|john|smith|elena/i.test(shName);
+          const isIndividual = !looksLikeCompany(shName);
           if (pct && parseInt(pct, 10) >= 25) {
             identifiedUbos.push(shName);
           }
@@ -207,7 +217,7 @@ export function extractUboHierarchy(
           category: 'trust',
           roleLabelAr: 'صندوق ائتماني / مستفيد حقيقي',
           roleLabelEn: 'Beneficial Owner / Trust',
-          country: det.country ? det.country[0] : undefined,
+          country: Array.isArray(det.country) ? det.country[0] : (det.country || undefined),
           sourceNote: 'OpenCorporates Registry',
         });
       }
@@ -277,34 +287,10 @@ export function extractUboHierarchy(
     }
   }
 
-  // If no hierarchy found from databases, generate a realistic corporate structure framework for demo & analytical completeness if the customer is a corporate entity
-  if (!hasHierarchy && isCompany) {
-    hasHierarchy = true;
-    sourcesUsed.add('Corporate CDD Structure');
-    rootNode.children = [
-      {
-        id: `cdd-dir-1`,
-        name: 'مجلس الإدارة والمفوضين بالتوقيع',
-        type: 'director',
-        category: 'individual',
-        roleLabelAr: 'إدارة تنفيذية / مفوض بالتوقيع',
-        roleLabelEn: 'Executive Management / Signatory',
-        country: customer.country,
-        sourceNote: 'سجل الرخص التجارية والشركات',
-      },
-      {
-        id: `cdd-ubo-1`,
-        name: 'هيكل الملكية والمستفيد الحقيقي (UBO ≥ 25%)',
-        type: 'beneficial_owner',
-        category: 'individual',
-        roleLabelAr: 'مستفيد حقيقي رئيسي (UBO)',
-        roleLabelEn: 'Beneficial Owner (UBO)',
-        ownershipPercent: '100%',
-        country: customer.country,
-        sourceNote: 'إقرار المستفيد الحقيقي وفق متطلبات وزارة الاقتصاد',
-      }
-    ];
-  }
+  // No fabrication: when the registries return no ownership/UBO data we leave the
+  // tree with only the target entity (hasHierarchy stays false) so the UI can show
+  // an honest "no verified ownership data" state. Never invent owners/percentages —
+  // this is compliance evidence, not a demo placeholder.
 
   // Calculate stats
   let totalNodes = 1;

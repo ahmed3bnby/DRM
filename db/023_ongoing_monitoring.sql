@@ -23,4 +23,41 @@ CREATE TABLE IF NOT EXISTS customer_monitoring_events (
 CREATE INDEX IF NOT EXISTS customer_monitoring_events_lookup ON customer_monitoring_events(organization_id, customer_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS customer_monitoring_events_unread ON customer_monitoring_events(organization_id, is_read) WHERE NOT is_read;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON customer_monitoring_events TO mizan_app;
+-- Alerts are an append-only trail; the app inserts them and only updates the
+-- is_read flag. DELETE is not granted (nothing deletes alerts directly), so the
+-- trail can't be tampered with. Cascade deletion on customer/org removal still
+-- works without a DELETE grant (referential actions use the FK's privileges).
+GRANT SELECT, INSERT, UPDATE ON customer_monitoring_events TO mizan_app;
+-- Converge existing databases that were granted DELETE before.
+REVOKE DELETE, TRUNCATE ON customer_monitoring_events FROM mizan_app;
+
+-- Tenant isolation: enforce organization scoping at the database level.
+-- The platform owner (Super Admin) may read aggregate alert counts across
+-- tenants for the oversight dashboard (see platform.ts / getPlatformChecksSummary),
+-- mirroring the search_events policy in 021_quota_history.sql. Writes stay
+-- strictly tenant-scoped via WITH CHECK.
+ALTER TABLE customer_monitoring_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_monitoring_events FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS customer_monitoring_events_tenant ON customer_monitoring_events;
+CREATE POLICY customer_monitoring_events_tenant ON customer_monitoring_events
+  USING (
+    organization_id = nullif(current_setting('app.organization_id', true), '')::uuid
+    OR current_setting('app.platform_owner', true) = 'true'
+  )
+  WITH CHECK (
+    organization_id = nullif(current_setting('app.organization_id', true), '')::uuid
+  );
+
+-- Ongoing Monitoring adds a cross-tenant customer count to the platform owner
+-- dashboard, so extend the customers policy to allow platform-owner reads too
+-- (counts only; writes remain tenant-scoped). Re-creates the policy from
+-- 001_foundation.sql.
+DROP POLICY IF EXISTS customers_tenant ON customers;
+CREATE POLICY customers_tenant ON customers
+  USING (
+    organization_id = nullif(current_setting('app.organization_id', true), '')::uuid
+    OR current_setting('app.platform_owner', true) = 'true'
+  )
+  WITH CHECK (
+    organization_id = nullif(current_setting('app.organization_id', true), '')::uuid
+  );

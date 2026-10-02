@@ -7,12 +7,26 @@ import { getLastScreening } from '@/lib/screening';
 import { getMatchDecisions } from '@/lib/decisions';
 import { listSarReportsForCustomer, generateGoAmlXml } from '@/lib/goaml';
 import { computeRiskRating } from '@/lib/risk-rating';
+import { canManageCustomers } from '@/lib/validation';
 import type { Customer } from '@/lib/customers';
 
 export const dynamic = 'force-dynamic';
 
 function cleanFilename(str: string): string {
   return str.replace(/[^a-zA-Z0-9_\u0600-\u06FF-]/g, '_').slice(0, 50);
+}
+
+// Escape every dynamic value before embedding it in the generated HTML reports.
+// Customer names, matched names and analyst notes are user/source supplied, so
+// without this a value like "<script>\u2026</script>" would execute when the exported
+// report is opened.
+function escapeHtml(val: unknown): string {
+  return String(val ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function generateHtmlReport(
@@ -29,7 +43,7 @@ function generateHtmlReport(
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>تقرير فحص امتثال - ${customer.reference} - ${customer.name}</title>
+  <title>تقرير فحص امتثال - ${escapeHtml(customer.reference)} - ${escapeHtml(customer.name)}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 30px; line-height: 1.5; }
     .doc { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
@@ -60,14 +74,14 @@ function generateHtmlReport(
       </div>
       <div style="text-align: left;">
         <span style="font-size: 11px; color: #64748b; display: block;">المرجع الرقابي</span>
-        <strong style="font-family: monospace; font-size: 15px;">${customer.reference}</strong>
+        <strong style="font-family: monospace; font-size: 15px;">${escapeHtml(customer.reference)}</strong>
       </div>
     </div>
 
     <div class="meta-grid">
       <div class="meta-item">
         <span>اسم العميل / المنشأة</span>
-        <strong>${customer.name}</strong>
+        <strong>${escapeHtml(customer.name)}</strong>
       </div>
       <div class="meta-item">
         <span>نوع الكيان</span>
@@ -75,15 +89,15 @@ function generateHtmlReport(
       </div>
       <div class="meta-item">
         <span>الدولة / المقر</span>
-        <strong>${customer.country || 'غير محدد'}</strong>
+        <strong>${escapeHtml(customer.country || 'غير محدد')}</strong>
       </div>
       <div class="meta-item">
         <span>رقم الهوية / السجل التجاري</span>
-        <strong style="font-family: monospace;">${customer.identifier || '—'}</strong>
+        <strong style="font-family: monospace;">${escapeHtml(customer.identifier || '—')}</strong>
       </div>
       <div class="meta-item">
         <span>حالة الفحص الأمني</span>
-        <strong>${customer.screening_status}</strong>
+        <strong>${escapeHtml(customer.screening_status)}</strong>
       </div>
       <div class="meta-item">
         <span>المراقبة المستمرة 24/7</span>
@@ -100,7 +114,7 @@ function generateHtmlReport(
               <tr>
                 <th>الاسم المتطابق</th>
                 <th>الفئة</th>
-                <th>مصدر القائمة</th>
+                <th>عدد القوائم</th>
                 <th>نسبة التطابق</th>
                 <th>قرار المحلل</th>
                 <th>ملاحظات القرار</th>
@@ -110,13 +124,15 @@ function generateHtmlReport(
               ${matches
                 .map((m: any) => {
                   const d = decisions[m.recordId];
+                  // Show the NUMBER of lists, never the source/provider names (per policy).
+                  const listCount = Number(m.sourceCount) || (Array.isArray(m.relatedSources) ? m.relatedSources.length : 1) || 1;
                   return `<tr>
-                    <td><strong>${m.name}</strong></td>
-                    <td>${m.category || 'sanctions'}</td>
-                    <td>${m.source}</td>
-                    <td dir="ltr">${m.percent}%</td>
-                    <td>${d ? d.decision : 'لم يُراجع'}</td>
-                    <td>${d?.reason || '—'}</td>
+                    <td><strong>${escapeHtml(m.name)}</strong></td>
+                    <td>${escapeHtml(m.category || 'sanctions')}</td>
+                    <td dir="ltr">${listCount}</td>
+                    <td dir="ltr">${Number(m.percent) || 0}%</td>
+                    <td>${escapeHtml(d ? d.decision : 'لم يُراجع')}</td>
+                    <td>${escapeHtml(d?.reason || '—')}</td>
                   </tr>`;
                 })
                 .join('')}
@@ -125,7 +141,7 @@ function generateHtmlReport(
     }
 
     <div class="footer">
-      <span>المنشأة: ${orgName} · المحلل: ${officerName}</span>
+      <span>المنشأة: ${escapeHtml(orgName)} · المحلل: ${escapeHtml(officerName)}</span>
       <span>تاريخ إصدار التقرير: ${new Date().toLocaleDateString('ar-AE')}</span>
     </div>
   </div>
@@ -144,7 +160,7 @@ function generateHtmlCertificate(
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>شهادة المراقبة المستمرة - ${customer.reference}</title>
+  <title>شهادة المراقبة المستمرة - ${escapeHtml(customer.reference)}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 30px; }
     .doc { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 10px; border: 2px solid #166534; box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
@@ -167,19 +183,19 @@ function generateHtmlCertificate(
     </div>
 
     <div class="cert-body">
-      تشهد <strong>${orgName}</strong> بأن العميل الموضحة بياناته أدناه خاضع رسمياً لمنظومة الفحص الأمني والمراقبة المستمرة على مدار الساعة (24/7 Ongoing AML Surveillance):
+      تشهد <strong>${escapeHtml(orgName)}</strong> بأن العميل الموضحة بياناته أدناه خاضع رسمياً لمنظومة الفحص الأمني والمراقبة المستمرة على مدار الساعة (24/7 Ongoing AML Surveillance):
       <br/><br/>
-      • <strong>اسم العميل:</strong> ${customer.name}<br/>
-      • <strong>المرجع بالنظام:</strong> <span style="font-family: monospace;">${customer.reference}</span><br/>
-      • <strong>الدولة / المقر:</strong> ${customer.country || 'N/A'}<br/>
-      • <strong>رقم الهوية / السجل:</strong> <span style="font-family: monospace;">${customer.identifier || '—'}</span><br/>
+      • <strong>اسم العميل:</strong> ${escapeHtml(customer.name)}<br/>
+      • <strong>المرجع بالنظام:</strong> <span style="font-family: monospace;">${escapeHtml(customer.reference)}</span><br/>
+      • <strong>الدولة / المقر:</strong> ${escapeHtml(customer.country || 'N/A')}<br/>
+      • <strong>رقم الهوية / السجل:</strong> <span style="font-family: monospace;">${escapeHtml(customer.identifier || '—')}</span><br/>
       • <strong>تاريخ آخر فحص تحققي:</strong> ${new Date(lastScan).toLocaleDateString('ar-AE')}<br/>
       • <strong>حالة المراقبة:</strong> ${customer.monitoring_status === 'flagged' ? 'تم رصد مستجدات للمراجعة' : 'سليم ومحمي (Active & Clear)'}
     </div>
 
     <div class="footer">
       <div>
-        <span>مسؤول الامتثال: <strong>${officerName}</strong></span><br/>
+        <span>مسؤول الامتثال: <strong>${escapeHtml(officerName)}</strong></span><br/>
         <span style="color: #64748b; font-size: 11px;">تاريخ التوثيق: ${new Date().toLocaleDateString('ar-AE')}</span>
       </div>
       <div class="stamp">
@@ -194,6 +210,10 @@ function generateHtmlCertificate(
 export async function POST(req: Request) {
   try {
     const actor = await requireActor();
+    // Bulk compliance export is a privileged action — view-only users may not run it.
+    if (!canManageCustomers(actor.role)) {
+      return NextResponse.json({ error: 'صلاحيتك تسمح بالاطلاع فقط.' }, { status: 403 });
+    }
     const body = await req.json();
     const customerIds: string[] = body.customerIds || [];
 

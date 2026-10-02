@@ -2,8 +2,10 @@ import * as XLSX from 'xlsx';
 import { searchPublicSources } from '@/lib/search';
 import { evaluateFATFJurisdiction } from '@/lib/fatf';
 import { consumeSearch, quotaStatus } from '@/lib/team';
-import { pool } from '@/lib/db';
+import { withTenant } from '@/lib/db';
 import { normalizeName } from '@/lib/name-normalization';
+import { isSourceAllowed } from '@/lib/source-categories';
+import { hasFeature } from '@/lib/features';
 import type { Actor } from '@/lib/auth';
 
 export interface BulkInputRow {
@@ -99,7 +101,7 @@ export function generateTemplateWorkbook(): Buffer {
 }
 
 export async function runBulkScreening(
-  actor: Pick<Actor, 'id' | 'organizationId' | 'features'>,
+  actor: Pick<Actor, 'id' | 'organizationId' | 'features'> & Partial<Pick<Actor, 'role' | 'plan'>>,
   items: BulkInputRow[],
   options?: { autoEnrollMonitoring?: boolean }
 ): Promise<{
@@ -121,8 +123,10 @@ export async function runBulkScreening(
     // Deduct search
     await consumeSearch(actor, `bulk:${Date.now()}:${item.rowNumber}`, item.name);
 
-    // Run search
-    const matches = await searchPublicSources(item.name, 10);
+    // Run search — then gate sources by the organization's plan, exactly like the
+    // single-customer screening path (screening.ts). Without this, bulk users would
+    // see hits from premium source categories their plan doesn't include.
+    const matches = (await searchPublicSources(item.name, 10)).filter(m => isSourceAllowed(m.code, actor));
     const fatf = evaluateFATFJurisdiction(item.country);
 
     // Filter relevant matches
@@ -139,11 +143,14 @@ export async function runBulkScreening(
       flaggedCount++;
     }
 
-    if (options?.autoEnrollMonitoring) {
+    if (options?.autoEnrollMonitoring && hasFeature(actor, 'ongoing_monitoring')) {
       try {
         const norm = normalizeName(item.name);
         const ref = `KYC-B${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        await pool.query(
+        // Must run inside withTenant: the customers table enforces FORCE RLS, so a raw
+        // pool insert (no app.organization_id set) is rejected in production (mizan_app)
+        // and the error would be silently swallowed below.
+        await withTenant(actor.organizationId, db => db.query(
           `INSERT INTO customers (
             organization_id, reference, name, normalized_name, entity_type, country,
             identifier, status, screening_status, monitoring_enabled, last_monitored_at,
@@ -163,7 +170,7 @@ export async function runBulkScreening(
             relevant.length,
             actor.id
           ]
-        );
+        ));
       } catch (err) {
         console.error(`Failed to auto-enroll ${item.name} into monitoring:`, err);
       }

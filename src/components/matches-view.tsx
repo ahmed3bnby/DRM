@@ -107,8 +107,8 @@ export default function MatchesView({
     setFormError(null);
     toast(
       locale === 'en'
-        ? 'AI Compliance recommendation applied and audit rationale documented.'
-        : 'تم تطبيق توصية الذكاء الاصطناعي وتوثيق السبب آلياً.',
+        ? 'Automated compliance recommendation applied and audit rationale documented.'
+        : 'تم تطبيق التوصية الآلية وتوثيق السبب آلياً.',
       'success'
     );
   };
@@ -776,8 +776,8 @@ export default function MatchesView({
                           <Zap size={15} />
                           <span>
                             {locale === 'en'
-                              ? '⚡ Auto-Apply AI Recommendation & Document Audit Reason'
-                              : '⚡ تطبيق توصية الذكاء الاصطناعي وتوثيق السبب آلياً'}
+                              ? '⚡ Auto-Apply Recommendation & Document Audit Reason'
+                              : '⚡ تطبيق التوصية الآلية وتوثيق السبب آلياً'}
                           </span>
                         </button>
                       </div>

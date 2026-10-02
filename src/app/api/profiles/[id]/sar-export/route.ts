@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireActor } from '@/lib/auth';
+import { canManageCustomers } from '@/lib/validation';
 import { getCustomerByHandle } from '@/lib/customers';
 import { getSarReportById, generateGoAmlXml, generateGoAmlJson } from '@/lib/goaml';
 
@@ -11,6 +12,9 @@ export async function GET(
 ) {
   try {
     const actor = await requireActor();
+    if (!canManageCustomers(actor.role)) {
+      return NextResponse.json({ error: 'صلاحيتك تسمح بالاطلاع فقط.' }, { status: 403 });
+    }
     const { id } = await params;
     const url = new URL(req.url);
     const reportId = url.searchParams.get('reportId');

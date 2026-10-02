@@ -84,25 +84,31 @@ export async function findMatchingExistingCustomer(organizationId: string, query
       `SELECT c.*, u.display_name AS creator_name FROM customers c
        LEFT JOIN users u ON u.id = c.created_by
        WHERE c.organization_id = $1
-         AND (c.normalized_name = $2 OR lower(c.name) = lower($3) OR lower(c.reference) = lower($3))
+         AND (
+           (c.normalized_name IS NOT NULL AND c.normalized_name <> '' AND c.normalized_name = $2)
+           OR lower(c.name) = lower($3)
+           OR lower(c.reference) = lower($3)
+         )
        ORDER BY c.created_at DESC LIMIT 1`,
       [organizationId, norm, clean]
     );
     if (exact.rowCount && exact.rowCount > 0) return exact.rows[0];
 
-    // 2. High similarity match or substring match
+    // 2. High similarity match (strictly >= 80% similarity between normalized names)
     if (norm.length >= 3) {
       const similar = await db.query(
         `SELECT c.*, u.display_name AS creator_name, similarity(c.normalized_name, $2) as sim FROM customers c
          LEFT JOIN users u ON u.id = c.created_by
          WHERE c.organization_id = $1
-           AND (c.normalized_name % $2 OR c.normalized_name LIKE '%' || $2 || '%' OR $2 LIKE '%' || c.normalized_name || '%')
+           AND c.normalized_name IS NOT NULL
+           AND length(c.normalized_name) >= 3
+           AND similarity(c.normalized_name, $2) >= 0.80
          ORDER BY similarity(c.normalized_name, $2) DESC, c.created_at DESC LIMIT 1`,
         [organizationId, norm]
       );
       if (similar.rowCount && similar.rowCount > 0) {
         const row = similar.rows[0];
-        if (Number(row.sim) >= 0.65 || row.normalized_name.includes(norm) || norm.includes(row.normalized_name)) {
+        if (Number(row.sim) >= 0.80) {
           return row;
         }
       }

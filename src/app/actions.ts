@@ -503,6 +503,10 @@ export async function superAdminCreditQuotaAction(data: FormData) {
 
 export async function toggleCustomerMonitoringAction(formData: FormData) {
   const actor = await requireActor();
+  const { canManageCustomers } = await import('@/lib/validation');
+  const { hasFeature } = await import('@/lib/features');
+  if (!canManageCustomers(actor.role)) throw new Error('FORBIDDEN');
+  if (!hasFeature(actor, 'ongoing_monitoring')) throw new Error('FEATURE_UNAVAILABLE');
   const customerId = String(formData.get('customerId') || '');
   const enabled = formData.get('enabled') === 'true';
   const handle = String(formData.get('handle') || '');
@@ -517,6 +521,10 @@ export async function toggleCustomerMonitoringAction(formData: FormData) {
 
 export async function triggerMonitoringCycleAction() {
   const actor = await requireActor();
+  const { canManageCustomers } = await import('@/lib/validation');
+  const { hasFeature } = await import('@/lib/features');
+  if (!canManageCustomers(actor.role)) throw new Error('FORBIDDEN');
+  if (!hasFeature(actor, 'ongoing_monitoring')) throw new Error('FEATURE_UNAVAILABLE');
   const { executeMonitoringCycle } = await import('@/lib/ongoing-monitoring');
   const res = await executeMonitoringCycle(actor);
 
@@ -527,6 +535,8 @@ export async function triggerMonitoringCycleAction() {
 
 export async function markMonitoringAlertReadAction(formData: FormData) {
   const actor = await requireActor();
+  const { canManageCustomers } = await import('@/lib/validation');
+  if (!canManageCustomers(actor.role)) throw new Error('FORBIDDEN');
   const alertId = String(formData.get('alertId') || '');
   if (!alertId) return;
   const { markAlertAsRead } = await import('@/lib/ongoing-monitoring');

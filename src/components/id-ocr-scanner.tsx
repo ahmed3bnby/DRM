@@ -141,7 +141,7 @@ export default function IdOcrScanner({ onExtracted }: IdOcrScannerProps) {
       <div className="ocr-scanner-head">
         <div className="ocr-head-badge">
           <Sparkles size={16} />
-          <span>{isEn ? 'AI Smart Document OCR' : 'المسح الضوئي الذكي بالذكاء الاصطناعي'}</span>
+          <span>{isEn ? 'Smart Document OCR (MRZ)' : 'المسح الضوئي الذكي للمستندات (MRZ)'}</span>
         </div>
         <div className="ocr-head-title-row">
           <div>

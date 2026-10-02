@@ -43,6 +43,18 @@ export default function BrandingSettingsCard({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reject non-images and oversized files before encoding (server re-validates).
+    if (!/^image\/(png|jpe?g|svg\+xml|webp|gif)$/i.test(file.type)) {
+      alert(isEn ? 'Please upload a PNG, JPG, SVG or WebP image.' : 'يرجى رفع صورة بصيغة PNG أو JPG أو SVG أو WebP.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 1024 * 1024) {
+      alert(isEn ? 'Logo is too large (max 1 MB).' : 'حجم الشعار كبير جداً (الحد الأقصى 1 ميجابايت).');
+      e.target.value = '';
+      return;
+    }
+
     // Convert to base64 Data URL
     const reader = new FileReader();
     reader.onload = (event) => {

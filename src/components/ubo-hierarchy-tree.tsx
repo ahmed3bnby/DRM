@@ -224,6 +224,13 @@ export default function UboHierarchyTree({ treeData, locale = 'ar' }: Props) {
       {/* Visual Hierarchy Tree */}
       <div className="ubo-tree-canvas p-4 bg-slate-50/50 dark:bg-slate-950/30 rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto">
         <UboTreeNodeComponent node={treeData.rootEntity} isEn={isEn} />
+        {!treeData.hasHierarchy && (
+          <p className="mt-3 text-[12px] text-slate-500 dark:text-slate-400 border-t border-dashed border-slate-200 dark:border-slate-800 pt-3">
+            {isEn
+              ? 'No verified ownership or beneficial-owner data is available for this entity from the connected registries. Collect and record the UBO declaration (owners ≥ 25%) during customer due diligence.'
+              : 'لا تتوفر بيانات ملكية أو مستفيد حقيقي مؤكّدة لهذا الكيان من السجلات المتصلة. يُرجى جمع وتوثيق إقرار المستفيد الحقيقي (مالك ≥ 25%) ضمن إجراءات العناية الواجبة.'}
+          </p>
+        )}
       </div>
 
       {/* Sources Footer Strip */}

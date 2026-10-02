@@ -1,7 +1,6 @@
 import { withTenant, pool } from '@/lib/db';
 import { screenCustomer } from '@/lib/screening';
-import { searchCoverage } from '@/lib/search';
-import { isSourceAllowed } from '@/lib/source-categories';
+import { hasFeature } from '@/lib/features';
 import type { Actor } from '@/lib/auth';
 
 export interface MonitoringAlert {
@@ -82,13 +81,19 @@ export async function markAlertAsRead(
 }
 
 export async function executeMonitoringCycle(
-  actor: Pick<Actor, 'id' | 'organizationId' | 'role' | 'features'>
+  actor: Pick<Actor, 'id' | 'organizationId' | 'role' | 'features'> & Partial<Pick<Actor, 'plan'>>
 ): Promise<{
   scannedCount: number;
   newAlertsCount: number;
   flaggedCount: number;
   clearCount: number;
 }> {
+  // Enforce the premium gate centrally: orgs without the ongoing_monitoring feature
+  // (and non-enterprise plans) are not monitored — covers both the cron and the
+  // manual trigger action, so the feature can't be used for free.
+  if (!hasFeature(actor, 'ongoing_monitoring')) {
+    return { scannedCount: 0, newAlertsCount: 0, flaggedCount: 0, clearCount: 0 };
+  }
   return withTenant(actor.organizationId, async db => {
     // 1. Fetch monitored customers
     const custRes = await db.query(
@@ -121,9 +126,23 @@ export async function executeMonitoringCycle(
         const prevMatches: any[] = prevRes.rows[0]?.top_matches || [];
         const prevRecordIds = new Set(prevMatches.map((m: any) => m.recordId || m.sourceRecordId));
 
-        // Find genuinely new hits
+        // Records we've already alerted on for this customer. The monitoring cycle
+        // does not advance the customer_screenings baseline, so without this a still-
+        // matching record would re-alert every cycle. Dedupe on the record ids stored
+        // in previously-created alerts so each record alerts at most once.
+        const alertedRes = await db.query(
+          `SELECT DISTINCT jsonb_array_elements_text(COALESCE(details->'recordIds','[]'::jsonb)) AS rid
+           FROM customer_monitoring_events
+           WHERE organization_id = $1 AND customer_id = $2`,
+          [actor.organizationId, cust.id]
+        );
+        const alertedIds = new Set<string>(alertedRes.rows.map((r: any) => r.rid));
+
+        // Find genuinely new hits (not in the last saved screening, not already alerted).
         const relevantNewHits = matches.filter(
-          m => m.c.percent >= 75 && !prevRecordIds.has(m.r.id) && !prevRecordIds.has(m.r.source_record_id)
+          m => m.c.percent >= 75
+            && !prevRecordIds.has(m.r.id) && !prevRecordIds.has(m.r.source_record_id)
+            && !alertedIds.has(m.r.id) && !alertedIds.has(m.r.source_record_id)
         );
 
         const hasHits = matches.some(m => m.c.percent >= 75);
@@ -148,7 +167,9 @@ export async function executeMonitoringCycle(
                 matchedName: topHit.r.name,
                 similarity: topHit.c.percent,
                 category: topHit.c.category,
-                detectedAt: new Date().toISOString()
+                detectedAt: new Date().toISOString(),
+                // All new record ids covered by this alert — used to dedupe future cycles.
+                recordIds: relevantNewHits.flatMap(h => [h.r.id, h.r.source_record_id].filter(Boolean))
               })
             ]
           );
