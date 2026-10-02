@@ -547,7 +547,7 @@ const DATASETS: SourceDataset[] = [
         id: 'ICIJ-PANAMA-001',
         name: 'Mossack Fonseca International Shell Corp',
         kind: 'company',
-        aliases: ['موساك فونسيكا شل كورب', 'Mossack Shell Holdings BVI', 'Panama Papers Leak Entity #19208'],
+        aliases: ['Mossack Fonseca', 'Mossack Fonseca & Co', 'موساك فونسيكا', 'موساك فونسيكا شل كورب', 'Mossack Shell Holdings BVI', 'Panama Papers Leak Entity #19208'],
         details: {
           leakSource: 'Panama Papers (ICIJ)',
           jurisdiction: 'vg',
