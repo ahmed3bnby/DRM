@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import defaultCatalog from '@/data/source-catalog.json';
+import defaultCatalog from '../data/source-catalog.json';
 
 // NOTE: `band` here is SCREENING-MATCH SEVERITY (شدّة المطابقة) — how strong/serious a
 // source hit is — NOT the customer's final risk rating. Per the plan's principle #3,
@@ -13,10 +13,10 @@ export type RiskBand = 'high'|'medium'|'low';
 // catalog). Legacy direct-connector codes are mapped explicitly.
 const LEGACY:Record<string,Category> = {
   UN:'sanctions',UK:'sanctions',OFAC:'sanctions',CSL:'sanctions',EU:'sanctions',UAE:'sanctions',
-  ae_local_terrorists:'sanctions', sa_pcct_terrorism_list:'sanctions', us_ofac_sdn:'sanctions',
+  ae_local_terrorists:'sanctions', ae_local_terror_list:'sanctions', sa_pcct_terrorism_list:'sanctions', us_ofac_sdn:'sanctions',
   us_ofac_cons:'sanctions', un_sc_sanctions:'sanctions', eu_fsf:'sanctions',
   gb_fcdo_sanctions:'sanctions', ch_seco_sanctions:'sanctions', us_trade_csl:'sanctions',
-  eg_terrorists:'sanctions', pk_proscribed_persons:'sanctions',
+  eg_terrorists:'sanctions', eg_terror_list:'sanctions', pk_proscribed_persons:'sanctions',
   interpol_red_notices:'crime', ae_dfsa_prohibited:'crime',
   worldbank_debarred:'debarment', us_cia_world_leaders:'pep',
   eg_house_representatives:'pep', qa_shura_council:'pep', bh_nuwab:'pep', om_parliament:'pep',
