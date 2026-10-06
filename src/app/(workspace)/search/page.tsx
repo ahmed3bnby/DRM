@@ -60,7 +60,7 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<{q
  const catLabel=(c:string)=>({sanctions:m.catSanctions,pep:m.catPep,crime:m.catCrime,debarment:m.catDebarment,regulatory:m.catRegulatory||(locale==='en'?'Regulatory Alert':'إجراء رقابي'),maritime:locale==='en'?'Sanctioned Vessel':'حظر سفن وملاحة',corporate_ubo:locale==='en'?'Corporate & UBO':'سجل شركات / UBO',offshore:locale==='en'?'Offshore Leaks':'تسريبات ملاذات ضريبية',other:m.catOther} as Record<string,string>)[c]??c;
  const detParts=[overall.flags.sanctions&&m.catSanctions,overall.flags.maritime&&(locale==='en'?'Sanctioned Vessel':'حظر سفن'),overall.flags.debarment&&m.catDebarment,overall.flags.crime&&m.catCrime,overall.flags.pep&&m.catPep,overall.flags.regulatory&&(locale==='en'?'Regulatory Alert':'إجراء رقابي'),overall.flags.offshore&&(locale==='en'?'Offshore Leaks':'تسريبات ملاذات')].filter(Boolean) as string[];
  const determination=overall.band==='none'?m.detNone:`${detParts.length?detParts.join(' · '):m.similar} — ${m.detSeverity} ${bandLabel(overall.band)} · ${m.detAnalyst}`;
- return <><div className="page-heading"><div><div className="eyebrow">{m.srchEyebrow}</div><h1>{m.srchTitle}</h1><p>{m.srchLead}</p></div><div className="heading-actions"><Link href="/search/bulk" className="button secondary" style={{ gap: '8px' }}><FileSpreadsheet size={16} style={{ color: '#007527' }} /><span>{locale === 'en' ? 'Bulk Screening (Excel)' : 'الفحص الجماعي (إكسل)'}</span></Link><span className="small-tag">{m.srchTag}</span></div></div>
+ return <><div className="page-heading"><div><div className="eyebrow">{m.srchEyebrow}</div><h1>{m.srchTitle}</h1><p>{m.srchLead}</p></div><div className="heading-actions"><Link href="/search/bulk" className="button secondary" style={{ gap: '8px' }}><FileSpreadsheet size={16} /><span>{locale === 'en' ? 'Bulk Screening (Excel)' : 'الفحص الجماعي (إكسل)'}</span></Link><span className="small-tag">{m.srchTag}</span></div></div>
  <section className="panel search-hero">
    <SearchForm defaultValue={q} placeholder={m.srchPlaceholder} inputAria={m.srchInputAria} btnText={m.srchBtn} scanningText={locale === 'en' ? 'Scanning watchlists…' : 'جاري فحص القوائم والمطابقة...'} />
    <p>{m.srchHeroNote}{quota.quota!=null&&<span className="quota-chip">{m.quotaLeft}: <strong><bdi>{number(quota.remaining??0)}</bdi></strong> / <bdi>{number(quota.quota)}</bdi></span>}</p>
@@ -88,30 +88,30 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<{q
  <div className="inline-info"><Info size={19}/><p>{m.srchInfoA} <b><bdi>{number(coverage.length)}</bdi> {m.srchInfoBold}</b> {m.srchInfoC} {actor.role === 'admin' && <Link href="/sources">{m.srchViewCoverage}</Link>}</p></div>
  {q && canManageCustomers(actor.role) && (
    existingCustomer ? (
-     <div className="search-quick-add-banner existing-customer-banner" style={{ background: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+     <div className="search-quick-add-banner existing-customer-banner">
        <div className="quick-add-info">
-         <UserCheck size={24} style={{ color: 'var(--success, #10b981)', flexShrink: 0 }} />
+         <UserCheck size={22} className="quick-add-icon" />
          <div>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-             <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--success, #10b981)', fontWeight: 600, fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+           <div className="quick-add-title-row">
+             <span className="status green">
                {locale === 'en' ? 'Already Registered' : 'مسجل مسبقاً'}
              </span>
-             <strong style={{ fontSize: '1rem' }} dir="auto">{existingCustomer.name}</strong>
+             <strong dir="auto">{existingCustomer.name}</strong>
              <small className="mono muted" dir="ltr">({existingCustomer.reference})</small>
            </div>
-           <small style={{ display: 'block', marginTop: '0.2rem' }}>
+           <small>
              {locale === 'en'
                ? `This ${existingCustomer.entity_type === 'company' ? 'company' : 'customer'} is already registered in your files. You can visit their profile directly.`
                : `هذا ${existingCustomer.entity_type === 'company' ? 'الكيان / الشركة' : 'العميل'} مسجل بالفعل في ملفاتك. يمكنك زيارة ملفه مباشرة دون إعادة الإضافة.`}
            </small>
          </div>
        </div>
-       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-         <Link href={`/profiles/${existingCustomer.reference}`} className="button primary quick-add-action-btn" style={{ background: 'var(--success, #10b981)' }}>
+       <div className="quick-add-actions">
+         <Link href={`/profiles/${existingCustomer.reference}`} className="button primary quick-add-action-btn">
            <ExternalLink size={15} />
            <span>{locale === 'en' ? 'View Profile' : 'زيارة الملف الشخصي'}</span>
          </Link>
-         <Link href={`/profiles/new?name=${encodeURIComponent(q)}`} className="button secondary quick-add-action-btn" style={{ opacity: 0.8, fontSize: '0.8rem' }} title={locale === 'en' ? 'Create a separate duplicate profile' : 'إنشاء ملف إضافي جديد'}>
+         <Link href={`/profiles/new?name=${encodeURIComponent(q)}`} className="button ghost quick-add-action-btn" title={locale === 'en' ? 'Create a separate duplicate profile' : 'إنشاء ملف إضافي جديد'}>
            <UserPlus size={14} />
            <span>{locale === 'en' ? 'New Duplicate' : 'إضافة ملف جديد'}</span>
          </Link>
@@ -128,7 +128,7 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<{q
        </div>
        <Link href={`/profiles/new?name=${encodeURIComponent(q)}`} className="button primary quick-add-action-btn">
          <UserPlus size={15} />
-         <span>{locale === 'en' ? 'Add as Customer' : '➕ إضافة كعميل'}</span>
+         <span>{locale === 'en' ? 'Add as Customer' : 'إضافة كعميل'}</span>
        </Link>
      </div>
    )
@@ -136,7 +136,7 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<{q
  {q&&<section className="panel search-results"><div className="panel-heading"><h2>{m.resultsForA} «{q.slice(0,160)}»</h2><span className="muted">{results.length>50?m.first50:`${number(results.length)} ${m.potentialRecord}`}</span></div>
  {!results.length?<div className="empty"><Search size={30}/><h3>{q.length<3?m.emptyMin:m.emptyNoResults}</h3><p>{m.emptySearchBody}</p></div>:<>
  <div className={`risk-summary ${overall.band}`}><div className="risk-summary-main"><div className="risk-summary-band"><strong>{overall.band==='none'?'—':bandLabel(overall.band)}</strong><span>{m.overallSeverity}</span></div><div className="risk-summary-body"><p className="risk-summary-det">{determination}</p><div className="risk-flags">{overall.flags.sanctions&&<span className="cat-badge sanctions">{m.catSanctions}</span>}{overall.flags.debarment&&<span className="cat-badge debarment">{m.catDebarment}</span>}{overall.flags.crime&&<span className="cat-badge crime">{m.catCrime}</span>}{overall.flags.pep&&<span className="cat-badge pep">{m.catPep}</span>}{overall.flags.regulatory&&<span className="cat-badge regulatory">{m.catRegulatory}</span>}</div></div></div><div className="risk-summary-stat"><span className="stat-pill"><strong><bdi>{number(overall.relevant)}</bdi></strong> {m.relevantOf} <bdi>{number(results.length)}</bdi></span></div></div>
- <div className="result-list source-result-list">{classified.slice(0,50).map(({r,c}, idx)=><Link className="search-result" style={{'--item-idx': idx} as React.CSSProperties} href={`/search/${r.id}`} key={r.id}><span className={`risk-dot ${c.band}`} title={bandLabel(c.band)}/><div className="search-result-details"><h3 dir="auto">{r.name}</h3><p><span className={`cat-badge ${c.category}`}>{catLabel(c.category)}{c.pepTier?` · ${m.pepTierLabel} ${c.pepTier}`:''}</span>{c.isRca&&<span className="cat-badge pep">{m.rcaLabel}</span>} <span className="src-title" dir="auto">{c.sourceTitle}</span></p><div className="search-result-meta"><span className="meta-chip"><span className="meta-label">{m.matchedNameL}</span> <strong dir="auto"><bdi>{r.matched_name}</bdi></strong></span><span className="meta-sep" aria-hidden>·</span><span className="meta-chip code" dir="ltr"><bdi>{r.source_record_id}</bdi></span><span className="meta-sep" aria-hidden>·</span><span className="meta-chip date"><bdi>{m.versionWord} <DateText value={r.retrieved_at} locale={locale}/></bdi></span></div></div><div className="match-label"><span className={`risk-badge ${c.band}`}>{bandLabel(c.band)}</span><small dir="ltr">{c.percent}% · {r.match_kind==='exact'?m.exactText:m.similar}</small></div><ArrowUpLeft className="search-result-arrow" size={19}/></Link>)}</div></>}</section>}
+ <div className="result-list source-result-list">{classified.slice(0,50).map(({r,c}, idx)=><Link className="search-result" style={{'--item-idx': idx} as React.CSSProperties} href={`/search/${r.id}`} key={r.id}><span className={`risk-dot ${c.band}`} title={bandLabel(c.band)}/><div className="search-result-details"><h3 dir="auto">{r.name}</h3><p><span className={`cat-badge ${c.category}`}>{catLabel(c.category)}{c.pepTier?` · ${m.pepTierLabel} ${c.pepTier}`:''}</span>{c.isRca&&<span className="cat-badge pep">{m.rcaLabel}</span>} <span className="src-title" dir="auto">{c.sourceTitle}</span></p><div className="search-result-meta"><span className="meta-chip"><span className="meta-label">{m.matchedNameL}</span> <strong dir="auto">{r.matched_name}</strong></span><span className="meta-sep" aria-hidden>·</span><span className="meta-chip code" dir="ltr"><bdi>{r.source_record_id}</bdi></span><span className="meta-sep" aria-hidden>·</span><span className="meta-chip date"><bdi>{m.versionWord} <DateText value={r.retrieved_at} locale={locale}/></bdi></span></div></div><div className="match-label"><span className={`risk-badge ${c.band}`}>{bandLabel(c.band)}</span><small dir="ltr">{c.percent}% · {r.match_kind==='exact'?m.exactText:m.similar}</small></div><ArrowUpLeft className="search-result-arrow" size={19}/></Link>)}</div></>}</section>}
  {q&&canCompany&&<section className="panel search-results"><div className="panel-heading"><div><h2>{m.gleifTitle}</h2><p>{m.gleifSub}</p></div><span className="small-tag">{companies.status==='searched'?m.gleifDone:m.gleifIncomplete}</span></div>{companies.status==='failed'?<div className="empty"><p>{m.gleifFailed}</p></div>:<><div className="result-list">{companies.records.map(c=><details className="company-result" key={c.id}><summary><strong dir="auto">{c.attributes.entity.legalName.name}</strong><span>{c.attributes.entity.legalAddress.country} · {m.gViewDetails}</span></summary><dl className="detail-grid"><div><dt>{m.gLei}</dt><dd>{c.id}</dd></div><div><dt>{m.gRegNo}</dt><dd>{c.attributes.entity.registeredAs||m.gNotAvail}</dd></div><div><dt>{m.gEntityLeiStatus}</dt><dd>{c.attributes.entity.status} / {c.attributes.registration.status}</dd></div><div><dt>{m.gLegalAddress}</dt><dd dir="auto">{[...c.attributes.entity.legalAddress.addressLines,c.attributes.entity.legalAddress.city,c.attributes.entity.legalAddress.country].filter(Boolean).join(', ')}</dd></div><div><dt>{m.gLastUpdate}</dt><dd>{c.attributes.registration.lastUpdateDate}</dd></div><div><dt>{m.gCreationDate}</dt><dd>{c.attributes.entity.creationDate||m.gNotAvail}</dd></div></dl><a className="text-link" href={'https://api.gleif.org/api/v1/lei-records/'+c.id} target="_blank" rel="noopener noreferrer">{m.gFullRecord}</a></details>)}</div><div className="table-footer">{companies.status==='searched'?`${m.gShowing} ${companies.records.length} ${m.gOf} ${companies.total} ${m.gFirst10} ${companies.retrievedAt}`:m.gTypeMin}</div>{companies.publishedAt&&<div className="table-footer">{m.gPublishedVer} {companies.publishedAt}</div>}</>}</section>}
  {q&&canAdverse&&<section className="panel search-results"><div className="panel-heading"><div><h2><Newspaper size={18}/> {m.advTitle}</h2><p>{m.advSub}</p></div><span className="small-tag">{adverse.status==='searched'?m.gleifDone:m.gleifIncomplete}</span></div>
   {adverse.status==='failed'?<div className="empty"><p>{m.advFailed}</p></div>:!adverse.articles.length?<div className="empty"><Newspaper size={28}/><p>{m.advNone}</p></div>:<>

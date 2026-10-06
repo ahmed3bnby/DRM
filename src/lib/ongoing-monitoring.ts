@@ -1,4 +1,4 @@
-import { withTenant, pool } from '@/lib/db';
+import { withTenant, withPlatformOwner, pool } from '@/lib/db';
 import { screenCustomer } from '@/lib/screening';
 import { hasFeature } from '@/lib/features';
 import type { Actor } from '@/lib/auth';
@@ -225,4 +225,48 @@ export async function executeMonitoringCycle(
       clearCount
     };
   });
+}
+
+/**
+ * Run a monitoring cycle for EVERY organization that has monitored customers, each against
+ * its own plan/features. Shared by the /api/cron/monitoring endpoint and the scheduled
+ * scripts/run-monitoring.ts runner. Discovery runs as platform owner because `customers` is
+ * under FORCE RLS (a plain query with no tenant context returns zero rows in production).
+ */
+export async function runAllOrgsMonitoring(): Promise<{
+  organizationsProcessed: number;
+  totalScanned: number;
+  totalNewAlerts: number;
+  totalFlagged: number;
+  totalClear: number;
+}> {
+  const orgsRes = await withPlatformOwner(db => db.query(`
+    SELECT o.id, o.plan, o.features
+    FROM organizations o
+    WHERE EXISTS (
+      SELECT 1 FROM customers c
+      WHERE c.organization_id = o.id AND c.monitoring_enabled = true
+    )
+  `));
+  const orgs = orgsRes.rows as { id: string; plan: string | null; features: Record<string, boolean> | null }[];
+
+  let totalScanned = 0, totalNewAlerts = 0, totalFlagged = 0, totalClear = 0;
+  for (const org of orgs) {
+    try {
+      const r = await executeMonitoringCycle({
+        organizationId: org.id,
+        id: 'system-cron',
+        role: 'admin',
+        features: org.features || {},
+        plan: org.plan || undefined,
+      });
+      totalScanned += r.scannedCount;
+      totalNewAlerts += r.newAlertsCount;
+      totalFlagged += r.flaggedCount;
+      totalClear += r.clearCount;
+    } catch (err) {
+      console.error(`Monitoring cycle failed for org ${org.id}:`, err);
+    }
+  }
+  return { organizationsProcessed: orgs.length, totalScanned, totalNewAlerts, totalFlagged, totalClear };
 }

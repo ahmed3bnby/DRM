@@ -13,7 +13,7 @@ export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   return {
-    title: 'شهادة المراقبة المستمرة والامتثال الرقابي | DRM'
+    title: `${(await getLocale()) === 'en' ? 'Monitoring Audit Certificate' : 'شهادة المراقبة المستمرة والامتثال الرقابي'} | ABC`
   };
 }
 
@@ -105,7 +105,7 @@ export default async function MonitoringAuditPage({ params }: { params: Promise<
             <p style={{ fontSize: '12px', color: '#15803d', margin: '4px 0 0', lineHeight: 1.5 }}>
               {isEn
                 ? `Subject profile is automatically screened across all international watchlists on an ongoing 24/7 cycle. Last verification completed on ${new Date(lastScan).toLocaleString()}.`
-                : `يخضع ملف العميل لعمليات فحص دورية مستمرة ومقارنة آنية مع كافة تحديثات القوائم المحلية والدولية. تم آخر فحص تحققي بتاريخ ${new Date(lastScan).toLocaleDateString('ar-AE')}.`}
+                : `يخضع ملف العميل لعمليات فحص دورية مستمرة ومقارنة آنية مع كافة تحديثات القوائم المحلية والدولية. تم آخر فحص تحققي بتاريخ ${new Date(lastScan).toLocaleDateString('ar-AE-u-nu-latn')}.`}
             </p>
           </div>
         </div>
@@ -148,7 +148,7 @@ export default async function MonitoringAuditPage({ params }: { params: Promise<
           </div>
           <div style={{ textAlign: isEn ? 'right' : 'left' }}>
             <div style={{ display: 'inline-block', border: '2px dashed #166534', borderRadius: '8px', padding: '8px 14px', textAlign: 'center' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', display: 'block' }}>DRM COMPLIANCE</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', display: 'block' }}>ABC COMPLIANCE</span>
               <span style={{ fontSize: '9px', color: '#15803d' }}>OFFICIALLY VERIFIED</span>
             </div>
           </div>

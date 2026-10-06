@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowUpLeft, LockKeyhole, Infinity as InfinityIcon, ShieldCheck, UserRound, UsersRound, Search, X } from 'lucide-react';
+import { ArrowUpLeft, LockKeyhole, Infinity as InfinityIcon, UsersRound, Search, X } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
 import { platformOwnerEmails } from '@/lib/platform-access';
 import { getMessages, getLocale } from '@/lib/i18n';
@@ -36,13 +36,10 @@ export default async function TeamPage({
   const disabledCount = members.filter(x => !!x.disabled_at).length;
 
   const totalAdmins = members.filter(x => x.role === 'admin').length;
-  const activeAdmins = members.filter(x => x.role === 'admin' && !x.disabled_at).length;
 
   const totalAnalysts = members.filter(x => x.role === 'analyst').length;
-  const activeAnalysts = members.filter(x => x.role === 'analyst' && !x.disabled_at).length;
 
   const totalAuditors = members.filter(x => x.role === 'viewer').length;
-  const activeAuditors = members.filter(x => x.role === 'viewer' && !x.disabled_at).length;
 
   // Filtered members
   const filtered = members.filter(u => {
@@ -74,25 +71,11 @@ export default async function TeamPage({
   const others = members.filter(x => x.id !== actor.id);
 
   const labels = locale === 'en' ? {
-    active: activeCount === 1 ? 'active account' : 'active accounts',
-    disabled: disabledCount === 1 ? 'disabled account' : 'disabled accounts',
-    admins: activeAdmins === 1 ? 'workspace admin' : 'workspace admins',
-    analysts: activeAnalysts === 1 ? 'analyst' : 'analysts',
-    auditors: activeAuditors === 1 ? 'read-only auditor' : 'read-only auditors',
-    overview: 'Team at a glance',
-    overviewSub: 'Roles and access are managed here. Open a user to review their activity history.',
     searchPlaceholder: 'Search members by name, username or email…',
     filterAll: 'All roles',
     noResultsTitle: 'No team members match your filter',
     noResultsSub: 'Try clearing the search query or selecting another role.',
   } : {
-    active: activeCount === 1 ? 'حساب نشط' : 'حسابات نشطة',
-    disabled: disabledCount === 1 ? 'حساب معطّل' : 'حسابات معطّلة',
-    admins: activeAdmins === 1 ? 'مدير مساحة العمل' : 'مديرو مساحة العمل',
-    analysts: activeAnalysts === 1 ? 'محلل امتثال' : 'محللون',
-    auditors: activeAuditors === 1 ? 'مدقق (قراءة فقط)' : 'مدققون للقراءة فقط',
-    overview: 'ملخص الفريق',
-    overviewSub: 'من هنا تدير الأدوار والصلاحيات. افتح ملف المستخدم لعرض سجل نشاطه.',
     searchPlaceholder: 'ابحث عن عضو بالاسم أو البريد…',
     filterAll: 'كافة الأدوار',
     noResultsTitle: 'لم يتم العثور على أعضاء مطابقين',
@@ -163,7 +146,7 @@ export default async function TeamPage({
           <div className="team-plan-stat-box">
             <span className="team-plan-stat-label">{locale === 'en' ? 'Active Members' : 'المستخدمون النشطون'}</span>
             <strong className="team-plan-stat-num text-emerald">{number(activeCount)}</strong>
-            <small>{locale === 'en' ? 'active accounts' : 'حساب مستخدم'}</small>
+            <small>{locale === 'en' ? 'active accounts' : 'حساب مستخدم'}{disabledCount > 0 ? (locale === 'en' ? ` · ${disabledCount} disabled` : ` · ${disabledCount} معطّل`) : ''}</small>
           </div>
 
           <div className="team-plan-stat-box">
@@ -182,32 +165,6 @@ export default async function TeamPage({
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="team-overview panel">
-        <div>
-          <div>
-            <span className="team-overview-icon blue"><UsersRound size={20} /></span>
-            <strong>{number(activeCount)}</strong>
-            <small>{labels.active}{disabledCount > 0 ? (locale === 'en' ? ` · ${disabledCount} disabled` : ` · ${disabledCount} معطّل`) : ''}</small>
-          </div>
-          <div>
-            <span className="team-overview-icon navy"><ShieldCheck size={20} /></span>
-            <strong>{number(activeAdmins)}</strong>
-            <small>{labels.admins}</small>
-          </div>
-          <div>
-            <span className="team-overview-icon green"><UserRound size={20} /></span>
-            <strong>{number(activeAnalysts)}</strong>
-            <small>{labels.analysts}</small>
-          </div>
-          <div>
-            <span className="team-overview-icon slate"><UserRound size={20} /></span>
-            <strong>{number(activeAuditors)}</strong>
-            <small>{labels.auditors}</small>
-          </div>
-        </div>
-        <p><strong>{labels.overview}</strong>{labels.overviewSub}</p>
       </section>
 
       <div className="panel team-registry">

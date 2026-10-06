@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireActor } from '@/lib/auth';
+import { hasFeature } from '@/lib/features';
 import { canManageCustomers } from '@/lib/validation';
 import { getCustomerByHandle } from '@/lib/customers';
 import { getSarReportById, generateGoAmlXml, generateGoAmlJson } from '@/lib/goaml';
@@ -14,6 +15,9 @@ export async function GET(
     const actor = await requireActor();
     if (!canManageCustomers(actor.role)) {
       return NextResponse.json({ error: 'صلاحيتك تسمح بالاطلاع فقط.' }, { status: 403 });
+    }
+    if (!hasFeature(actor, 'goaml_filing')) {
+      return NextResponse.json({ error: 'هذه الميزة غير متاحة ضمن باقتك الحالية' }, { status: 403 });
     }
     const { id } = await params;
     const url = new URL(req.url);

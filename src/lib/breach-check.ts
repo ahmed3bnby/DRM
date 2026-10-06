@@ -30,7 +30,7 @@ export async function checkEmailBreach(email: string | null | undefined): Promis
   try {
     const res = await fetch(`https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(e)}?truncateResponse=false`, {
       headers: {
-        'User-Agent': 'DRM-Compliance-Monitor/2.0',
+        'User-Agent': 'Compliance-Monitor/2.0',
         ...(process.env.HIBP_API_KEY ? { 'hibp-api-key': process.env.HIBP_API_KEY } : {})
       },
       signal: AbortSignal.timeout(3500)

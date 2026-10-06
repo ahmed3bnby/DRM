@@ -103,7 +103,7 @@ export default async function Login({
       <span style={tickerSepStyle}>✦</span>
 
       <span style={tickerItemStyle} dir="ltr">
-        DRM · Diligence Risk Management
+        ABC · Compliance & Advisory
       </span>
       <span style={tickerSepStyle}>✦</span>
 
@@ -315,12 +315,10 @@ export default async function Login({
         <div className="login-grid" aria-hidden="true" />
 
         <div className="brand login-brand">
-          <span className="brand-symbol">
-            <img src="/drm-logo.png" alt="DRM - Diligence Risk Management" width={56} height={24} />
-          </span>
+          <span className="brand-symbol brand-wordmark">ABC</span>
           <span>
-            <b>DRM</b>
-            <small>{isAr ? 'دي آر إم لإدارة المخاطر والخدمات المهنية' : m.brandTagline}</small>
+            <b>ABC</b>
+            <small>{isAr ? 'للاستشارات والامتثال' : m.brandTagline}</small>
           </span>
         </div>
 
@@ -375,10 +373,10 @@ export default async function Login({
           </span>
           <span>
             {isAr
-              ? 'المقر الرئيسي: بناية سلطان للاستثمار، ديرة، دبي · هاتف: '
-              : 'Dubai HQ: Sultan Business Centre, Deira · Tel: '}
+              ? 'المقر الرئيسي: دبي، الإمارات العربية المتحدة · هاتف: '
+              : 'Head office: Dubai, United Arab Emirates · Tel: '}
           </span>
-          <bdi dir="ltr">+971 55 761 0818</bdi>
+          <bdi dir="ltr">+971 4 555 0123</bdi>
         </div>
       </section>
 

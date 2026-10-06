@@ -13,7 +13,8 @@ import {
   Building2,
   CreditCard,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle,
 } from 'lucide-react';
 import type { ExtractedDocData } from '@/lib/ocr-parser';
 import { useLocale } from '@/components/locale-context';
@@ -83,7 +84,7 @@ export default function IdOcrScanner({ onExtracted }: IdOcrScannerProps) {
     });
   };
 
-  // 2. Process Custom File Upload (Image or PDF)
+  // 2. Process Custom File Upload (image)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -223,7 +224,7 @@ export default function IdOcrScanner({ onExtracted }: IdOcrScannerProps) {
             </div>
             <div className="ocr-drop-text">
               <strong>{isEn ? 'Drag & drop ID image or click to browse' : 'اسحب صورة الهوية أو المستند هنا أو انقر للاختيار'}</strong>
-              <small>{isEn ? 'Supports Emirates ID, Passports, Trade Licenses (JPG, PNG, WebP, PDF)' : 'يدعم الهوية الإماراتية وجوازات السفر والرخص التجارية (JPG, PNG, WebP, PDF)'}</small>
+              <small>{isEn ? 'Supports Emirates ID, Passports, Trade Licenses (JPG, PNG, WebP)' : 'يدعم الهوية الإماراتية وجوازات السفر والرخص التجارية (JPG, PNG, WebP)'}</small>
             </div>
             <div className="ocr-actions-row" onClick={(e) => e.stopPropagation()}>
               <button
@@ -292,6 +293,20 @@ export default function IdOcrScanner({ onExtracted }: IdOcrScannerProps) {
               <span>{isEn ? 'Scan Another' : 'مسح مستند آخر'}</span>
             </button>
           </div>
+
+          {/* An expired ID is not acceptable KYC evidence — say so before the profile is saved */}
+          {extractedData.expiryDate && extractedData.expiryDate < new Date().toISOString().slice(0, 10) && (
+            <div className="ocr-expired-warning" role="alert">
+              <AlertTriangle size={16} />
+              <span>
+                {isEn ? 'This document expired on ' : 'هذا المستند منتهي الصلاحية منذ '}
+                <bdi dir="ltr">{extractedData.expiryDate}</bdi>
+                {isEn
+                  ? '. An expired ID is not valid KYC evidence — request a current document.'
+                  : '. لا يُعتد بمستند منتهي لأغراض اعرف عميلك — اطلب مستنداً سارياً.'}
+              </span>
+            </div>
+          )}
 
           <div className="ocr-extracted-grid">
             <div className="ocr-data-item">
@@ -369,7 +384,7 @@ export default function IdOcrScanner({ onExtracted }: IdOcrScannerProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+        accept="image/png,image/jpeg,image/jpg,image/webp"
         className="hidden"
         style={{ display: 'none' }}
         onChange={handleFileChange}

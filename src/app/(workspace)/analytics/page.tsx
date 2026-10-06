@@ -30,7 +30,7 @@ export const revalidate = 0;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'لوحة مؤشرات الامتثال والحوكمة التنفيذية | DRM',
+    title: `${(await getLocale()) === 'en' ? 'Executive Compliance Dashboard' : 'لوحة مؤشرات الامتثال والحوكمة التنفيذية'} | ABC`,
   };
 }
 
@@ -167,7 +167,7 @@ export default async function AnalyticsPage() {
               <ShieldAlert size={17} style={{ color: '#e11d48' }} />
               <span>{isEn ? 'Screening Risk Bands' : 'توزيع مستويات المخاطر'}</span>
             </h3>
-            <span className="analytics-card-tag">4-Tier Model</span>
+            <span className="analytics-card-tag">{isEn ? '4-tier model' : 'نموذج رباعي'}</span>
           </div>
 
           <div className="analytics-bars-container">
@@ -225,7 +225,7 @@ export default async function AnalyticsPage() {
               <Globe2 size={17} style={{ color: '#0284c7' }} />
               <span>{isEn ? 'FATF Jurisdictional Exposure' : 'التعرض الجغرافي وقوائم FATF'}</span>
             </h3>
-            <span className="analytics-card-tag">FATF Plenary</span>
+            <span className="analytics-card-tag">{isEn ? 'FATF lists' : 'قوائم FATF'}</span>
           </div>
 
           <div className="analytics-fatf-matrix">
@@ -282,7 +282,7 @@ export default async function AnalyticsPage() {
               <Building2 size={17} style={{ color: '#4f46e5' }} />
               <span>{isEn ? 'UAE DNFBP Regulatory Filings' : 'تقارير المهن غير المالية (DNFBP)'}</span>
             </h3>
-            <span className="analytics-card-tag">FIU goAML</span>
+            <span className="analytics-card-tag">goAML</span>
           </div>
 
           <div className="dnfbp-rows-container">
@@ -326,7 +326,7 @@ export default async function AnalyticsPage() {
       <section className="analytics-ledger-card">
         <div className="analytics-card-header">
           <h3 className="analytics-card-title">
-            <Activity size={18} style={{ color: '#007527' }} />
+            <Activity size={18} style={{ color: 'var(--brand-600)' }} />
             <span>{isEn ? 'Recent Compliance Actions & Audit Stream' : 'سجل نشاط الامتثال والتدقيق المباشر'}</span>
           </h3>
           <span className="analytics-card-tag">{isEn ? 'Immutable Ledger' : 'سجل رقابي غير قابل للتعديل'}</span>

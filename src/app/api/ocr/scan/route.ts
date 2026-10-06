@@ -1,12 +1,43 @@
+import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentActor } from '@/lib/auth';
+import { hasFeature } from '@/lib/features';
 import { canManageCustomers } from '@/lib/validation';
 import { analyzeDocumentText, OCR_DEMO_PRESETS } from '@/lib/ocr-parser';
 
 // OCR runs a heavy Tesseract pass, so bound the input: cap size and accept only
 // images / PDF, both for multipart uploads and base64 payloads.
 const MAX_OCR_BYTES = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_OCR_MIME = /^(image\/(png|jpe?g|webp|gif|bmp|tiff?)|application\/pdf)$/i;
+// Tesseract reads raster images only — a PDF would fail deep inside the OCR engine.
+const ALLOWED_OCR_MIME = /^image\/(png|jpe?g|webp|gif|bmp|tiff?)$/i;
+const OCR_TIMEOUT_MS = 45_000;
+
+// One worker per scan, always terminated, with a hard timeout so a stuck OCR pass returns a
+// clear error instead of leaving the user on a spinner forever.
+async function recognizeText(buffer: Buffer): Promise<string> {
+  const Tesseract = (await import('tesseract.js')).default;
+  // Language data ships with the app (ocr-data/eng.traineddata, bundled via next.config
+  // outputFileTracingIncludes): no CDN download at runtime and no cache writes — serverless
+  // filesystems are read-only outside /tmp.
+  const worker = await Tesseract.createWorker('eng', 1, {
+    langPath: path.join(process.cwd(), 'ocr-data'),
+    gzip: false,
+    cacheMethod: 'none',
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('OCR_TIMEOUT')), OCR_TIMEOUT_MS);
+    });
+    const res = await Promise.race([worker.recognize(buffer), timeout]);
+    return res.data.text;
+  } finally {
+    if (timer) clearTimeout(timer);
+    await worker.terminate().catch(() => undefined);
+  }
+}
+
+export const maxDuration = 60; // OCR on a cold serverless instance can take several seconds
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +47,9 @@ export async function POST(req: NextRequest) {
     }
     if (!canManageCustomers(actor.role)) {
       return NextResponse.json({ error: 'صلاحيتك تسمح بالاطلاع فقط.' }, { status: 403 });
+    }
+    if (!hasFeature(actor, 'document_ocr')) {
+      return NextResponse.json({ error: 'هذه الميزة غير متاحة ضمن باقتك الحالية' }, { status: 403 });
     }
 
     const contentType = req.headers.get('content-type') || '';
@@ -45,11 +79,7 @@ export async function POST(req: NextRequest) {
         if (buffer.length > MAX_OCR_BYTES) {
           return NextResponse.json({ error: 'حجم الصورة كبير جداً (الحد الأقصى 10 ميجابايت).' }, { status: 413 });
         }
-        const Tesseract = (await import('tesseract.js')).default;
-        const res = await Tesseract.recognize(buffer, 'eng', {
-          logger: () => {}
-        });
-        const parsed = analyzeDocumentText(res.data.text);
+        const parsed = analyzeDocumentText(await recognizeText(buffer));
         return NextResponse.json({ success: true, data: parsed });
       }
     }
@@ -77,25 +107,24 @@ export async function POST(req: NextRequest) {
       if (file.size > MAX_OCR_BYTES) {
         return NextResponse.json({ error: 'حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت).' }, { status: 413 });
       }
+      if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
+        return NextResponse.json({ error: 'ملفات PDF غير مدعومة حالياً — ارفع صورة للمستند (PNG أو JPG).' }, { status: 415 });
+      }
       if (file.type && !ALLOWED_OCR_MIME.test(file.type)) {
-        return NextResponse.json({ error: 'نوع الملف غير مدعوم. يُسمح بالصور (PNG/JPG/WebP) أو PDF فقط.' }, { status: 415 });
+        return NextResponse.json({ error: 'نوع الملف غير مدعوم. يُسمح بالصور فقط (PNG / JPG / WebP).' }, { status: 415 });
       }
 
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const Tesseract = (await import('tesseract.js')).default;
-      const res = await Tesseract.recognize(buffer, 'eng', {
-        logger: () => {}
-      });
-
-      const parsed = analyzeDocumentText(res.data.text);
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const parsed = analyzeDocumentText(await recognizeText(buffer));
       return NextResponse.json({ success: true, data: parsed });
     }
 
     return NextResponse.json({ error: 'نوع الطلب غير مدعوم.' }, { status: 400 });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'فشل المسح الضوئي للمستند.';
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (err instanceof Error && err.message === 'OCR_TIMEOUT') {
+      return NextResponse.json({ error: 'استغرق تحليل الصورة وقتاً أطول من المتوقع. جرّب صورة أوضح وأصغر حجماً.' }, { status: 504 });
+    }
+    console.error('OCR scan failed:', err);
+    return NextResponse.json({ error: 'تعذّر قراءة المستند. جرّب صورة أوضح أو أدخل البيانات يدوياً.' }, { status: 500 });
   }
 }

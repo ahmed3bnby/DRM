@@ -26,13 +26,13 @@ export function formatWhatsAppStyleLastSeen(dateInput: Date | string, locale: Lo
 
   const isEn = locale === 'en';
 
-  const timeStr = d.toLocaleTimeString(isEn ? 'en-US' : 'ar-AE', {
+  const timeStr = d.toLocaleTimeString(isEn ? 'en-US' : 'ar-AE-u-nu-latn', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
   });
 
-  const fullDateStr = d.toLocaleDateString(isEn ? 'en-GB' : 'ar-AE', {
+  const fullDateStr = d.toLocaleDateString(isEn ? 'en-GB' : 'ar-AE-u-nu-latn', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -76,7 +76,7 @@ export function formatWhatsAppStyleLastSeen(dateInput: Date | string, locale: Lo
   } else if (isYesterday) {
     headline = isEn ? `Yesterday at ${timeStr}` : `أمس في ${timeStr}`;
   } else if (diffDays < 7) {
-    const weekday = d.toLocaleDateString(isEn ? 'en-US' : 'ar-AE', { weekday: 'long' });
+    const weekday = d.toLocaleDateString(isEn ? 'en-US' : 'ar-AE-u-nu-latn', { weekday: 'long' });
     headline = isEn ? `${weekday} at ${timeStr}` : `يوم ${weekday} في ${timeStr}`;
   } else {
     headline = isEn ? `${fullDateStr} at ${timeStr}` : `${fullDateStr} في ${timeStr}`;

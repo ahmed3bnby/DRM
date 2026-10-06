@@ -6,7 +6,7 @@ import { DeveloperCredit } from '@/components/developer-credit';
 export default async function NotFound() {
   const m = await getMessages();
   return <main className="standalone-state">
-    <div className="standalone-brand"><img className="standalone-logo" src="/drm-logo.png" alt="DRM - Diligence Risk Management"/><small>{m.brandTagline}</small></div>
+    <div className="standalone-brand"><span className="standalone-logo brand-wordmark">ABC</span><small>{m.brandTagline}</small></div>
     <div className="standalone-card">
       <span className="standalone-icon"><Compass size={30}/></span>
       <h1>{m.nfTitle}</h1>

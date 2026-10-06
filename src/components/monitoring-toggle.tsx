@@ -40,7 +40,7 @@ export default function MonitoringToggle({
   const tooltipText = lastMonitoredAt
     ? isEn
       ? `Continuous Monitoring is active. Last scanned: ${new Date(lastMonitoredAt).toLocaleDateString()}`
-      : `المراقبة المستمرة نشطة. آخر فحص آلي: ${new Date(lastMonitoredAt).toLocaleDateString('ar-AE')}`
+      : `المراقبة المستمرة نشطة. آخر فحص آلي: ${new Date(lastMonitoredAt).toLocaleDateString('ar-AE-u-nu-latn')}`
     : isEn
     ? 'Continuous Automated Monitoring'
     : 'المراقبة الآلية المستمرة';
@@ -69,7 +69,7 @@ export default function MonitoringToggle({
               background: '#f0fdf4',
               borderColor: '#86efac',
               color: '#15803d',
-              boxShadow: '0 1px 2px rgba(0, 117, 39, 0.06)'
+              boxShadow: 'var(--shadow-xs)'
             }
           : {
               background: '#ffffff',

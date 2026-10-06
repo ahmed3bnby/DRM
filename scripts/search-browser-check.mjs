@@ -1,7 +1,7 @@
 import {chromium} from '/Users/ahmed/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
 import {Pool} from 'pg';
 import assert from 'node:assert/strict';
-const db=new Pool({connectionString:process.env.DATABASE_URL});const seed=(await db.query("SELECT r.name FROM source_records r JOIN source_versions v ON v.id=r.version_id WHERE v.active AND v.code='UN' LIMIT 1")).rows[0].name;await db.end();
+const db=new Pool({connectionString:process.env.DATABASE_URL});const seed=(await db.query("SELECT r.name FROM source_records r JOIN source_versions v ON v.id=r.version_id WHERE v.active AND v.code='un_sc_sanctions' LIMIT 1")).rows[0].name;await db.end();
 const b=await chromium.launch({headless:true,channel:'chrome'});const p=await b.newPage({viewport:{width:1440,height:1000}});const errors=[];p.on('pageerror',e=>errors.push(e.message));
 try{
 await p.goto('http://127.0.0.1:3000/login');await p.getByRole('button',{name:'الدخول إلى مساحة العمل'}).click();await p.waitForURL('http://127.0.0.1:3000/');

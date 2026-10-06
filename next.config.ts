@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
   output: 'standalone',
+  // tesseract.js spawns a worker from its own package path; bundling it breaks that path and
+  // the OCR request hangs forever. Load it from node_modules at runtime instead.
+  serverExternalPackages: ['tesseract.js'],
+  // Files read at runtime by path (not import), so the serverless bundle must include them:
+  // OCR language data + tesseract's worker script and WASM core.
+  outputFileTracingIncludes: {
+    '/api/ocr/scan': ['./ocr-data/**', './node_modules/tesseract.js/src/**', './node_modules/tesseract.js-core/**'],
+  },
   devIndicators: false,
   poweredByHeader: false,
   async headers() {

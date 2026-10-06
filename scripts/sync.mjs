@@ -20,8 +20,18 @@ const {datasets}=JSON.parse(await readFile('scripts/watchlist.json','utf8'));
 const catalog=JSON.parse(await readFile('.local/sources/_catalog.json','utf8'));
 const db=new Pool({connectionString:process.env.DATABASE_ADMIN_URL});
 let successful=[];
-try{successful=(await db.query(`SELECT v.code,v.parser_version,i.upstream_version FROM source_versions v LEFT JOIN LATERAL (SELECT upstream_version FROM source_imports WHERE version_id=v.id ORDER BY imported_at DESC LIMIT 1) i ON true WHERE v.active`)).rows;}finally{await db.end();}
-const targets=datasets.filter(code=>!process.argv.includes('--changed-only') || !successful.some(v=>v.code===code&&v.parser_version==='os-rich-1.0'&&v.upstream_version===catalog.sources.find(s=>s.code===code)?.version));
+// Only treat an active version as "successful/current" if it ACTUALLY has records.
+// An active-but-empty version (e.g. gutted by a prior cleanup) must be re-imported,
+// otherwise --changed-only would skip it forever and the list stays unsearchable.
+try{successful=(await db.query(`SELECT v.code,v.parser_version,i.upstream_version FROM source_versions v LEFT JOIN LATERAL (SELECT upstream_version FROM source_imports WHERE version_id=v.id ORDER BY imported_at DESC LIMIT 1) i ON true WHERE v.active AND EXISTS(SELECT 1 FROM source_records r WHERE r.version_id=v.id)`)).rows;}finally{await db.end();}
+// Some watchlist entries are custom, manually-seeded lists (e.g. UAE SCA/DFSA, GLEIF,
+// OFAC vessels, ICIJ) that do NOT exist in the OpenSanctions catalog — they are populated
+// by scripts/seed-high-value-sources.ts, not here. Trying to fetch them via the OpenSanctions
+// connector always fails and would mark every run "failed" forever, so skip them.
+const catalogCodes=new Set(catalog.sources.map(s=>s.code));
+const seededOnly=datasets.filter(code=>!catalogCodes.has(code));
+if(seededOnly.length) console.log(`skipping ${seededOnly.length} non-OpenSanctions (manually-seeded) sources: ${seededOnly.join(', ')}`);
+const targets=datasets.filter(code=>catalogCodes.has(code) && (!process.argv.includes('--changed-only') || !successful.some(v=>v.code===code&&v.parser_version==='os-rich-1.0'&&v.upstream_version===catalog.sources.find(s=>s.code===code)?.version)));
 console.log(`sync: ${targets.length}/${datasets.length} lists require import`);
 let status={};try{status=JSON.parse(await readFile('.local/sources/_sync-status.json','utf8'));}catch{}
 let failed=0;

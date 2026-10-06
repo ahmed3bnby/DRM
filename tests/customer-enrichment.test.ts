@@ -15,6 +15,8 @@ const dbAdmin = new Pool({ connectionString: process.env.DATABASE_ADMIN_URL });
 
 after(async () => {
   if (cleanupIds.length > 0) {
+    await dbAdmin.query(`DELETE FROM review_cases WHERE customer_id = ANY($1::uuid[])`, [cleanupIds]);
+    await dbAdmin.query(`DELETE FROM customer_screenings WHERE customer_id = ANY($1::uuid[])`, [cleanupIds]);
     await dbAdmin.query(`DELETE FROM audit_events WHERE customer_id = ANY($1::uuid[])`, [cleanupIds]);
     await dbAdmin.query(`DELETE FROM customers WHERE id = ANY($1::uuid[]) OR name IN ('Auto Enrich Individual Test', 'Preserve Data Test')`, [cleanupIds]);
   }
@@ -91,4 +93,20 @@ test('enrichCustomerFromMatch preserves existing valid user data and never overw
   assert.equal(after.nationality, 'EG');
   assert.equal(after.date_of_birth, '1980-01-01');
   assert.equal(after.identifier, 'PASSPORT-ORIGINAL-999');
+});
+
+test('screening never copies identity data from an UNCONFIRMED match into the customer', async (t) => {
+  const listed = await dbAdmin.query(`SELECT r.name FROM source_records r JOIN source_versions v ON v.id=r.version_id AND v.active
+    WHERE v.code='us_ofac_sdn' AND r.name ~ '^[A-Za-z]+ [A-Za-z]+$' ORDER BY r.name LIMIT 1`);
+  if (!listed.rowCount) { t.skip('OFAC SDN not loaded'); return; }
+  const { runAndSaveScreening } = await import('../src/lib/screening');
+  const { id } = await createCustomer(testActor, { name: listed.rows[0].name, entityType: 'individual', country: 'AE',
+    nationality: '', dateOfBirth: '', identifier: '', email: '', industry: '', notes: '', deliveryChannel: 'online' });
+  cleanupIds.push(id);
+  await runAndSaveScreening({ ...testActor, features: { adverse_media: false } }, id);
+  const c = await getCustomer(testActor.organizationId, id);
+  assert.ok(!c?.identifier, `identifier was auto-filled: ${c?.identifier}`);
+  assert.ok(!c?.nationality, `nationality was auto-filled: ${c?.nationality}`);
+  const enriched = await dbAdmin.query(`SELECT 1 FROM audit_events WHERE customer_id=$1 AND action='customer.enriched'`, [id]);
+  assert.equal(enriched.rowCount, 0);
 });

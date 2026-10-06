@@ -105,6 +105,21 @@ export async function quickReenableSystemAction() {
 }
 
 export type FormState = {error?: string; fields?: Record<string, string[] | undefined>; values?: Record<string,string>};
+// First screening for a newly created profile. consumeSearch reports an exhausted quota via
+// `allowed:false` (it does not throw), so it must be checked — otherwise creating customers
+// would bypass the search quota entirely.
+async function initialScreening(actor: Awaited<ReturnType<typeof requireActor>>, customerId: string, name: string): Promise<'ok'|'quota'|'error'> {
+  try {
+    const quota = await consumeSearch(actor, `screen:${customerId}`, name);
+    if (!quota.allowed) return 'quota';
+    await runAndSaveScreening(actor, customerId);
+    return 'ok';
+  } catch (err) {
+    console.error('Initial screening after creating a customer failed:', err);
+    return 'error';
+  }
+}
+
 export async function createCustomerAction(_previous: FormState, data: FormData): Promise<FormState> {
   const actor = await requireActor();
   if (!canManageCustomers(actor.role)) return {error: 'صلاحيتك تسمح بالاطلاع فقط.'};
@@ -117,7 +132,9 @@ export async function createCustomerAction(_previous: FormState, data: FormData)
     return { error: 'رصيد عمليات الفحص المتاح لك غير كافٍ لإنشاء وفحص عميل جديد. يرجى التواصل مع مسؤول النظام لزيادة الحصة.', values };
   }
 
-  // Double-Submit / Idempotency Guard: prevent duplicate profiles created in rapid succession
+  // Double-Submit / Idempotency Guard: prevent duplicate profiles created in rapid succession.
+  // Matches on the identifier too, so two DIFFERENT people who share a name (common in Arabic)
+  // but have different ID numbers are NOT treated as duplicates of each other.
   const norm = normalizeName(parsed.data.name);
   const recentDuplicate = await withTenant(actor.organizationId, async db => {
     const r = await db.query(
@@ -126,9 +143,10 @@ export async function createCustomerAction(_previous: FormState, data: FormData)
          AND created_by = $2
          AND normalized_name = $3
          AND entity_type = $4
+         AND coalesce(identifier, '') = $5
          AND created_at > now() - interval '10 seconds'
        ORDER BY created_at DESC LIMIT 1`,
-      [actor.organizationId, actor.id, norm, parsed.data.entityType]
+      [actor.organizationId, actor.id, norm, parsed.data.entityType, parsed.data.identifier || '']
     );
     return r.rows[0] as { id: string; reference: string } | undefined;
   });
@@ -148,15 +166,11 @@ export async function createCustomerAction(_previous: FormState, data: FormData)
   }
   catch { return {error: 'تعذر حفظ الملف. لم يُسجل إنشاء مكتمل؛ أعد المحاولة.', values}; }
 
-  try {
-    await consumeSearch(actor, `screen:${customerId}`, parsed.data.name);
-    await runAndSaveScreening(actor, customerId);
-  } catch (err) {
-    console.error('Failed to run initial screening after creating customer:', err);
-  }
-
+  // The profile is saved either way; the redirect tells the user honestly whether the
+  // initial screening ran (quota exhausted / failure → the profile shows why and offers re-screen).
+  const screen = await initialScreening(actor, customerId, parsed.data.name);
   revalidatePath('/'); revalidatePath('/profiles');
-  redirect(`/profiles/${reference}?created=1&screened=1`);
+  redirect(`/profiles/${reference}?created=1${screen === 'ok' ? '&screened=1' : `&screen=${screen}`}`);
 }
 
 export async function editCustomerAction(_previous: FormState, data: FormData): Promise<FormState> {
@@ -444,7 +458,7 @@ export async function createCustomerFromSourceRecordAction(data: FormData) {
   const isCompany = /company|organization|legalentity/i.test(schemaType);
   const country = extractRecordCountry(r.details) || 'AE';
   const dateOfBirth = extractRecordDob(r.details) || null;
-  const identifier = extractRecordIdentifier(r.details, r.source_record_id) || null;
+  const identifier = extractRecordIdentifier(r.details) || null;   // document numbers only, not the list record id
   const quotaCheck = await quotaStatus(actor);
   if (!quotaCheck.allowed) {
     redirect(`/search/${r.code}/${encodeURIComponent(r.source_record_id)}?error=quota`);
@@ -462,16 +476,10 @@ export async function createCustomerFromSourceRecordAction(data: FormData) {
     notes,
   });
 
-  try {
-    await consumeSearch(actor, `screen:${customerId}`, r.name);
-    await runAndSaveScreening(actor, customerId);
-  } catch (err) {
-    console.error('Failed to run initial screening after creating customer from record:', err);
-  }
-
+  const screen = await initialScreening(actor, customerId, r.name);
   revalidatePath('/');
   revalidatePath('/profiles');
-  redirect(`/profiles/${reference}?created=1&from_record=1`);
+  redirect(`/profiles/${reference}?created=1&from_record=1${screen === 'ok' ? '' : `&screen=${screen}`}`);
 }
 
 // ── Platform owner (super admin): toggle premium features per organization ──

@@ -278,75 +278,23 @@ export default function SarFilingView({
           </div>
 
           {/* Quick Presets Bar */}
-          <div style={{ marginBottom: '22px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <Sparkles size={15} style={{ color: '#007527' }} />
-              <strong style={{ fontSize: '13px', color: '#14281f' }}>
-                {isEn ? '1-Click UAE Regulatory Filing Presets:' : 'نماذج التعبئة السريعة المعتمدة للوائح الإماراتية (1-Click Presets):'}
-              </strong>
+          <div className="sar-presets">
+            <div className="sar-presets-title">
+              <Sparkles size={15} />
+              <strong>{isEn ? 'Quick-fill presets (UAE)' : 'نماذج التعبئة السريعة'}</strong>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => applyPreset('REAR')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: reportType === 'REAR' ? '#0369a1' : '#ffffff',
-                  color: reportType === 'REAR' ? '#ffffff' : '#0369a1',
-                  border: reportType === 'REAR' ? '1px solid #0369a1' : '1px solid #bae6fd',
-                }}
-              >
+            <div className="sar-presets-row" role="group">
+              <button type="button" className={`sar-preset${reportType === 'REAR' ? ' active' : ''}`} aria-pressed={reportType === 'REAR'} onClick={() => applyPreset('REAR')}>
                 <Building2 size={14} />
-                <span>{isEn ? '🏢 Real Estate Deal (REAR)' : '🏢 تقرير الصفقات العقارية (REAR)'}</span>
+                <span>{isEn ? 'Real Estate Deal (REAR)' : 'الصفقات العقارية (REAR)'}</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => applyPreset('FARI')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: reportType === 'FARI' ? '#7c3aed' : '#ffffff',
-                  color: reportType === 'FARI' ? '#ffffff' : '#6d28d9',
-                  border: reportType === 'FARI' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
-                }}
-              >
+              <button type="button" className={`sar-preset${reportType === 'FARI' ? ' active' : ''}`} aria-pressed={reportType === 'FARI'} onClick={() => applyPreset('FARI')}>
                 <Coins size={14} />
-                <span>{isEn ? '🪙 Funds & Virtual Assets (FARI)' : '🪙 التدفقات النقدية والأصول الافتراضية (FARI)'}</span>
+                <span>{isEn ? 'Funds & Virtual Assets (FARI)' : 'التدفقات النقدية والأصول الافتراضية (FARI)'}</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => applyPreset('SAR')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: reportType === 'SAR' ? '#dc2626' : '#ffffff',
-                  color: reportType === 'SAR' ? '#ffffff' : '#b91c1c',
-                  border: reportType === 'SAR' ? '1px solid #dc2626' : '1px solid #fecaca',
-                }}
-              >
+              <button type="button" className={`sar-preset${reportType === 'SAR' ? ' active' : ''}`} aria-pressed={reportType === 'SAR'} onClick={() => applyPreset('SAR')}>
                 <ShieldAlert size={14} />
-                <span>{isEn ? '🚨 Suspicious Activity (SAR / STR)' : '🚨 بلاغ اشتباه عام (SAR / STR)'}</span>
+                <span>{isEn ? 'Suspicious Activity (SAR / STR)' : 'بلاغ اشتباه عام (SAR / STR)'}</span>
               </button>
             </div>
           </div>
@@ -355,10 +303,10 @@ export default function SarFilingView({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
               {/* Report Type */}
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                <label htmlFor="sar-field-1" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                   {isEn ? 'goAML Report Code / Type *' : 'نوع البلاغ الرقابي (goAML Code) *'}
                 </label>
-                <select
+                <select id="sar-field-1"
                   value={reportType}
                   onChange={e => applyPreset(e.target.value as SarReportType)}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', background: '#fff' }}
@@ -376,10 +324,10 @@ export default function SarFilingView({
 
               {/* Suspicious Amount (optional) */}
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                <label htmlFor="sar-field-2" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                   {isEn ? 'Estimated Amount in Suspicion (AED)' : 'قيمة المعاملة المشتبه بها (درهم إماراتي - اختياري)'}
                 </label>
-                <input
+                <input id="sar-field-2"
                   type="number"
                   placeholder="0.00"
                   value={suspiciousAmount}
@@ -391,10 +339,10 @@ export default function SarFilingView({
 
             {/* Reason Category */}
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              <label htmlFor="sar-field-3" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                 {isEn ? 'Reason for Suspicion Category *' : 'تصنيف ومؤشر سبب الاشتباه (Reason Category) *'}
               </label>
-              <select
+              <select id="sar-field-3"
                 value={reasonCategory}
                 onChange={e => setReasonCategory(e.target.value as SarReasonCategory)}
                 style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', background: '#fff' }}
@@ -410,10 +358,10 @@ export default function SarFilingView({
 
             {/* Action Taken */}
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              <label htmlFor="sar-field-4" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                 {isEn ? 'Action Taken by Reporting Entity *' : 'الإجراء المتخذ من قِبل المنشأة المبلّغة *'}
               </label>
-              <select
+              <select id="sar-field-4"
                 value={actionTaken}
                 onChange={e => setActionTaken(e.target.value as SarActionTaken)}
                 style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', background: '#fff' }}
@@ -439,10 +387,10 @@ export default function SarFilingView({
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    <label htmlFor="sar-field-5" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                       {isEn ? 'Title Deed No. *' : 'رقم سند الملكية / العقد *'}
                     </label>
-                    <input
+                    <input id="sar-field-5"
                       type="text"
                       placeholder="e.g. 2024-TD-89211"
                       value={propertyDetails.titleDeedNumber}
@@ -453,10 +401,10 @@ export default function SarFilingView({
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    <label htmlFor="sar-field-6" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                       {isEn ? 'Emirate *' : 'الإمارة *'}
                     </label>
-                    <select
+                    <select id="sar-field-6"
                       value={propertyDetails.emirate}
                       onChange={e => setPropertyDetails({ ...propertyDetails, emirate: e.target.value })}
                       style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
@@ -473,10 +421,10 @@ export default function SarFilingView({
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    <label htmlFor="sar-field-7" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                       {isEn ? 'Property Type *' : 'نوع العقار *'}
                     </label>
-                    <select
+                    <select id="sar-field-7"
                       value={propertyDetails.propertyType}
                       onChange={e => setPropertyDetails({ ...propertyDetails, propertyType: e.target.value as any })}
                       style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
@@ -492,10 +440,10 @@ export default function SarFilingView({
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    <label htmlFor="sar-field-8" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                       {isEn ? 'Project / Building / Community' : 'اسم المشروع أو البرج أو المجمع'}
                     </label>
-                    <input
+                    <input id="sar-field-8"
                       type="text"
                       placeholder="e.g. Burj Crown / Palm Residences"
                       value={propertyDetails.projectOrBuilding}
@@ -505,10 +453,10 @@ export default function SarFilingView({
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    <label htmlFor="sar-field-9" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                       {isEn ? 'Developer / Seller Entity' : 'المطور العقاري أو البائع'}
                     </label>
-                    <input
+                    <input id="sar-field-9"
                       type="text"
                       placeholder="e.g. Emaar Properties PJSC"
                       value={propertyDetails.developerOrSeller}
@@ -532,10 +480,10 @@ export default function SarFilingView({
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '14px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    <label htmlFor="sar-field-10" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                       {isEn ? 'Settlement / Payment Mode *' : 'طريقة وتصنيف السداد *'}
                     </label>
-                    <select
+                    <select id="sar-field-10"
                       value={paymentMode}
                       onChange={e => setPaymentMode(e.target.value as any)}
                       style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
@@ -550,10 +498,10 @@ export default function SarFilingView({
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    <label htmlFor="sar-field-11" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
                       {isEn ? 'DNFBP Reporting Sector' : 'قطاع الأعمال والمهن غير المالية المحددة (DNFBP)'}
                     </label>
-                    <input
+                    <input id="sar-field-11"
                       type="text"
                       value={dnfbpSector}
                       onChange={e => setDnfbpSector(e.target.value)}
@@ -566,10 +514,10 @@ export default function SarFilingView({
                   <div style={{ background: '#ffffff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '14px', marginTop: '10px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#4c1d95', marginBottom: '4px' }}>
+                        <label htmlFor="sar-field-12" style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#4c1d95', marginBottom: '4px' }}>
                           {isEn ? 'Cryptocurrency / Token *' : 'نوع العملة المشفرة / الرمز *'}
                         </label>
-                        <input
+                        <input id="sar-field-12"
                           type="text"
                           placeholder="e.g. USDT, BTC, ETH"
                           value={virtualAssetDetails.cryptoType}
@@ -579,10 +527,10 @@ export default function SarFilingView({
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#4c1d95', marginBottom: '4px' }}>
+                        <label htmlFor="sar-field-13" style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#4c1d95', marginBottom: '4px' }}>
                           {isEn ? 'Receiving Wallet Address' : 'عنوان المحفظة المستلمة (Wallet)'}
                         </label>
-                        <input
+                        <input id="sar-field-13"
                           type="text"
                           placeholder="0x... or T..."
                           value={virtualAssetDetails.walletAddress}
@@ -592,10 +540,10 @@ export default function SarFilingView({
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#4c1d95', marginBottom: '4px' }}>
+                        <label htmlFor="sar-field-14" style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#4c1d95', marginBottom: '4px' }}>
                           {isEn ? 'Blockchain TxHash' : 'معرف العملية بالبلوكشين (TxHash)'}
                         </label>
-                        <input
+                        <input id="sar-field-14"
                           type="text"
                           placeholder="0xabc123..."
                           value={virtualAssetDetails.txHash}
@@ -611,10 +559,10 @@ export default function SarFilingView({
 
             {/* Narrative */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              <label htmlFor="sar-field-15" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                 {isEn ? 'Detailed Grounds of Suspicion Narrative *' : 'حيثيات ومبررات الاشتباه وسرد الوقائع التفصيلي *'}
               </label>
-              <textarea
+              <textarea id="sar-field-15"
                 rows={6}
                 value={narrative}
                 onChange={e => setNarrative(e.target.value)}
@@ -776,7 +724,7 @@ export default function SarFilingView({
                 </div>
                 <div>
                   <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>{isEn ? 'Submission Date & Time' : 'تاريخ وتوقيت التوثيق'}</span>
-                  <span style={{ fontFamily: 'monospace' }}>{new Date(selectedReport.created_at).toLocaleString('ar-AE')}</span>
+                  <span style={{ fontFamily: 'monospace' }}>{new Date(selectedReport.created_at).toLocaleString('ar-AE-u-nu-latn')}</span>
                 </div>
               </div>
             </div>

@@ -346,7 +346,7 @@ export default function MatchesView({
               className={`pill-btn below-threshold ${activeFilter === 'below_threshold' ? 'active' : ''}`}
               onClick={() => setActiveFilter('below_threshold')}
             >
-              {locale === 'en' ? 'Below 80% (Auto-excluded)' : 'أقل من ٨٠٪ (مستبعد تلقائياً)'} <span className="pill-count">{number(counts.belowThreshold)}</span>
+              {locale === 'en' ? 'Below 80% (Auto-excluded)' : 'أقل من 80% (مستبعد تلقائياً)'} <span className="pill-count">{number(counts.belowThreshold)}</span>
             </button>
           )}
         </div>
@@ -466,7 +466,7 @@ export default function MatchesView({
                       </div>
                     ) : match.percent < 80 ? (
                       <span className="not-run auto-excluded-badge" style={{ opacity: 0.8, fontSize: '0.8rem', color: 'var(--muted, #64748b)' }}>
-                        {locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< ٨٠٪)'}
+                        {locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< 80%)'}
                       </span>
                     ) : (
                       <span className="not-run">{m.notReviewed}</span>
@@ -535,7 +535,7 @@ export default function MatchesView({
                     <span className={`decision-badge ${dec.decision}`}>{decLabel(dec.decision)}</span>
                   ) : match.percent < 80 ? (
                     <span className="not-run auto-excluded-badge" style={{ opacity: 0.8, fontSize: '0.8rem', color: 'var(--muted, #64748b)' }}>
-                      {locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< ٨٠٪)'}
+                      {locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< 80%)'}
                     </span>
                   ) : (
                     <span className="not-run">{m.notReviewed}</span>

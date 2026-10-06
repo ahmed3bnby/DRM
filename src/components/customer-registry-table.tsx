@@ -87,7 +87,7 @@ export default function CustomerRegistryTable({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `DRM_Compliance_Audit_Dossier_${Date.now()}.zip`;
+      a.download = `ABC_Compliance_Audit_Dossier_${Date.now()}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -229,6 +229,7 @@ export default function CustomerRegistryTable({
                       type="button"
                       onClick={e => toggleSelectOne(c.id, e)}
                       aria-label={`${isEn ? 'Select' : 'تحديد'} ${c.name}`}
+                      aria-pressed={isSelected}
                       className={`row-select-btn ${isSelected ? 'is-selected' : ''}`}
                       style={{
                         background: isSelected ? '#eff6ff' : 'transparent',
@@ -252,7 +253,7 @@ export default function CustomerRegistryTable({
                     <Link className="customer-cell" href={`/profiles/${c.reference}`}>
                       <EntityIcon type={c.entity_type} />
                       <span className="customer-cell-text">
-                        <strong dir="auto"><bdi>{c.name}</bdi></strong>
+                        <strong dir="auto">{c.name}</strong>
                         <small dir="ltr" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                           <bdi>{c.reference}</bdi>
                           {c.monitoring_enabled && (
@@ -316,6 +317,8 @@ export default function CustomerRegistryTable({
                 <button
                   type="button"
                   onClick={e => toggleSelectOne(c.id, e)}
+                  aria-label={`${isEn ? 'Select' : 'تحديد'} ${c.name}`}
+                  aria-pressed={isSelected}
                   style={{
                     background: isSelected ? '#eff6ff' : '#fff',
                     border: isSelected ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
@@ -334,7 +337,7 @@ export default function CustomerRegistryTable({
                 <div className="m-card-head" style={{ paddingRight: locale === 'en' ? '36px' : undefined, paddingLeft: locale === 'ar' ? '36px' : undefined }}>
                   <EntityIcon type={c.entity_type} />
                   <div className="m-card-info">
-                    <strong className="m-card-name" dir="auto"><bdi>{c.name}</bdi></strong>
+                    <strong className="m-card-name" dir="auto">{c.name}</strong>
                     <small className="m-card-ref" dir="ltr" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                       <bdi>{c.reference}</bdi>
                       {c.monitoring_enabled && (

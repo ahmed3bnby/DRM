@@ -31,15 +31,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   try {
     const actor = await requireActor();
     const { id } = await params;
-    if (!/^[\w-]{4,60}$/.test(id)) return { title: 'تقرير فحص الامتثال | DRM' };
+    if (!/^[\w-]{4,60}$/.test(id)) return { title: `${(await getLocale()) === 'en' ? 'Compliance Screening Report' : 'تقرير فحص الامتثال'} | ABC` };
     const customer = await getCustomerByHandle(actor.organizationId, id);
-    if (!customer) return { title: 'تقرير فحص الامتثال | DRM' };
+    if (!customer) return { title: `${(await getLocale()) === 'en' ? 'Compliance Screening Report' : 'تقرير فحص الامتثال'} | ABC` };
 
     return {
       title: customer.name,
     };
   } catch {
-    return { title: 'تقرير فحص الامتثال | DRM' };
+    return { title: `${(await getLocale()) === 'en' ? 'Compliance Screening Report' : 'تقرير فحص الامتثال'} | ABC` };
   }
 }
 
@@ -64,6 +64,9 @@ export default async function Report({ params }: { params: Promise<{ id: string 
   ]);
 
   const isEn = locale === 'en';
+  const levelLabel = (v: string) => (isEn
+    ? ({ low: 'Low', medium: 'Medium', high: 'High', sanction: 'Sanction' } as Record<string, string>)
+    : ({ low: 'منخفض', medium: 'متوسط', high: 'مرتفع', sanction: 'عقوبات' } as Record<string, string>))[v] ?? v;
   const isCompany = customer.entity_type === 'company';
 
   const bandLabel = (b: string) =>
@@ -159,8 +162,9 @@ export default async function Report({ params }: { params: Promise<{ id: string 
   let adverseArticles = last?.adverse_media?.articles ?? [];
   let generalNewsArticles = last?.adverse_media?.generalNews ?? [];
 
-  // Fallback only if the screening snapshot did not record adverse media
-  if (hasFeature(actor, 'adverse_media') && !last?.adverse_media) {
+  // Fallback when the snapshot has no adverse media, OR recorded an incomplete/failed search
+  // (e.g. it timed out at screening time) — so a slow search is never left as a false "clean".
+  if (hasFeature(actor, 'adverse_media') && (!last?.adverse_media || last.adverse_media.status !== 'searched')) {
     try {
       const liveAdv = await adverseMediaSearch(customer.name);
       if (liveAdv.status === 'searched') {
@@ -204,11 +208,12 @@ export default async function Report({ params }: { params: Promise<{ id: string 
                 style={{ maxHeight: '46px', maxWidth: '140px', objectFit: 'contain' }}
               />
             ) : (
-              <img src="/logo.webp" alt="DRM" className="idenfo-logo-img" />
+              // No uploaded logo: a monogram tile, so the company name isn't printed twice
+              <span className="idenfo-logo-monogram" aria-hidden="true" style={{ background: branding?.primaryColor || 'var(--brand)' }}>{(branding?.companyName || actor.organizationName || 'ABC').trim().charAt(0).toUpperCase()}</span>
             )}
             <div className="idenfo-brand-text">
               <span className="idenfo-brand-title" translate="no">
-                {branding?.companyName || actor.organizationName || 'DRM'}
+                {branding?.companyName || actor.organizationName || 'ABC'}
               </span>
               <span className="idenfo-brand-sub">
                 {branding?.licenseNumber ? `${isEn ? 'Lic. No:' : 'ترخيص رقم:'} ${branding.licenseNumber} · ` : ''}
@@ -414,24 +419,24 @@ export default async function Report({ params }: { params: Promise<{ id: string 
                   <tr key={f.key}>
                     <td>{label}</td>
                     <td dir="ltr">{f.score}</td>
-                    <td className="capitalize"><span className={`level-pill ${f.band}`}>{f.band}</span></td>
+                    <td><span className={`level-pill ${f.band}`}>{levelLabel(f.band)}</span></td>
                   </tr>
                 );
               })}
               <tr>
                 <td>{isEn ? 'Product' : 'نوع المنتج / الخدمة'}</td>
                 <td dir="ltr">0</td>
-                <td><span className="level-pill low">low</span></td>
+                <td><span className="level-pill low">{levelLabel('low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'Anti Spoofing' : 'التحقق من التزييف والتحايل'}</td>
                 <td dir="ltr">0</td>
-                <td><span className="level-pill low">low</span></td>
+                <td><span className="level-pill low">{levelLabel('low')}</span></td>
               </tr>
               <tr className="idenfo-total-row">
                 <td><strong>{isEn ? 'Base Rating' : 'التقييم الأساسي (Base Rating)'}</strong></td>
                 <td dir="ltr"><strong>{rating.base}</strong></td>
-                <td><strong><span className={`level-pill ${rating.baseBand}`}>{rating.baseBand}</span></strong></td>
+                <td><strong><span className={`level-pill ${rating.baseBand}`}>{levelLabel(rating.baseBand)}</span></strong></td>
               </tr>
             </tbody>
           </table>
@@ -452,57 +457,57 @@ export default async function Report({ params }: { params: Promise<{ id: string 
               <tr>
                 <td>{isEn ? 'Suspicious Transaction Report filed' : 'بلاغ معاملة مشبوهة مسجل (STR)'}</td>
                 <td>{goAml.requiresImmediateAction ? 'STR' : 'N/A'}</td>
-                <td><span className={`level-pill ${goAml.requiresImmediateAction ? 'high' : 'low'}`}>{goAml.requiresImmediateAction ? 'high' : 'low'}</span></td>
+                <td><span className={`level-pill ${goAml.requiresImmediateAction ? 'high' : 'low'}`}>{levelLabel(goAml.requiresImmediateAction ? 'high' : 'low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'Non Resident' : 'عميل غير مقيم'}</td>
                 <td>{customer.country !== 'AE' ? (isEn ? 'Non-Resident' : 'غير مقيم') : 'N/A'}</td>
-                <td><span className={`level-pill ${customer.country !== 'AE' ? 'medium' : 'low'}`}>{customer.country !== 'AE' ? 'medium' : 'low'}</span></td>
+                <td><span className={`level-pill ${customer.country !== 'AE' ? 'medium' : 'low'}`}>{levelLabel(customer.country !== 'AE' ? 'medium' : 'low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'Residence Country is Sanctioned' : 'دولة الإقامة خاضعة لعقوبات'}</td>
                 <td>{resSanctioned ? 'high' : 'N/A'}</td>
-                <td><span className={`level-pill ${resSanctioned ? 'high' : 'low'}`}>{resSanctioned ? 'high' : 'low'}</span></td>
+                <td><span className={`level-pill ${resSanctioned ? 'high' : 'low'}`}>{levelLabel(resSanctioned ? 'high' : 'low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'Nationality Country is Sanctioned' : 'دولة الجنسية خاضعة لعقوبات'}</td>
                 <td>{natSanctioned ? 'high' : 'N/A'}</td>
-                <td><span className={`level-pill ${natSanctioned ? 'high' : 'low'}`}>{natSanctioned ? 'high' : 'low'}</span></td>
+                <td><span className={`level-pill ${natSanctioned ? 'high' : 'low'}`}>{levelLabel(natSanctioned ? 'high' : 'low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'Contact No. Code Country is Sanctioned' : 'رمز اتصال الدولة خاضع لعقوبات'}</td>
                 <td>N/A</td>
-                <td><span className="level-pill low">low</span></td>
+                <td><span className="level-pill low">{levelLabel('low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'Sanction Hit' : 'مطابقة عقوبات (Sanction Hit)'}</td>
                 <td>{hasSanctionHit ? 'sanction' : 'N/A'}</td>
-                <td><span className={`level-pill ${hasSanctionHit ? 'high' : 'low'}`}>{hasSanctionHit ? 'sanction' : 'low'}</span></td>
+                <td><span className={`level-pill ${hasSanctionHit ? 'high' : 'low'}`}>{levelLabel(hasSanctionHit ? 'sanction' : 'low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'PEP' : 'شخص سياسي ممثل / قريب (PEP)'}</td>
                 <td>{hasPepHit ? 'high' : 'N/A'}</td>
-                <td><span className={`level-pill ${hasPepHit ? 'high' : 'low'}`}>{hasPepHit ? 'high' : 'low'}</span></td>
+                <td><span className={`level-pill ${hasPepHit ? 'high' : 'low'}`}>{levelLabel(hasPepHit ? 'high' : 'low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'Special Interest Hit' : 'ملاحقة أمنية / جهات إنفاذ القانون'}</td>
                 <td>{hasCrimeHit ? 'high' : 'N/A'}</td>
-                <td><span className={`level-pill ${hasCrimeHit ? 'high' : 'low'}`}>{hasCrimeHit ? 'high' : 'low'}</span></td>
+                <td><span className={`level-pill ${hasCrimeHit ? 'high' : 'low'}`}>{levelLabel(hasCrimeHit ? 'high' : 'low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'Adverse Media Hit' : 'أخبار ووسائط إعلامية سلبية'}</td>
                 <td>{adverseHit ? 'medium' : 'N/A'}</td>
-                <td><span className={`level-pill ${adverseHit ? 'medium' : 'low'}`}>{adverseHit ? 'medium' : 'low'}</span></td>
+                <td><span className={`level-pill ${adverseHit ? 'medium' : 'low'}`}>{levelLabel(adverseHit ? 'medium' : 'low')}</span></td>
               </tr>
               <tr>
                 <td>{isEn ? 'Transaction' : 'معاملات نقدية تتجاوز السقف'}</td>
                 <td>{goAml.cashThresholdAlert ? 'DCR Alert' : 'N/A'}</td>
-                <td><span className={`level-pill ${goAml.cashThresholdAlert ? 'medium' : 'low'}`}>{goAml.cashThresholdAlert ? 'medium' : 'low'}</span></td>
+                <td><span className={`level-pill ${goAml.cashThresholdAlert ? 'medium' : 'low'}`}>{levelLabel(goAml.cashThresholdAlert ? 'medium' : 'low')}</span></td>
               </tr>
               <tr className="idenfo-total-row">
                 <td><strong>{isEn ? 'Overall Rating' : 'التقييم الشامل النهائي (Overall Rating)'}</strong></td>
                 <td><strong>{rating.band === 'high' && hasSanctionHit ? 'sanction' : rating.band}</strong></td>
-                <td><strong><span className={`level-pill ${rating.band}`}>{rating.band === 'high' && hasSanctionHit ? 'sanction' : rating.band}</span></strong></td>
+                <td><strong><span className={`level-pill ${rating.band}`}>{levelLabel(rating.band === 'high' && hasSanctionHit ? 'sanction' : rating.band)}</span></strong></td>
               </tr>
             </tbody>
           </table>
@@ -600,7 +605,7 @@ export default async function Report({ params }: { params: Promise<{ id: string 
         <section className="idenfo-section">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #e5e7eb', paddingBottom: '6px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Newspaper size={18} style={{ color: '#007527' }} />
+              <Newspaper size={18} style={{ color: 'var(--brand-600)' }} />
               <h2 className="idenfo-section-title" style={{ borderBottom: 'none', margin: 0, padding: 0 }}>
                 {isEn ? 'Google Results & Advanced Media Details' : 'نتائج محركات البحث والأخبار والوسائط السلبية (Google & Adverse Media)'}
               </h2>
@@ -727,9 +732,9 @@ export default async function Report({ params }: { params: Promise<{ id: string 
             </div>
             <div className="signoff-seal-field">
               <div className="audit-seal">
-                <span className="seal-org" translate="no">DRM UAE</span>
+                <span className="seal-org" translate="no">{(branding?.companyName || 'ABC')} UAE</span>
                 <span className="seal-text">{isEn ? 'AUDIT VERIFIED' : 'تم التدقيق'}</span>
-                <span className="seal-id" dir="ltr">DRM-AUTH-{customer.reference.replace(/[^a-zA-Z0-9]/g, '')}</span>
+                <span className="seal-id" dir="ltr">{(branding?.companyName || 'ABC').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}-AUTH-{customer.reference.replace(/[^a-zA-Z0-9]/g, '')}</span>
               </div>
             </div>
           </div>
@@ -744,8 +749,8 @@ export default async function Report({ params }: { params: Promise<{ id: string 
           )}
           <p>{m.rptFooter}</p>
           <div className="report-foot-drm">
-            <span>{isEn ? 'Diligence Risk Management (DRM) · Risk Management & Pro Services' : 'دي آر إم لإدارة المخاطر والخدمات المهنية (DRM)'}</span>
-            <span>{isEn ? 'Office 404, Sultan Group Investment Bldg, Deira, Dubai, UAE · www.drmuae.com' : 'مكتب 404، بناية سلطان للاستثمار، ديرة، دبي، الإمارات العربية المتحدة · www.drmuae.com'}</span>
+            <span>{(branding?.companyName || 'ABC')} · {isEn ? 'Compliance & Advisory' : 'للاستشارات والامتثال'}</span>
+            <span>{[branding?.contactPhone, branding?.contactEmail].filter(Boolean).join(' · ') || (isEn ? 'Dubai, UAE' : 'دبي، الإمارات العربية المتحدة')}</span>
           </div>
           <DeveloperCredit as="div" className="report-foot-dev no-print" />
         </footer>

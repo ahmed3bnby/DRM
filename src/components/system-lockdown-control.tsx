@@ -81,7 +81,7 @@ export default function SystemLockdownControl({
               {lockdown.updated_at && (
                 <small className="muted" dir="ltr">
                   {isAr ? 'تم التعطيل منذ: ' : 'Suspended at: '}
-                  {new Date(lockdown.updated_at).toLocaleString(isAr ? 'ar-AE' : 'en-US')}
+                  {new Date(lockdown.updated_at).toLocaleString(isAr ? 'ar-AE-u-nu-latn' : 'en-US')}
                 </small>
               )}
             </div>

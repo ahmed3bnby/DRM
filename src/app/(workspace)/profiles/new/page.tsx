@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, LockKeyhole } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
+import { hasFeature } from '@/lib/features';
 import { canManageCustomers, localizedCountries } from '@/lib/validation';
 import { getMessages, getLocale } from '@/lib/i18n';
 import CustomerForm from '@/components/customer-form';
@@ -24,5 +25,5 @@ export default async function NewProfile({
     country: params.country ? String(params.country).trim().toUpperCase() : 'AE',
     notes: params.sourceRecordId ? `تم إنشاء الملف استناداً إلى سجل المصادر (${params.sourceRecordId})` : undefined,
   };
-  return <><Link href="/profiles" className="back-link"><ArrowRight size={17}/>{m.navCustomers}</Link><div className="page-heading"><div><h1>{m.newTitle}</h1><p>{m.newSub}</p></div><span className="small-tag">{m.newTag}</span></div><CustomerForm defaults={defaults} countryList={localizedCountries(locale)}/></>;
+  return <><Link href="/profiles" className="back-link"><ArrowRight size={17}/>{m.navCustomers}</Link><div className="page-heading"><div><h1>{m.newTitle}</h1><p>{m.newSub}</p></div><span className="small-tag">{m.newTag}</span></div><CustomerForm defaults={defaults} countryList={localizedCountries(locale)} canUseOcr={hasFeature(actor, 'document_ocr')}/></>;
 }

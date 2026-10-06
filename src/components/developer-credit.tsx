@@ -309,7 +309,7 @@ export function DeveloperIntegrityGuard() {
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '11px', color: '#9ca3af' }}>
           <Lock size={13} />
-          <span>DRM Platform — Copyright & License Protection Active</span>
+          <span>ABC Platform — Copyright & License Protection Active</span>
         </div>
       </div>
     </div>

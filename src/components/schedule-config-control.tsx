@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarClock, Check, Clock, Play, Power, Save, Sparkles } from 'lucide-react';
 import { saveScheduleAction } from '@/app/(workspace)/admin/actions';
+import { useToast } from './toast';
 import type { ScheduleConfig, ScheduleFrequency } from '@/lib/schedule-types';
 import { FREQUENCY_DETAILS } from '@/lib/schedule-types';
 
@@ -15,6 +16,7 @@ type Props = {
 
 export default function ScheduleConfigControl({ initialConfig, locale, schedulerLoaded }: Props) {
   const router = useRouter();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const [enabled, setEnabled] = useState<boolean>(initialConfig.enabled);
   const [frequency, setFrequency] = useState<ScheduleFrequency>(initialConfig.frequency);
@@ -24,7 +26,7 @@ export default function ScheduleConfigControl({ initialConfig, locale, scheduler
   const formatNextRun = (isoStr?: string) => {
     if (!isoStr) return locale === 'en' ? 'Disabled / No upcoming run' : 'معطل · لا يوجد موعد تشغيل قادم';
     const d = new Date(isoStr);
-    return d.toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG', {
+    return d.toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG-u-nu-latn', {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
@@ -45,7 +47,13 @@ export default function ScheduleConfigControl({ initialConfig, locale, scheduler
 
     startTransition(async () => {
       try {
-        await saveScheduleAction(fd);
+        const res = await saveScheduleAction(fd);
+        if (!res.ok) {
+          toast(locale === 'en'
+            ? 'The sync schedule is managed on the data server, not on this hosting.'
+            : 'جدولة التحديث تُدار من خادم البيانات، وليست متاحة على هذه الاستضافة.', 'info');
+          return;
+        }
         setSavedSuccess(true);
         router.refresh();
         setTimeout(() => setSavedSuccess(false), 4000);

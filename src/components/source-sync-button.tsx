@@ -53,7 +53,7 @@ export default function SourceSyncButton({
     if (!iso) return locale === 'en' ? 'Not recorded' : 'غير مسجل';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '—';
-    return d.toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG', {
+    return d.toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG-u-nu-latn', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -106,7 +106,7 @@ export default function SourceSyncButton({
     if (!iso) return '';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString(locale === 'en' ? 'en-US' : 'ar-EG', {
+    return d.toLocaleTimeString(locale === 'en' ? 'en-US' : 'ar-EG-u-nu-latn', {
       hour: '2-digit',
       minute: '2-digit',
       timeZone: 'Asia/Dubai',

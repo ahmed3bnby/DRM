@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { searchPublicSources } from '@/lib/search';
+import { loadCategories, classifyMatch, assess, type RiskBand } from '@/lib/risk';
 import { evaluateFATFJurisdiction } from '@/lib/fatf';
 import { consumeSearch, quotaStatus } from '@/lib/team';
 import { withTenant } from '@/lib/db';
@@ -96,7 +97,7 @@ export function generateTemplateWorkbook(): Buffer {
   ws['!cols'] = [{ wch: 35 }, { wch: 25 }, { wch: 30 }, { wch: 20 }];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'DRM_Screening_Template');
+  XLSX.utils.book_append_sheet(wb, ws, 'ABC_Screening_Template');
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 }
 
@@ -118,26 +119,34 @@ export async function runBulkScreening(
 
   const results: BulkScreeningResult[] = [];
   let flaggedCount = 0;
+  const catMap = await loadCategories();
+  const RANK: Record<RiskBand, number> = { high: 3, medium: 2, low: 1 };
 
   for (const item of items) {
     // Deduct search
     await consumeSearch(actor, `bulk:${Date.now()}:${item.rowNumber}`, item.name);
 
-    // Run search — then gate sources by the organization's plan, exactly like the
-    // single-customer screening path (screening.ts). Without this, bulk users would
-    // see hits from premium source categories their plan doesn't include.
-    const matches = (await searchPublicSources(item.name, 10)).filter(m => isSourceAllowed(m.code, actor));
+    // Same rules as single-customer screening (screening.ts): gate by plan BEFORE truncating
+    // (a wide candidate set, so a real hit is never cut off), then classify each candidate by
+    // list category and strength. Only medium/high candidates count as matches — PEP hits are
+    // capped at medium and a 70% "visible" candidate is not an alert.
+    const candidates = (await searchPublicSources(item.name, 300))
+      .filter(m => isSourceAllowed(m.code, actor))
+      .map(r => ({ r, c: classifyMatch(r.code, r.match_kind, r.name_similarity, catMap, { details: r.details }) }))
+      .filter(x => x.c.percent >= 50)
+      .sort((a, b) => RANK[b.c.band] - RANK[a.c.band] || b.c.percent - a.c.percent);
     const fatf = evaluateFATFJurisdiction(item.country);
-
-    // Filter relevant matches
-    const relevant = matches.filter(m => m.name_similarity >= 0.70);
+    const relevant = candidates.filter(x => x.c.band !== 'low');
     const top = relevant[0];
+    const overall = assess(candidates.map(x => x.c));
 
     const hasMatches = relevant.length > 0;
-    const maxScore = top ? Math.round(top.name_similarity * 100) : 0;
-    const isHighOrMedium = maxScore >= 80 || fatf.rating === 'blacklist';
+    const maxScore = top ? top.c.percent : 0;
+    const band: BulkScreeningResult['riskBand'] = fatf.rating === 'blacklist' ? 'high'
+      : overall.band === 'high' || overall.band === 'medium' ? overall.band
+      : overall.band === 'low' ? 'low' : 'none';
 
-    const categories = Array.from(new Set(relevant.map(m => m.kind || 'sanctions')));
+    const categories = Array.from(new Set(relevant.map(x => x.c.categoryLabel)));
 
     if (hasMatches || fatf.rating === 'blacklist') {
       flaggedCount++;
@@ -183,16 +192,16 @@ export async function runBulkScreening(
       identifier: item.identifier,
       entityType: item.entityType,
       status: (hasMatches || fatf.rating === 'blacklist') ? 'flagged' : 'clear',
-      riskBand: isHighOrMedium ? 'high' : hasMatches ? 'medium' : 'low',
+      riskBand: band,
       matchCount: relevant.length,
       maxScore,
-      topMatchName: top?.name,
-      topMatchSource: top?.code,
+      topMatchName: top?.r.name,
+      topMatchSource: top?.c.sourceTitle,
       categories,
       fatfRating: fatf.rating,
       fatfTitleEn: fatf.titleEn,
       summary: hasMatches
-        ? `Found ${relevant.length} matches (Max similarity: ${maxScore}%) on ${top?.code || 'watchlist'}`
+        ? `Found ${relevant.length} matches (Max similarity: ${maxScore}%) on ${top?.c.sourceTitle || 'watchlist'}`
         : 'Clean / No watchlist matches found'
     });
   }

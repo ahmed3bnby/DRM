@@ -55,7 +55,7 @@ export async function recordMatchDecision(
       if (srcRecord) {
         const country = extractRecordCountry(srcRecord.details);
         const dob = extractRecordDob(srcRecord.details);
-        const identifier = extractRecordIdentifier(srcRecord.details, srcRecord.source_record_id);
+        const identifier = extractRecordIdentifier(srcRecord.details);   // document numbers only, not the list record id
         await enrichCustomerFromMatch(actor.organizationId, actor.id, customerId, {
           country,
           dob,

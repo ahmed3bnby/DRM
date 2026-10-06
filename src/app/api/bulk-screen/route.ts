@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': 'attachment; filename="DRM_Screening_Template.xlsx"'
+          'Content-Disposition': 'attachment; filename="ABC_Screening_Template.xlsx"'
         }
       });
     }
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
           status: 200,
           headers: {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': `attachment; filename="DRM_Bulk_Screening_Report_${new Date().toISOString().split('T')[0]}.xlsx"`
+            'Content-Disposition': `attachment; filename="ABC_Bulk_Screening_Report_${new Date().toISOString().split('T')[0]}.xlsx"`
           }
         });
       }

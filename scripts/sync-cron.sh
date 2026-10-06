@@ -41,4 +41,12 @@ echo "===== $(date '+%Y-%m-%d %H:%M:%S') sync start =====" >> .local/sync-cron.l
 "$NODE_CMD" scripts/sync-runner.mjs --scheduled >> .local/sync-cron.log 2>&1
 status=$?
 echo "===== sync end (exit $status) =====" >> .local/sync-cron.log
+
+# Ongoing monitoring: re-screen monitored customers against the freshly-synced lists.
+# Runs regardless of the sync's exit code (monitoring against current data is still useful);
+# its failure does not fail the cron, which reports the sync status.
+echo "===== $(date '+%Y-%m-%d %H:%M:%S') monitoring start =====" >> .local/sync-cron.log
+"$NODE_CMD" --import tsx scripts/run-monitoring.ts >> .local/sync-cron.log 2>&1
+echo "===== monitoring end (exit $?) =====" >> .local/sync-cron.log
+
 exit $status

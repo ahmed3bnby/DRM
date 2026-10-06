@@ -10,7 +10,9 @@ import { saveScheduleConfig, type ScheduleFrequency } from '@/lib/schedule-confi
 export async function startSync() {
   const actor = await requireActor();
   if (actor.role !== 'admin') throw Error('FORBIDDEN');
-  if (process.env.APP_ENV !== 'local') {
+  // Serverless hosts (Vercel) can't run the Python connectors or spawn processes — the sync
+  // runs on the data server / scheduled job instead. VERCEL is set by the platform itself.
+  if (process.env.VERCEL || process.env.APP_ENV !== 'local') {
     return { ok: false, error: 'serverless' };
   }
 
@@ -45,6 +47,9 @@ export async function startSync() {
 export async function saveScheduleAction(formData: FormData) {
   const actor = await requireActor();
   if (!isPlatformOwner(actor)) throw Error('FORBIDDEN');
+  // The schedule is a crontab/launchd entry on the data server; a serverless deploy has no
+  // writable disk or scheduler to configure.
+  if (process.env.VERCEL) return { ok: false as const, error: 'serverless' as const };
 
   const enabled = formData.get('enabled') === 'true' || formData.get('enabled') === 'on' || formData.get('enabled') === '1';
   const frequency = (String(formData.get('frequency') || 'daily')) as ScheduleFrequency;
@@ -52,5 +57,5 @@ export async function saveScheduleAction(formData: FormData) {
 
   const config = await saveScheduleConfig({ enabled, frequency, timeOfDay }, actor);
   revalidatePath('/admin');
-  return { ok: true, config };
+  return { ok: true as const, config };
 }

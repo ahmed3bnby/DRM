@@ -92,7 +92,7 @@ export default function BulkScreeningClient({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `DRM_Screening_Results_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.download = `ABC_Screening_Results_${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -117,7 +117,7 @@ export default function BulkScreeningClient({
         <div>
           <div className="eyebrow">{isEn ? 'High-Volume Operations' : 'عمليات الامتثال المجمعة'}</div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FileSpreadsheet size={28} style={{ color: '#007527' }} />
+            <FileSpreadsheet size={28} style={{ color: 'var(--brand-600)' }} />
             <span>{isEn ? 'Bulk Watchlist Screening' : 'الفحص الجماعي عبر ملفات الإكسل'}</span>
           </h1>
           <p>
@@ -178,7 +178,7 @@ export default function BulkScreeningClient({
                 type="checkbox"
                 checked={autoEnroll}
                 onChange={e => setAutoEnroll(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: '#007527', cursor: 'pointer' }}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--brand-600)', cursor: 'pointer' }}
               />
               <label htmlFor="auto-enroll-check" style={{ fontSize: '13px', color: '#334155', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <ShieldCheck size={16} style={{ color: '#16a34a' }} />

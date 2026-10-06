@@ -150,6 +150,15 @@ export async function createSession(email: string, password: string, remember = 
     console.error('Failed to clear login attempts:', err);
   }
 
+  // Opportunistic housekeeping (login is infrequent): drop expired sessions and
+  // stale login attempts outside the lockout window so these tables don't grow unbounded.
+  try {
+    await pool.query('DELETE FROM sessions WHERE expires_at < now()');
+    await pool.query(`DELETE FROM login_attempts WHERE created_at < now() - ($1 * interval '1 minute')`, [LOCKOUT_MINUTES]);
+  } catch (err) {
+    console.error('Session/attempt housekeeping failed:', err);
+  }
+
   // 4. Create session and set cookie
   try {
     const jar = await cookies();

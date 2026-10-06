@@ -278,6 +278,7 @@ export type AdverseSearchResult = {
 
 const ADVERSE_CACHE = new Map<string, { result: AdverseSearchResult; expiresAt: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CACHE_MAX = 500; // bound cache size (oldest entry evicted on overflow)
 
 export async function adverseMediaSearch(
   q: string,
@@ -408,13 +409,20 @@ export async function adverseMediaSearch(
         retrievedAt: new Date().toISOString()
       };
 
+      // Bound the cache so it can't grow unbounded over a long-running process.
+      if (ADVERSE_CACHE.size >= CACHE_MAX) {
+        const oldest = ADVERSE_CACHE.keys().next().value;
+        if (oldest !== undefined) ADVERSE_CACHE.delete(oldest);
+      }
       ADVERSE_CACHE.set(cacheKey, { result: outcome, expiresAt: Date.now() + CACHE_TTL_MS });
       return outcome;
     };
 
-    // Cap total adverse search time at 2500ms max so caller is never blocked
+    // Cap total adverse search time at 2500ms so the caller is never blocked. On timeout we
+    // return 'failed' (NOT an empty 'searched') so an incomplete search is never recorded as a
+    // clean result — the real search keeps running and populates the cache for the next call.
     const fallbackTimeout: Promise<AdverseSearchResult> = new Promise(resolve =>
-      setTimeout(() => resolve({ status: 'searched', articles: [], generalNews: [], retrievedAt: new Date().toISOString() }), 2500)
+      setTimeout(() => resolve({ status: 'failed', articles: [], generalNews: [] }), 2500)
     );
 
     return await Promise.race([executeSearch(), fallbackTimeout]);

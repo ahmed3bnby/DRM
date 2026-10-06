@@ -15,11 +15,13 @@ import type { ExtractedDocData } from '@/lib/ocr-parser';
 export default function CustomerForm({
   customer,
   defaults,
-  countryList
+  countryList,
+  canUseOcr = false
 }: {
   customer?: Customer;
   defaults?: Partial<Customer>;
   countryList: [string, string][];
+  canUseOcr?: boolean;
 }) {
   const { m, locale } = useLocale();
   const editing = !!customer;
@@ -105,7 +107,7 @@ export default function CustomerForm({
 
       {state.error && <div role="alert" className="form-error">{state.error}</div>}
 
-      {!editing && (
+      {!editing && canUseOcr && (
         <IdOcrScanner onExtracted={handleOcrExtracted} />
       )}
 

@@ -11,14 +11,14 @@ export function RiskPill({band,m}:{band:string;m:Messages}) {
 }
 // ISO 3166-1 alpha-2 → emoji flag (🇦🇪…). Returns '' for non-country codes (OTHER, blank).
 export const flag = (code:string)=>{const c=(code||'').trim().toUpperCase();if(!/^[A-Z]{2}$/.test(c)||['ZZ','XX','OT'].includes(c))return '';return String.fromCodePoint(...[...c].map(ch=>0x1F1E6+ch.charCodeAt(0)-65));};
-export const date = (value:Date|string,locale:Locale='en')=>new Date(value).toLocaleDateString(locale==='en'?'en-GB':'ar-EG',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Dubai'});
+export const date = (value:Date|string,locale:Locale='en')=>new Date(value).toLocaleDateString(locale==='en'?'en-GB':'ar-EG-u-nu-latn',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Dubai'});
 export function DateText({value,locale='en'}:{value:Date|string;locale?:Locale}) {
   const d=new Date(value); const iso=Number.isNaN(d.getTime())?undefined:d.toISOString();
   return <time dateTime={iso} dir={locale==='en'?'ltr':'rtl'}><bdi>{date(value,locale)}</bdi></time>;
 }
 export function DateTimeText({value,locale='en'}:{value:Date|string;locale?:Locale}) {
   const d=new Date(value); const iso=Number.isNaN(d.getTime())?undefined:d.toISOString();
-  const text=d.toLocaleString(locale==='en'?'en-GB':'ar-EG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'});
+  const text=d.toLocaleString(locale==='en'?'en-GB':'ar-EG-u-nu-latn',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'});
   return <time dateTime={iso} dir={locale==='en'?'ltr':'rtl'}><bdi>{text}</bdi></time>;
 }
 export const PAGE_SIZE = 10;
@@ -182,27 +182,20 @@ export function ScreeningTag({
 }) {
   const isEn = locale === 'en';
 
-  // 1. Confirmed Match by analyst -> Solid High-Visibility Vivid Red
+  // 1. Confirmed Match by analyst -> danger (soft; the row Status already says Blocked)
   if (customer && (customer.confirmed_matches_count ?? 0) > 0) {
     return (
       <span
-        className="status status-confirmed-solid"
-        style={{
-          background: '#dc2626',
-          color: '#ffffff',
-          borderColor: '#b91c1c',
-          fontWeight: 700,
-          boxShadow: '0 1px 3px rgba(220, 38, 38, 0.25)',
-        }}
+        className="status danger status-confirmed"
         title={isEn ? 'Confirmed Match by Analyst' : 'تم تأكيد التطابق رسمياً من المحلل'}
       >
-        <span className="status-mark" style={{ background: '#ffffff' }} />
+        <span className="status-mark" />
         {m.scConfirmed || (isEn ? 'Confirmed Match' : 'تطابق مؤكد (خطر مرتفع)')}
       </span>
     );
   }
 
-  // 2. High-Risk Potential Match -> Soft Coral / Rose with Deep Pink Text
+  // 2. High-Risk Potential Match -> danger outline
   if (
     customer &&
     status === 'potential_match' &&
@@ -213,16 +206,10 @@ export function ScreeningTag({
   ) {
     return (
       <span
-        className="status status-high-risk-soft"
-        style={{
-          background: '#fff1f2',
-          color: '#be123c',
-          border: '1px solid #fecdd3',
-          fontWeight: 600,
-        }}
+        className="status danger status-high-risk-soft"
         title={isEn ? 'High Risk Potential Hit' : 'مطابقة محتملة مع قوائم عقوبات أو جهات محظورة'}
       >
-        <span className="status-mark" style={{ background: '#e11d48' }} />
+        <span className="status-mark" />
         {m.scHighRisk || (isEn ? 'High Risk Match' : 'مطابقة محتملة (خطر عالي)')}
       </span>
     );
@@ -238,14 +225,9 @@ export function ScreeningTag({
     return (
       <span
         className="status green status-cleared"
-        style={{
-          background: '#ecfdf5',
-          color: '#047857',
-          border: '1px solid #a7f3d0',
-        }}
         title={isEn ? 'False Positive Dismissed' : 'تم استبعاد جميع الشبهات واعتماد الملف كسليم'}
       >
-        <span className="status-mark" style={{ background: '#10b981' }} />
+        <span className="status-mark" />
         {m.scDismissed || (isEn ? 'Cleared (Dismissed)' : 'مستبعد (سليم)')}
       </span>
     );
@@ -256,14 +238,9 @@ export function ScreeningTag({
     return (
       <span
         className="status amber"
-        style={{
-          background: '#fffbeb',
-          color: '#b45309',
-          border: '1px solid #fde68a',
-        }}
         title={isEn ? 'Potential Match - Pending Review' : 'مطابقة محتملة قيد مراجعة المحلل'}
       >
-        <span className="status-mark" style={{ background: '#d97706' }} />
+        <span className="status-mark" />
         {m.scPotential || (isEn ? 'Potential Match' : 'مطابقة محتملة')}
       </span>
     );
@@ -277,14 +254,9 @@ export function ScreeningTag({
     return (
       <span
         className="status green status-clean"
-        style={{
-          background: '#f0fdf4',
-          color: '#15803d',
-          border: '1px solid #bbf7d0',
-        }}
         title={isEn ? 'Screened Clean' : 'تم الفحص - لا توجد مطابقات أو شبهات'}
       >
-        <span className="status-mark" style={{ background: '#16a34a' }} />
+        <span className="status-mark" />
         {label}
       </span>
     );
@@ -302,7 +274,7 @@ export function CustomerTable({customers,m,locale}:{customers:Customer[];m:Messa
   if(!customers.length) return <div className="empty"><UserRound size={32}/><h3>{m.emptyTitle}</h3><p>{m.emptyBody}</p></div>;
   return <>
     <div className="table-scroll desktop-only-table"><table className="data-table customers-table" dir={locale==='en'?'ltr':'rtl'}><thead><tr><th scope="col" className="th-client">{m.thClient}</th><th scope="col" className="th-type">{m.thType}</th><th scope="col" className="th-country">{m.thCountry}</th><th scope="col" className="th-status">{m.thStatus}</th><th scope="col" className="th-screening">{m.thScreening}</th><th scope="col" className="th-open"><span className="sr-only">{m.open}</span></th></tr></thead><tbody>{customers.map(c=><tr key={c.id}>
-      <td className="customer-name-cell" data-label={m.thClient}><Link className="customer-cell" href={`/profiles/${c.reference}`}><EntityIcon type={c.entity_type}/><span className="customer-cell-text"><strong dir="auto"><bdi>{c.name}</bdi></strong><small dir="ltr" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><bdi>{c.reference}</bdi>{c.monitoring_enabled && <span title={locale === 'en' ? 'Ongoing Monitoring: Active' : 'المراقبة المستمرة: مفعّلة'} style={{ display: 'inline-flex', alignItems: 'center' }}><ShieldCheck size={12} style={{ color: '#16a34a' }}/></span>}</small></span></Link></td>
+      <td className="customer-name-cell" data-label={m.thClient}><Link className="customer-cell" href={`/profiles/${c.reference}`}><EntityIcon type={c.entity_type}/><span className="customer-cell-text"><strong dir="auto">{c.name}</strong><small dir="ltr" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><bdi>{c.reference}</bdi>{c.monitoring_enabled && <span title={locale === 'en' ? 'Ongoing Monitoring: Active' : 'المراقبة المستمرة: مفعّلة'} style={{ display: 'inline-flex', alignItems: 'center' }}><ShieldCheck size={12} style={{ color: '#16a34a' }}/></span>}</small></span></Link></td>
       <td className="customer-type-cell" data-label={m.thType}><span className={`entity-type ${c.entity_type==='company'?'company':'individual'}`}>{c.entity_type==='company'?m.entityCompany:m.entityIndividual}</span></td><td className="customer-country-cell" data-label={m.thCountry}><span className="country-cell"><span className="flag" aria-hidden>{flag(c.country)||'🌐'}</span><bdi className="country-name">{countryName(c.country,locale)}</bdi></span></td><td className="customer-status-cell" data-label={m.thStatus}><Status status={c.status} customer={c} m={m} locale={locale}/></td><td className="customer-screening-cell" data-label={m.thScreening}><ScreeningTag status={c.screening_status} customer={c} m={m} locale={locale}/></td><td className="row-open-cell"><Link className="row-open" href={`/profiles/${c.reference}`} aria-label={`${m.open} ${c.name}`}><ArrowUpLeft size={18}/></Link></td>
     </tr>)}</tbody></table></div>
 
@@ -312,7 +284,7 @@ export function CustomerTable({customers,m,locale}:{customers:Customer[];m:Messa
           <div className="m-card-head">
             <EntityIcon type={c.entity_type}/>
             <div className="m-card-info">
-              <strong className="m-card-name" dir="auto"><bdi>{c.name}</bdi></strong>
+              <strong className="m-card-name" dir="auto">{c.name}</strong>
               <small className="m-card-ref" dir="ltr" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                 <bdi>{c.reference}</bdi>
                 {c.monitoring_enabled && (

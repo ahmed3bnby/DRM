@@ -10,6 +10,7 @@ import type {
   SarReportRecord,
 } from './goaml-types';
 import { SAR_REASON_LABELS, SAR_ACTION_LABELS } from './goaml-types';
+import { toGoAmlReportCode, toGoAmlIndicator } from './goaml-codes';
 
 export async function createSarReport(
   actor: Pick<Actor, 'id' | 'organizationId' | 'displayName' | 'role'>,
@@ -179,11 +180,12 @@ export async function getSarReportById(
 /**
  * Generate a UAE FIU goAML XML document following the UNODC goAML structure.
  *
- * NOTE (pre-submission): dates are emitted as xs:dateTime and all values are XML-escaped,
- * but `<report_code>` and `<indicator>` carry the app's own report type / reason category.
- * Before real FIU submission these MUST be mapped to the official goAML UAE code tables
- * (report codes and indicator codes) and the output validated against the production
- * goAML.xsd — those code lists are issued by the FIU and are not bundled here.
+ * NOTE (pre-submission): dates are emitted as xs:dateTime and all values are XML-escaped.
+ * `<report_code>` and `<indicator>` now pass through the mapping layer in goaml-codes.ts —
+ * until its official FIU code tables are filled (see that file) they fall back to the app's
+ * internal codes, which are valid XML but NOT accepted for real submission. Fill the maps,
+ * set GOAML_SCHEMA_VERSION, and enable XSD validation before filing to the FIU;
+ * isGoAmlMappingComplete() reports whether a filing is submission-ready.
  */
 export function generateGoAmlXml(
   report: SarReportRecord,
@@ -219,7 +221,7 @@ export function generateGoAmlXml(
   <rentity_id>${cleanStr(orgDetails.orgId.slice(0, 8).toUpperCase())}</rentity_id>
   <rentity_branch>MAIN</rentity_branch>
   <submission_code>E</submission_code>
-  <report_code>${cleanStr(report.report_type)}</report_code>
+  <report_code>${cleanStr(toGoAmlReportCode(report.report_type).code)}</report_code>
   <entity_reference>${cleanStr(report.reference_number)}</entity_reference>
   <fiu_ref_number></fiu_ref_number>
   <submission_date>${submissionDate}</submission_date>
@@ -236,7 +238,7 @@ export function generateGoAmlXml(
   </location>
   <activity>
     <report_indicators>
-      <indicator>${cleanStr(report.reason_category)}</indicator>
+      <indicator>${cleanStr(toGoAmlIndicator(report.reason_category).code)}</indicator>
     </report_indicators>
     <reason>${cleanStr(report.narrative)}</reason>
     <action_taken>${cleanStr(report.action_taken)}</action_taken>

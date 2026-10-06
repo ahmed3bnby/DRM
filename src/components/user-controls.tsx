@@ -100,7 +100,7 @@ export default function UserControls({
               required
               value={emailVal}
               onChange={e => setEmailVal(e.target.value)}
-              placeholder="user@drm.ae"
+              placeholder="user@company.ae"
             />
           </div>
           <button className="button primary sm" style={{ marginTop: '12px' }} disabled={pending}>
@@ -179,7 +179,7 @@ export default function UserControls({
                         className={quotaValue === String(value) ? 'selected' : ''}
                         onClick={() => setQuotaValue(String(value))}
                       >
-                        {isArabic ? new Intl.NumberFormat('ar-EG').format(value) : value}
+                        {isArabic ? new Intl.NumberFormat('ar-EG-u-nu-latn').format(value) : value}
                       </button>
                     ))}
                   </div>

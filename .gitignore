@@ -2,6 +2,7 @@ node_modules/
 .next/
 .env*
 !.env.example
+!.env.production.example
 .local/
 *.tsbuildinfo
 test-results/
@@ -11,3 +12,6 @@ playwright-report/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Third-party trademark found in public/ — kept out of the repository
+brand-backup/unused/

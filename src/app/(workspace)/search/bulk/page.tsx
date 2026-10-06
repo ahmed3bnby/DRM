@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'الفحص الجماعي عبر ملفات الإكسل | DRM'
+    title: `${(await getLocale()) === 'en' ? 'Bulk Screening (Excel)' : 'الفحص الجماعي عبر ملفات الإكسل'} | ABC`
   };
 }
 

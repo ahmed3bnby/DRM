@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { requireActor } from '@/lib/auth';
+import { hasFeature } from '@/lib/features';
 import { getCustomerByHandle } from '@/lib/customers';
 import { listSarReportsForCustomer } from '@/lib/goaml';
 import { getLocale } from '@/lib/i18n';
+import FeatureLocked from '@/components/feature-locked';
 import SarFilingView from '@/components/sar-filing-view';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +13,7 @@ export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   return {
-    title: 'إعداد تقرير معاملة مشبوهة (goAML SAR / STR) | DRM',
+    title: `${(await getLocale()) === 'en' ? 'goAML SAR / STR Filing' : 'إعداد تقرير معاملة مشبوهة (goAML SAR / STR)'} | ABC`,
   };
 }
 
@@ -23,6 +25,10 @@ export default async function SarPage({
   searchParams?: Promise<{ type?: string }>;
 }) {
   const actor = await requireActor();
+  const localeForGate = await getLocale();
+  if (!hasFeature(actor, 'goaml_filing')) {
+    return <FeatureLocked feature={localeForGate === 'en' ? 'goAML / SAR FIU filing' : 'بلاغات goAML / SAR لوحدة المعلومات المالية'} />;
+  }
   const { id } = await params;
   const search = searchParams ? await searchParams : {};
   if (!/^[\w-]{4,60}$/.test(id)) notFound();

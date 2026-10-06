@@ -68,7 +68,7 @@ function generateHtmlReport(
   <div class="doc">
     <div class="header">
       <div>
-        <span class="brand">DRM COMPLIANCE · STATUTORY AUDIT RECORD</span>
+        <span class="brand">ABC COMPLIANCE · STATUTORY AUDIT RECORD</span>
         <h1>تقرير فحص الامتثال ومكافحة غسل الأموال</h1>
         <p style="margin: 0; font-size: 12px; color: #64748b;">سجل فحص وتدقيق رسمي معتمد للمطابقة مع القوائم المحلية والدولية</p>
       </div>
@@ -142,7 +142,7 @@ function generateHtmlReport(
 
     <div class="footer">
       <span>المنشأة: ${escapeHtml(orgName)} · المحلل: ${escapeHtml(officerName)}</span>
-      <span>تاريخ إصدار التقرير: ${new Date().toLocaleDateString('ar-AE')}</span>
+      <span>تاريخ إصدار التقرير: ${new Date().toLocaleDateString('ar-AE-u-nu-latn')}</span>
     </div>
   </div>
 </body>
@@ -189,17 +189,17 @@ function generateHtmlCertificate(
       • <strong>المرجع بالنظام:</strong> <span style="font-family: monospace;">${escapeHtml(customer.reference)}</span><br/>
       • <strong>الدولة / المقر:</strong> ${escapeHtml(customer.country || 'N/A')}<br/>
       • <strong>رقم الهوية / السجل:</strong> <span style="font-family: monospace;">${escapeHtml(customer.identifier || '—')}</span><br/>
-      • <strong>تاريخ آخر فحص تحققي:</strong> ${new Date(lastScan).toLocaleDateString('ar-AE')}<br/>
+      • <strong>تاريخ آخر فحص تحققي:</strong> ${new Date(lastScan).toLocaleDateString('ar-AE-u-nu-latn')}<br/>
       • <strong>حالة المراقبة:</strong> ${customer.monitoring_status === 'flagged' ? 'تم رصد مستجدات للمراجعة' : 'سليم ومحمي (Active & Clear)'}
     </div>
 
     <div class="footer">
       <div>
         <span>مسؤول الامتثال: <strong>${escapeHtml(officerName)}</strong></span><br/>
-        <span style="color: #64748b; font-size: 11px;">تاريخ التوثيق: ${new Date().toLocaleDateString('ar-AE')}</span>
+        <span style="color: #64748b; font-size: 11px;">تاريخ التوثيق: ${new Date().toLocaleDateString('ar-AE-u-nu-latn')}</span>
       </div>
       <div class="stamp">
-        DRM COMPLIANCE<br/>OFFICIALLY VERIFIED
+        ABC COMPLIANCE<br/>OFFICIALLY VERIFIED
       </div>
     </div>
   </div>
@@ -271,7 +271,7 @@ export async function POST(req: Request) {
 
       const matchCount = lastScreening?.top_matches?.length || 0;
       const lastScreenDate = lastScreening?.created_at
-        ? new Date(lastScreening.created_at).toLocaleDateString('ar-AE')
+        ? new Date(lastScreening.created_at).toLocaleDateString('ar-AE-u-nu-latn')
         : 'لم يُفحص';
 
       // 1. Add to Manifest
@@ -284,7 +284,7 @@ export async function POST(req: Request) {
         customer.status,
         customer.screening_status,
         customer.monitoring_enabled ? 'مفعّلة 24/7' : 'غير مفعّلة',
-        new Date(customer.created_at).toLocaleDateString('ar-AE'),
+        new Date(customer.created_at).toLocaleDateString('ar-AE-u-nu-latn'),
         lastScreenDate,
         matchCount,
         sarReports.length,
@@ -329,7 +329,7 @@ export async function POST(req: Request) {
 
     // 6. Generate README Inspector File
     const readmeContent = `======================================================================
-DRM COMPLIANCE SYSTEM — STATUTORY AUDIT & INSPECTION DOSSIER
+ABC COMPLIANCE SYSTEM — STATUTORY AUDIT & INSPECTION DOSSIER
 ======================================================================
 Generated On: ${new Date().toISOString()}
 Reporting Entity: ${orgName}
@@ -369,7 +369,7 @@ Unauthorized distribution or disclosure is strictly prohibited under UAE AML law
     });
 
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const filename = `DRM_Audit_Dossier_${timestamp}.zip`;
+    const filename = `ABC_Audit_Dossier_${timestamp}.zip`;
 
     return new NextResponse(zipBuffer as unknown as BodyInit, {
       status: 200,

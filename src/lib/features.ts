@@ -13,6 +13,8 @@ export const PREMIUM_FEATURES = [
   'pep_screening',
   'bulk_screening',
   'ongoing_monitoring',
+  'goaml_filing',
+  'document_ocr',
 ] as const;
 export type PremiumFeature = typeof PREMIUM_FEATURES[number];
 
@@ -25,6 +27,8 @@ export const FEATURE_LABELS: Record<PremiumFeature, { ar: string; en: string }> 
   pep_screening: { ar: 'فحص الشخصيات السياسية البارزة عالمياً (PEP)', en: 'Global PEP screening' },
   bulk_screening: { ar: 'الفحص الجماعي عبر ملفات الإكسل (Bulk Excel/CSV)', en: 'Bulk Excel/CSV screening' },
   ongoing_monitoring: { ar: 'المراقبة المستمرة التلقائية 24/7 (Ongoing Monitoring)', en: 'Automated 24/7 ongoing monitoring' },
+  goaml_filing: { ar: 'بلاغات goAML / SAR لوحدة المعلومات المالية (FIU)', en: 'goAML / SAR FIU filing' },
+  document_ocr: { ar: 'المسح الضوئي للمستندات (هوية/جواز/رخصة)', en: 'Document OCR (ID / passport / license)' },
 };
 
 export const DEFAULT_MEMBER_LIMIT = 5;

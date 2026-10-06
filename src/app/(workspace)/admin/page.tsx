@@ -35,7 +35,7 @@ const statusLabel = (status: string, m: Awaited<ReturnType<typeof getMessages>>)
 function formatNextRunTime(isoStr: string | undefined, locale: string) {
   if (!isoStr) return locale === 'en' ? 'Disabled / No upcoming run' : 'معطل · لا يوجد موعد تشغيل قادم';
   const d = new Date(isoStr);
-  return d.toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG', {
+  return d.toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG-u-nu-latn', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -62,7 +62,7 @@ export default async function Admin({
   ]);
 
   const time = (s: string | null | undefined) => s
-    ? new Date(s).toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG', {
+    ? new Date(s).toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG-u-nu-latn', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -74,7 +74,7 @@ export default async function Admin({
     : m.opNoTime;
 
   const number = (value: number | bigint | string) =>
-    Number(value).toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG');
+    Number(value).toLocaleString(locale === 'en' ? 'en-GB' : 'ar-EG-u-nu-latn');
 
   const formatDuration = (s: string | null, f: string | null) => {
     if (!s || !f) return '—';
@@ -384,7 +384,7 @@ export default async function Admin({
                       <strong><bdi>{time(r.startedAt)}</bdi></strong>
                       {r.finishedAt && (
                         <small className="muted">
-                          {locale === 'en' ? 'ended' : 'انتهى'}: <bdi>{new Date(r.finishedAt).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Dubai' })}</bdi>
+                          {locale === 'en' ? 'ended' : 'انتهى'}: <bdi>{new Date(r.finishedAt).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Dubai' })}</bdi>
                         </small>
                       )}
                     </div>
@@ -405,11 +405,12 @@ export default async function Admin({
                     </span>
                   </td>
                   <td data-label={m.opStatus}>
-                    <span className={`badge-status-pill ${r.status}`}>
+                    <span className={`badge-status-pill ${r.status}`} title={statusLabel(r.status, m)}>
                       {r.status === 'success' && <CheckCircle2 size={13} />}
                       {r.status === 'running' && <RefreshCw size={13} className="spin-animated" />}
                       {(r.status === 'failed' || r.status === 'interrupted') && <TriangleAlert size={13} />}
-                      <span>{statusLabel(r.status, m)}</span>
+                      {/* Short label in the table; the full explanation stays in the tooltip */}
+                      <span>{r.status === 'failed' ? (locale === 'en' ? 'Partial failure' : 'فشل جزئي') : r.status === 'interrupted' ? (locale === 'en' ? 'Interrupted' : 'متوقفة') : statusLabel(r.status, m)}</span>
                     </span>
                   </td>
                   <td data-label={locale === 'en' ? 'Duration' : 'المدة'}>

@@ -30,7 +30,7 @@ export async function dispatchComplianceNotification(payload: NotificationPayloa
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `🚨 [DRM Compliance Alert] New watchlist hit detected for ${payload.customerName} (${payload.customerReference})`,
+          text: `🚨 [ABC Compliance Alert] New watchlist hit detected for ${payload.customerName} (${payload.customerReference})`,
           severity: payload.severity,
           // Send the risk category (classification), never the underlying data-source/provider
           // name — in line with the product rule of not exposing source identities.
@@ -47,6 +47,6 @@ export async function dispatchComplianceNotification(payload: NotificationPayloa
 
   // 2. No channel configured: log for auditing and report honestly that nothing was
   // actually delivered (the in-app alert row is still created by the caller).
-  console.log(`[DRM Alert System] No webhook configured; alert logged for ${payload.customerName} [${payload.severity.toUpperCase()}]:`, payload.details);
+  console.log(`[Compliance Alert System] No webhook configured; alert logged for ${payload.customerName} [${payload.severity.toUpperCase()}]:`, payload.details);
   return { dispatched: false, channel: 'none' };
 }

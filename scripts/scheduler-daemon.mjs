@@ -44,6 +44,6 @@ async function checkAndTrigger() {
   }
 }
 
-console.log(`[${new Date().toISOString()}] DRM Scheduler Daemon started. Checking every 60 seconds...`);
+console.log(`[${new Date().toISOString()}] Compliance scheduler daemon started. Checking every 60 seconds...`);
 setInterval(checkAndTrigger, 60000);
 checkAndTrigger();

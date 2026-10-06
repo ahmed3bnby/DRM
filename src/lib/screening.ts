@@ -1,5 +1,5 @@
 import { withTenant } from './db';
-import { getCustomer, enrichCustomerFromMatch } from './customers';
+import { getCustomer } from './customers';
 import { searchPublicSources, searchCoverage } from './search';
 import { loadCategories, classifyMatch, assess, type ClassifiedMatch, type RiskBand } from './risk';
 import { canManageCustomers } from './validation';
@@ -55,13 +55,17 @@ function idTokens(details: unknown): Set<string> {
 // OpenSanctions records can represent the same real-world entity in several list
 // exports.  The nested entity key lets us show one candidate with its source evidence,
 // instead of presenting each list as a separate customer match.
-function canonicalEntityKey(details: unknown, fallback: string): string {
+function canonicalEntityKey(details: unknown, fallback: string, sourceRecordId?: string): string {
   const sanctions = (details as Record<string, unknown> | null)?.sanctions;
   if (Array.isArray(sanctions)) for (const sanction of sanctions) {
     const entity = (sanction as {properties?: {entity?: unknown}})?.properties?.entity;
     const value = Array.isArray(entity) ? entity[0] : entity;
     if (typeof value === 'string' && value.trim()) return `entity:${value}`;
   }
+  // Lists without sanction objects (US Trade CSL, FBI, PEP lists…) still carry the same
+  // OpenSanctions canonical id (Wikidata "Q…" or "NK-…") as their record id — group on it so
+  // one person isn't shown as several candidates.
+  if (sourceRecordId && /^(Q\d+|NK-[A-Za-z0-9]+)$/.test(sourceRecordId)) return `entity:${sourceRecordId}`;
   return `record:${fallback}`;
 }
 
@@ -94,7 +98,7 @@ export async function screenCustomer(actor: Pick<Actor, 'organizationId'> & Part
     const idMatch = usedIdentifier && idTokens(r.details).has(custId);
     const demote = dobConflict && !idMatch;                             // contradicting DOB, no identifier support
     const c = classifyMatch(r.code, r.match_kind, r.name_similarity, catMap, { strongId: idMatch || dobMatch, demote, details: r.details });
-    return { r, c, dobMatch, idMatch, dobConflict, entityKey: canonicalEntityKey(r.details, r.id), sources:[{code:r.code, source:c.sourceTitle, recordId:r.id}] };
+    return { r, c, dobMatch, idMatch, dobConflict, entityKey: canonicalEntityKey(r.details, r.id, r.source_record_id), sources:[{code:r.code, source:c.sourceTitle, recordId:r.id}] };
   }).filter(item => item.c.percent >= 50).sort((a, b) => RANK[b.c.band] - RANK[a.c.band] || b.c.percent - a.c.percent);
   const grouped = new Map<string, ScreenedMatch>();
   for (const candidate of candidates) {
@@ -136,7 +140,7 @@ export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizatio
     sourceRecordId: r.source_record_id,
     recordCountry: extractRecordCountry(r.details),
     recordDob: extractRecordDob(r.details),
-    recordIdNumber: extractRecordIdentifier(r.details, r.source_record_id),
+    recordIdNumber: extractRecordIdentifier(r.details),   // real document numbers only — never the list's own record id
     recordAliases: extractRecordAliases(r),
   }));
   // Fingerprint the source lists in effect now, so the report can be reproduced later.
@@ -169,17 +173,10 @@ export async function runAndSaveScreening(actor: Pick<Actor, 'id' | 'organizatio
       VALUES ($1,$2,$3,'customer.screened',$4)`,
       [actor.organizationId, actor.id, customerId, `فُحص العميل — ${overall.determination}`]);
   });
-  if (top.length > 0) {
-    const topCandidate = top[0];
-    if (topCandidate.band === 'high' || topCandidate.percent >= 80) {
-      await enrichCustomerFromMatch(actor.organizationId, actor.id, customerId, {
-        country: topCandidate.recordCountry,
-        dob: topCandidate.recordDob,
-        identifier: topCandidate.recordIdNumber,
-        sourceName: topCandidate.name || topCandidate.source,
-      }).catch(() => null);
-    }
-  }
+  // No auto-enrichment here: copying nationality/DOB/ID from an UNCONFIRMED candidate would
+  // write a sanctioned person's identity into a possibly innocent customer's file, and the next
+  // re-screen would then "match" on that copied ID (circular evidence). Enrichment happens only
+  // when an analyst confirms the match (decisions.ts).
   return status;
 }
 

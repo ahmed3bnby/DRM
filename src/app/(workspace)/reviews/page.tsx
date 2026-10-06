@@ -59,7 +59,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
         <p>{m.reviewSub}</p>
       </div>
       <div className="heading-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <RunMonitoringButton isArabic={locale === 'ar'} />
+        {hasFeature(actor, 'ongoing_monitoring') && <RunMonitoringButton isArabic={locale === 'ar'} />}
         <Link href="/profiles" className="button secondary sm">
           <UsersRound size={16}/>
           <span>{m.navCustomers}</span>
@@ -141,7 +141,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
                       </span>
                       <small>
                         <Clock3 size={14} />
-                        {new Date(alert.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-AE' : 'en-US')}
+                        {new Date(alert.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-AE-u-nu-latn' : 'en-US')}
                       </small>
                     </div>
 

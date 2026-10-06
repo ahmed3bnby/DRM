@@ -151,13 +151,16 @@ export function parseMRZ(text: string): Partial<ExtractedDocData> | null {
 
     const isEmirates = issuingIcao === 'ARE';
     const nationality = mapCountryCode(nationalityIcao) || (isEmirates ? 'AE' : undefined);
+    // On an Emirates ID, positions 5–13 are the CARD serial number. The 15-digit Emirates ID
+    // number (784YYYYNNNNNNNC) is in the optional-data field of line 1 — that is the KYC identifier.
+    const eidFromMrz = isEmirates ? l1.substring(15).replace(/</g, '').match(/784\d{12}/)?.[0] : undefined;
 
     return {
       documentType: isEmirates ? 'EMIRATES_ID' : 'NATIONAL_ID',
       entityType: 'individual',
       name: fullName,
       nameEn: fullName,
-      identifier: docNumber,
+      identifier: eidFromMrz ? formatEmiratesId(eidFromMrz) : docNumber,
       country: isEmirates ? 'AE' : (mapCountryCode(issuingIcao) || 'AE'),
       nationality,
       dateOfBirth: parseMRZDate(rawDob),
@@ -181,7 +184,7 @@ export function parseEmiratesIdFront(text: string): Partial<ExtractedDocData> | 
     return null;
   }
 
-  const eid = eidMatch ? eidMatch[0].replace(/[\s_]+/g, '-') : undefined;
+  const eid = eidMatch ? formatEmiratesId(eidMatch[0]) : undefined;
 
   // Extract DOB: DD/MM/YYYY or DD-MM-YYYY
   let dob: string | undefined;
@@ -256,12 +259,13 @@ export function parseTradeLicense(text: string): Partial<ExtractedDocData> | nul
   let nameEn: string | undefined;
   let nameAr: string | undefined;
 
-  const enMatch = text.match(/(?:Trade\s*Name|Company\s*Name|Legal\s*Name)[\s:]*([A-Za-z0-9\s.,&'\-]{4,80})/i);
+  // [ \t] not \s: a name never continues onto the next line ("…L.L.C\nLegal Type").
+  const enMatch = text.match(/(?:Trade[ \t]*Name|Company[ \t]*Name|Legal[ \t]*Name)[ \t]*:?[ \t]*([A-Za-z0-9 \t.,&'\-]{4,80})/i);
   if (enMatch) {
     nameEn = enMatch[1].replace(/(?:License|Activity|Issue|Expiry|DED)[\s\S]*/i, '').trim();
   }
 
-  const arMatch = text.match(/(?:الاسم\s*التجاري|اسم\s*الشركة)[\s:]*([\u0600-\u06FF0-9\s.,\-]{4,80})/);
+  const arMatch = text.match(/(?:الاسم[ \t]*التجاري|اسم[ \t]*الشركة)[ \t]*:?[ \t]*([\u0600-\u06FF0-9 \t.,\-]{4,80})/);
   if (arMatch) {
     nameAr = arMatch[1].replace(/(?:رقم|تاريخ|النشاط|الشكل)[\s\S]*/, '').trim();
   }
@@ -293,12 +297,22 @@ export function parseTradeLicense(text: string): Partial<ExtractedDocData> | nul
 /**
  * 5. Full Multi-Modal Document Text Analyzer
  */
+// 784YYYYNNNNNNNC → 784-YYYY-NNNNNNN-C (the format printed on the card).
+function formatEmiratesId(raw: string): string {
+  const d = raw.replace(/\D/g, '');
+  return d.length === 15 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7, 14)}-${d.slice(14)}` : raw;
+}
+
 export function analyzeDocumentText(rawText: string): ExtractedDocData {
   const clean = rawText.trim();
 
   // Try 1: ICAO MRZ Parser (Gold Standard)
   const mrz = parseMRZ(clean);
   if (mrz && mrz.name && mrz.name.length >= 2) {
+    if (mrz.documentType === 'EMIRATES_ID') {
+      const printed = clean.match(/784[-\s]?\d{4}[-\s]?\d{7}[-\s]?\d/)?.[0];
+      if (printed) mrz.identifier = formatEmiratesId(printed);
+    }
     return {
       documentType: mrz.documentType || 'PASSPORT',
       entityType: mrz.entityType || 'individual',

@@ -110,7 +110,7 @@ export default function PlatformView({
           </div>
           <h1>
             {isSingleOrg
-              ? (en ? 'DRM System & Feature Configuration' : 'إعدادات المنظومة والمزايا — DRM')
+              ? (en ? 'ABC System & Feature Configuration' : 'إعدادات المنظومة والمزايا — ABC')
               : (en ? 'Organizations & Subscriptions' : 'المؤسسات والاشتراكات')}
           </h1>
           <p>

@@ -45,8 +45,9 @@ try {
   await db.query(await readFile('db/023_ongoing_monitoring.sql', 'utf8'));
   await db.query(await readFile('db/024_goaml_sar.sql', 'utf8'));
   await db.query(await readFile('db/025_goaml_rear_fari.sql', 'utf8'));
+  await db.query(await readFile('db/026_sar_retention.sql', 'utf8'));
   const organizations = [
-    ['10000000-0000-4000-8000-000000000001', 'DRM — Diligence Risk Management', 'DRM']
+    ['10000000-0000-4000-8000-000000000001', 'ABC — Compliance & Advisory', 'ABC'] // demo rebrand; was 'DRM — Diligence Risk Management', 'DRM'
   ];
   const actors = [
     ['20000000-0000-4000-8000-000000000001', organizations[0][0], 'demo@mizan.test', 'سارة أحمد', 'admin'],
@@ -85,5 +86,5 @@ try {
         [organizations[0][0],actors[0][0],inserted.rows[0].id,`أُضيف ملف تجريبي: ${name}`,i]);
     }
   }
-  console.log(process.env.SEED_DEMO_CUSTOMERS === '0' ? 'Clean start ready: organization + admin user, no customers.' : 'Schema and synthetic fixtures ready for DRM. No real customer identities.');
+  console.log(process.env.SEED_DEMO_CUSTOMERS === '0' ? 'Clean start ready: organization + admin user, no customers.' : 'Schema and synthetic fixtures ready. No real customer identities.');
 } finally { await db.end(); }

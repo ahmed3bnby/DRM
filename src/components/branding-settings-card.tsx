@@ -173,8 +173,8 @@ export default function BrandingSettingsCard({
         <form onSubmit={handleSave}>
           <div className="branding-form-grid">
             <div className="branding-field">
-              <label>{isEn ? 'Legal Entity / Firm Name' : 'اسم المنشأة / الشركة الرسمي'}</label>
-              <input
+              <label htmlFor="brand-field-1">{isEn ? 'Legal Entity / Firm Name' : 'اسم المنشأة / الشركة الرسمي'}</label>
+              <input id="brand-field-1"
                 type="text"
                 value={branding.companyName || ''}
                 onChange={(e) => setBranding({ ...branding, companyName: e.target.value })}
@@ -183,8 +183,8 @@ export default function BrandingSettingsCard({
             </div>
 
             <div className="branding-field">
-              <label>{isEn ? 'Commercial License Number' : 'رقم الرخصة التجارية / السجل (DED / ADGM / DIFC)'}</label>
-              <input
+              <label htmlFor="brand-field-2">{isEn ? 'Commercial License Number' : 'رقم الرخصة التجارية / السجل (DED / ADGM / DIFC)'}</label>
+              <input id="brand-field-2"
                 type="text"
                 value={branding.licenseNumber || ''}
                 onChange={(e) => setBranding({ ...branding, licenseNumber: e.target.value })}
@@ -217,8 +217,8 @@ export default function BrandingSettingsCard({
             </div>
 
             <div className="branding-field">
-              <label>{isEn ? 'Supervisory / Regulatory Authority' : 'الجهة الرقابية المشرفة'}</label>
-              <input
+              <label htmlFor="brand-field-3">{isEn ? 'Supervisory / Regulatory Authority' : 'الجهة الرقابية المشرفة'}</label>
+              <input id="brand-field-3"
                 type="text"
                 value={branding.regulatorName || ''}
                 onChange={(e) => setBranding({ ...branding, regulatorName: e.target.value })}
@@ -227,8 +227,8 @@ export default function BrandingSettingsCard({
             </div>
 
             <div className="branding-field" style={{ gridColumn: '1 / -1' }}>
-              <label>{isEn ? 'Official Report Certification Statement (Footer)' : 'نص إقرار واعتماد التقرير الصادر في التذييل'}</label>
-              <input
+              <label htmlFor="brand-field-4">{isEn ? 'Official Report Certification Statement (Footer)' : 'نص إقرار واعتماد التقرير الصادر في التذييل'}</label>
+              <input id="brand-field-4"
                 type="text"
                 value={branding.customFooterNote || ''}
                 onChange={(e) => setBranding({ ...branding, customFooterNote: e.target.value })}
@@ -241,20 +241,7 @@ export default function BrandingSettingsCard({
             <button
               type="submit"
               disabled={saving}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                background: '#007527',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '13px',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0, 117, 39, 0.25)',
-              }}
+              className="button primary"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               <span>{isEn ? 'Save Branding Settings' : 'حفظ وتطبيق الهوية البصرية'}</span>

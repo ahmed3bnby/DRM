@@ -14,6 +14,8 @@
     "sources:uae": "python3 scripts/connectors/uaeiec.py",
     "sources:fetch": "python3 scripts/connectors/opensanctions.py",
     "sources:import": "node --env-file=.env.local --import tsx scripts/import-sources.ts",
+    "sources:rebuild-phonetic": "node --env-file=.env.local --import tsx scripts/rebuild-phonetic.ts",
+    "db:seed-remote-subset": "node --env-file=.env.local --import tsx scripts/seed-remote-subset.ts",
     "sources:sync": "node scripts/sync-runner.mjs --all",
     "sources:sync:changed": "node scripts/sync-runner.mjs",
     "sources:schedule": "bash scripts/install-schedule.sh",

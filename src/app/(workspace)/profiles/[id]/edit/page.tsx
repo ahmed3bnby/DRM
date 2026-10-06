@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, LockKeyhole } from 'lucide-react';
 import { requireActor } from '@/lib/auth';
+import { hasFeature } from '@/lib/features';
 import { getCustomerByHandle } from '@/lib/customers';
 import { canManageCustomers, localizedCountries } from '@/lib/validation';
 import { getMessages, getLocale } from '@/lib/i18n';
@@ -37,5 +38,5 @@ export default async function EditCustomer({ params }: { params: Promise<{ id: s
 
   return <><Link href={`/profiles/${customer.reference}`} className="back-link"><ArrowRight size={17}/>{m.backToProfile}</Link>
     <div className="page-heading"><div><div className="eyebrow" dir="ltr">{customer.reference}</div><h1>{m.editTitle}</h1><p>{m.editSub}</p></div></div>
-    <CustomerForm customer={customer} countryList={localizedCountries(locale)}/></>;
+    <CustomerForm customer={customer} countryList={localizedCountries(locale)} canUseOcr={hasFeature(actor, 'document_ocr')}/></>;
 }

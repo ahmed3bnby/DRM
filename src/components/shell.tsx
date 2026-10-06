@@ -22,8 +22,8 @@ export default async function Shell({ actor, children }: { actor: Actor; childre
     <a href="#main" className="skip-link">{m.skip}</a>
     <SidebarShell closeLabel={m.sidebarClose} openLabel={m.sidebarOpen}>
       <div className="sidebar-head">
-        <Link href="/" className="brand" title="DRM - Diligence Risk Management">
-          <span className="brand-symbol"><img src="/drm-logo.png" alt="DRM - Diligence Risk Management" width={48} height={22}/></span>
+        <Link href="/" className="brand" title="ABC — Compliance & Advisory">
+          <span className="brand-symbol brand-wordmark">ABC</span>
           <span className="brand-text">
             <small>{m.brandTagline}</small>
           </span>
@@ -78,7 +78,7 @@ export default async function Shell({ actor, children }: { actor: Actor; childre
       )}
       <main id="main" className="main">{children}</main>
       <footer className="footer">
-        <span><a href="https://drmuae.com/" target="_blank" rel="noopener noreferrer" dir="ltr" translate="no" className="footer-brand-link">DRM</a> · {m.footerName}</span>
+        <span><span dir="ltr" translate="no" className="footer-brand-link">ABC</span> · {m.footerName}</span>
         <DeveloperCredit className="footer-developer" />
         <span>{m.footerData}</span>
       </footer>

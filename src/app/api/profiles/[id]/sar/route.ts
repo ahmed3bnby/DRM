@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireActor } from '@/lib/auth';
+import { hasFeature } from '@/lib/features';
 import { getCustomerByHandle } from '@/lib/customers';
 import { canManageCustomers } from '@/lib/validation';
 import { createSarReport, type SarReportType, type SarReasonCategory, type SarActionTaken } from '@/lib/goaml';
@@ -15,6 +16,9 @@ export async function POST(
     const actor = await requireActor();
     if (!canManageCustomers(actor.role)) {
       return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    }
+    if (!hasFeature(actor, 'goaml_filing')) {
+      return NextResponse.json({ error: 'هذه الميزة غير متاحة ضمن باقتك الحالية' }, { status: 403 });
     }
 
     const { id } = await params;

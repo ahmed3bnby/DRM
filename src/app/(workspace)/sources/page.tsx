@@ -480,6 +480,7 @@ export default async function Sources({
                   name="q"
                   defaultValue={q}
                   placeholder={labels.searchListsPh}
+                  aria-label={labels.searchListsPh}
                   className="sources-search-input"
                 />
               </div>

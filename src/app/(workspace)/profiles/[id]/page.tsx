@@ -27,6 +27,12 @@ import DeleteCustomerButton from '@/components/delete-customer-button';
 import MonitoringToggle from '@/components/monitoring-toggle';
 import { LastScreenedBadge } from '@/components/last-screened-badge';
 
+
+// Screenings saved before the identity fix stored the list's own record id (e.g. a Wikidata
+// "Q181182") as the record's ID number. That is not a document number — never treat it as one.
+const realIdNumber = (mt: { recordIdNumber?: string | null; sourceRecordId?: string }) =>
+  mt.recordIdNumber && mt.recordIdNumber !== mt.sourceRecordId ? mt.recordIdNumber : null;
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -34,15 +40,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   try {
     const actor = await requireActor();
     const { id } = await params;
-    if (!/^[\w-]{4,60}$/.test(id)) return { title: 'ملف العميل | DRM' };
+    if (!/^[\w-]{4,60}$/.test(id)) return { title: `${(await getLocale()) === 'en' ? 'Customer Profile' : 'ملف العميل'} | ABC` };
     const customer = await getCustomerByHandle(actor.organizationId, id);
-    if (!customer) return { title: 'ملف العميل | DRM' };
+    if (!customer) return { title: `${(await getLocale()) === 'en' ? 'Customer Profile' : 'ملف العميل'} | ABC` };
 
     return {
       title: customer.name,
     };
   } catch {
-    return { title: 'ملف العميل | DRM' };
+    return { title: `${(await getLocale()) === 'en' ? 'Customer Profile' : 'ملف العميل'} | ABC` };
   }
 }
 
@@ -102,14 +108,15 @@ export default async function Profile({
   let wasAutoEnriched = false;
   if ((missingCountry || missingNat || missingDob || missingId) && (last?.top_matches ?? []).length > 0) {
     const confirmedMatch = (last?.top_matches ?? []).find(mt => decisions[mt.recordId]?.decision === 'confirmed');
-    const firstMatch = (last?.top_matches ?? [])[0];
-    const candidateMatch = confirmedMatch || ((firstMatch?.percent ?? 0) >= 80 ? firstMatch : null);
+    // Only an analyst-confirmed match may fill the customer's identity, and only for users who
+    // can edit — rendering this page must never copy data from an unconfirmed candidate.
+    const candidateMatch = canManageCustomers(actor.role) ? confirmedMatch ?? null : null;
     if (candidateMatch) {
       const srcRecord = sourceRecordsMap.get(candidateMatch.recordId);
       const details = srcRecord?.details;
       const recCountry = candidateMatch.recordCountry ?? (details ? extractRecordCountry(details) : null);
       const recDob = candidateMatch.recordDob ?? (details ? extractRecordDob(details) : null);
-      const recIdentifier = candidateMatch.recordIdNumber ?? (details ? extractRecordIdentifier(details, srcRecord?.source_record_id) : candidateMatch.sourceRecordId ?? null);
+      const recIdentifier = details ? extractRecordIdentifier(details) : realIdNumber(candidateMatch);
 
       if (recCountry || recDob || recIdentifier) {
         const enrichment = await enrichCustomerFromMatch(actor.organizationId, actor.id, customer.id, {
@@ -258,7 +265,7 @@ export default async function Profile({
 
     return {
       state: 'neutral',
-      label: m.checkAutoDismissed || (locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< ٨٠٪)'),
+      label: m.checkAutoDismissed || (locale === 'en' ? 'Auto-excluded (< 80%)' : 'مستبعد تلقائياً (< 80%)'),
       Icon: MinusCircle,
     };
   };
@@ -280,7 +287,7 @@ export default async function Profile({
     const details = srcRecord?.details;
     const recordCountry = mt.recordCountry ?? (details ? extractRecordCountry(details) : null);
     const recordDob = mt.recordDob ?? (details ? extractRecordDob(details) : null);
-    const recordIdNumber = mt.recordIdNumber ?? (details ? extractRecordIdentifier(details, srcRecord?.source_record_id) : mt.sourceRecordId ?? null);
+    const recordIdNumber = details ? extractRecordIdentifier(details) : realIdNumber(mt);
     const recordAliases = (mt.recordAliases && mt.recordAliases.length > 0)
       ? mt.recordAliases
       : srcRecord ? extractRecordAliases(srcRecord) : [];
@@ -358,7 +365,7 @@ export default async function Profile({
       {search.screen === 'error' && (
         <div role="alert" className="error-message">
           <XCircle size={18} />
-          {m.decisionError}
+          {m.screenRunError}
         </div>
       )}
       {search.screen === 'success' && (
@@ -398,15 +405,17 @@ export default async function Profile({
           </div>
 
           <div className="profile-head-actions-bar">
-            <MonitoringToggle
-              customerId={customer.id}
-              handle={customer.reference}
-              initialEnabled={customer.monitoring_enabled !== false}
-              status={customer.monitoring_status}
-              lastMonitoredAt={customer.last_monitored_at}
-              hitCount={customer.monitoring_hit_count}
-              locale={locale}
-            />
+            {hasFeature(actor, 'ongoing_monitoring') && (
+              <MonitoringToggle
+                customerId={customer.id}
+                handle={customer.reference}
+                initialEnabled={customer.monitoring_enabled !== false}
+                status={customer.monitoring_status}
+                lastMonitoredAt={customer.last_monitored_at}
+                hitCount={customer.monitoring_hit_count}
+                locale={locale}
+              />
+            )}
             {canEdit && (
               <Link
                 href={`/profiles/${customer.reference}/edit`}
@@ -507,7 +516,7 @@ export default async function Profile({
                 <section className="panel customer-details-panel">
                   <div className="panel-heading" style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FileText size={18} style={{ color: '#007527' }} />
+                      <FileText size={18} style={{ color: 'var(--brand-600)' }} />
                       <h2 style={{ fontSize: '16px', margin: 0 }}>{m.customerData}</h2>
                     </div>
                   </div>
@@ -582,21 +591,19 @@ export default async function Profile({
                         {riskAssessment.isPending ? m.pendingSignalRiskNote : m.confirmedSignalRiskNote}
                       </p>
 
-                      {/* Clean Single Scope Note */}
-                      <div className="assessment-scope-badge" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', fontSize: '11.5px', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', margin: '8px 0 12px' }}>
-                        <CheckCheck size={14} style={{ color: '#16a34a', flexShrink: 0 }} />
+                      <div className="assessment-scope-badge">
+                        <CheckCheck size={14} />
                         <span>{number(last.relevant_count)} {m.relevantOf} {number(last.match_count)} · {locale === 'en' ? 'Screened against official lists' : 'فُحص آلياً عبر القوائم الرسمية'}</span>
                       </div>
 
-                      <div className="profile-side-risk-pill" style={{ margin: '4px 0 10px' }}>
-                        <span className={`status ${riskAssessment.isPending ? 'amber' : 'neutral'}`}>
-                          {riskAssessment.isPending
-                            ? m.riskPendingValue
-                            : (last ? `${m.riskModelTitle}: ${bandLabel(rating.band)}` : m.riskUnassessed)}
-                        </span>
-                      </div>
+                      {/* While a decision is pending the header badge already says so — only show the model band once decided */}
+                      {!riskAssessment.isPending && (
+                        <div className="profile-side-risk-pill">
+                          <span className="status neutral">{`${m.riskModelTitle}: ${bandLabel(rating.band)}`}</span>
+                        </div>
+                      )}
 
-                      <div className={`goaml-side-tag ${goAml.requiresImmediateAction ? 'critical' : goAml.requiresEdd ? 'warning' : 'standard'}`} style={{ marginBottom: '14px' }}>
+                      <div className={`goaml-side-tag ${goAml.requiresImmediateAction ? 'critical' : goAml.requiresEdd ? 'warning' : 'standard'}`}>
                         <ShieldAlert size={14} />
                         <span>{goAml.requiresImmediateAction ? m.goAmlImmediateAction : goAml.requiresEdd ? m.goAmlEddRequired : m.goAmlStandardCdd}</span>
                       </div>
@@ -605,7 +612,7 @@ export default async function Profile({
                       <div className="compliance-action-hub">
                         <div className="action-hub-header">
                           <FileSpreadsheet size={15} className="action-hub-header-icon" />
-                          <span>{locale === 'en' ? 'Compliance Operations & Reports' : 'حزمة إجراءات الامتثال والتقارير التنفيذية'}</span>
+                          <span>{locale === 'en' ? 'Actions & reports' : 'الإجراءات والتقارير'}</span>
                         </div>
 
                         <div className="action-hub-primary-slot">
@@ -619,7 +626,6 @@ export default async function Profile({
                               <span className="hub-item-title">{m.viewReport}</span>
                             </div>
                             <div className="hub-item-right">
-                              <span className="hub-micro-badge">Dossier</span>
                               <ArrowUpLeft size={13} className="hub-arrow" />
                             </div>
                           </Link>
@@ -631,33 +637,34 @@ export default async function Profile({
                                 <span className="hub-item-title">{locale === 'en' ? 'Monitoring Audit Certificate' : 'شهادة الامتثال والمراقبة المستمرة'}</span>
                               </div>
                               <div className="hub-item-right">
-                                <span className="hub-micro-badge">Audit</span>
                                 <ArrowUpLeft size={13} className="hub-arrow" />
                               </div>
                             </Link>
                           )}
 
+                          {hasFeature(actor, 'goaml_filing') && (
                           <Link href={`/profiles/${customer.reference}/sar`} className="hub-link-item sar">
                             <div className="hub-item-left">
                               <ShieldAlert size={16} className="hub-icon-sar" />
                               <span className="hub-item-title">{locale === 'en' ? 'File goAML SAR Report' : 'إعداد بلاغ اشتباه (goAML SAR)'}</span>
                             </div>
                             <div className="hub-item-right">
-                              <span className="hub-micro-badge">goAML</span>
                               <ArrowUpLeft size={13} className="hub-arrow" />
                             </div>
                           </Link>
+                          )}
 
+                          {hasFeature(actor, 'goaml_filing') && (
                           <Link href={`/profiles/${customer.reference}/sar?type=REAR`} className="hub-link-item dnfbp">
                             <div className="hub-item-left">
                               <Building2 size={16} className="hub-icon-dnfbp" />
                               <span className="hub-item-title">{locale === 'en' ? 'File REAR / FARI Report' : 'إبلاغ الصفقات العقارية (REAR/FARI)'}</span>
                             </div>
                             <div className="hub-item-right">
-                              <span className="hub-micro-badge">DNFBP</span>
                               <ArrowUpLeft size={13} className="hub-arrow" />
                             </div>
                           </Link>
+                          )}
                         </div>
                       </div>
                     </div>
