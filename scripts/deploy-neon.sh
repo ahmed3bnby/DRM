@@ -7,7 +7,7 @@
 #      APP_DB_PASSWORD=<new strong password for the restricted mizan_app role, 16+ chars, letters+digits>
 #      DEMO_PASSWORD=<password for demo@mizan.test, 12+ chars>
 # 2. bash scripts/deploy-neon.sh
-# 3. Put the printed DATABASE_URL (mizan_app — NOT the owner) into Vercel's environment variables.
+# 3. Put the printed APP_DATABASE_URL (mizan_app — NOT the owner) into Vercel's environment variables.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -f .env.neon ] || { echo "Missing .env.neon (see header of this script)"; exit 1; }
@@ -43,5 +43,5 @@ node -e '
 
 echo
 echo "Done. In Vercel → Settings → Environment Variables (Production) set:"
-echo "  DATABASE_URL = postgres://mizan_app:<APP_DB_PASSWORD>@<same host>/neondb?sslmode=require"
+echo "  APP_DATABASE_URL = postgres://mizan_app:<APP_DB_PASSWORD>@<same host>/neondb?sslmode=require"
 echo "  (same as NEON_OWNER_URL but user mizan_app and your APP_DB_PASSWORD — the app switches to the -pooler host itself)"

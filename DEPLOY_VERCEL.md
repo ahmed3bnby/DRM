@@ -33,12 +33,12 @@ bash scripts/deploy-neon.sh
 
 | الاسم | القيمة |
 |---|---|
-| `DATABASE_URL` | نفس رابط الـowner بس **اليوزر `mizan_app`** والباسورد = `APP_DB_PASSWORD` |
+| `APP_DATABASE_URL` | نفس رابط الـowner بس **اليوزر `mizan_app`** والباسورد = `APP_DB_PASSWORD` (Neon بيحط `DATABASE_URL` بتاع الـowner لوحده — التطبيق بيتجاهله ومش بيشتغل من غير `APP_DATABASE_URL`) |
 | `APP_ENV` | `production` |
 | `APP_ORIGIN` | `https://abc-compliance.vercel.app` (رابط مشروعك) |
 | `CRON_SECRET` | أي نص عشوائي طويل (للمراقبة اليومية) |
 
-> 🔴 **ماتحطش رابط الـowner في `DATABASE_URL`** — الـowner في Neon عنده `BYPASSRLS`، يعني أي مؤسسة هتشوف بيانات التانية.
+> 🔴 **ماتحطش رابط الـowner في `APP_DATABASE_URL`** — الـowner في Neon عنده `BYPASSRLS`، يعني أي مؤسسة هتشوف بيانات التانية.
 
 بعدها: **Deployments → آخر deploy من `v2-enterprise` → Redeploy**.
 

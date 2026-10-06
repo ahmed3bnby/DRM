@@ -2,10 +2,15 @@ import { Pool, type PoolClient } from 'pg';
 
 const globalDb = globalThis as unknown as { mizanPool?: Pool };
 
-// Prefer an explicit DATABASE_URL; fall back to the names the Vercel–Neon
-// integration provisions (with or without a NEON_ prefix) so the app connects
-// without hand-editing env vars.
-let connectionString = process.env.DATABASE_URL
+// APP_DATABASE_URL = the restricted app role (mizan_app, NOBYPASSRLS). The Vercel–Neon
+// integration injects DATABASE_URL / POSTGRES_URL as the database OWNER, which has
+// BYPASSRLS in Neon — connecting with it would silently disable tenant isolation.
+// So on Vercel every query fails with a clear error without APP_DATABASE_URL, instead of
+// falling back. (Checked at query time, not import time, so `next build` still succeeds.)
+const MISCONFIGURED = !!process.env.VERCEL && !process.env.APP_DATABASE_URL;
+const MISCONFIGURED_MESSAGE = 'APP_DATABASE_URL is not set: the app must connect as the restricted mizan_app role, never as the Neon owner (see DEPLOY_VERCEL.md).';
+let connectionString = MISCONFIGURED ? undefined : process.env.APP_DATABASE_URL
+  || process.env.DATABASE_URL
   || process.env.NEON_DATABASE_URL
   || process.env.POSTGRES_URL
   || process.env.NEON_POSTGRES_URL;
@@ -30,6 +35,11 @@ function createPool(): Pool {
     idleTimeoutMillis: 30000,
     ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {})
   });
+  if (MISCONFIGURED) {
+    const refuse = () => Promise.reject(new Error(MISCONFIGURED_MESSAGE));
+    p.connect = refuse as unknown as Pool['connect'];
+    p.query = refuse as unknown as Pool['query'];
+  }
   // Prevent idle connection drops from crashing the Node.js / serverless process
   p.on('error', (err) => {
     console.error('Unexpected error on idle pg client:', err?.message || err);
